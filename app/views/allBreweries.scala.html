@@ -1,0 +1,7 @@
+@(breweries:Seq[scala.xml.Elem])
+
+@main("All Breweries") {
+	<ul>
+	@breweries.map(b => <li><a href={"/brewery/" + (b \ "id").text}>{(b \ "name").text}</a></li>)
+	</ul>
+}

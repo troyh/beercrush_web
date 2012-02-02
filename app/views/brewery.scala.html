@@ -1,0 +1,12 @@
+@(brewery: Brewery)
+
+@main(brewery.name) {
+
+		<h1>@{brewery.name}</h1>
+
+		<div>
+			<p>@{brewery.address.street}</p>
+			<p>@{brewery.address.city}, @{brewery.address.state} @{brewery.address.zip} @{brewery.address.country}</p>
+		</div>
+		<p>Phone: @{brewery.phone}</p>
+}

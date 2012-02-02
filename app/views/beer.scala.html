@@ -1,0 +1,18 @@
+@(beer:Beer,brewery:Brewery)
+
+@main(beer.name + " by " + brewery.name) {
+
+		<h1>@beer.name</h1>
+		
+		<div>Brewery: <a href=@brewery.pageURL>@brewery.name</a></div>
+		
+		<p>@beer.description</p>
+		
+		<div>Style:<ul>@beer.styles.map( style => <li><a href={style.pageURL}>{style.name}</a></li>)</ul></div>
+		
+		<div>
+			<p>ABV:@beer.abv%</p>
+			<p>IBUs:@beer.ibu</p>
+		</div>
+ 
+}
