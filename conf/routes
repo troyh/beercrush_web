@@ -4,6 +4,8 @@
 
 # Home page
 GET     /                           controllers.Application.index
+GET     /beers						controllers.Application.allBeers(letter="",page:Long ?= 1)
+GET     /beers/:letter				controllers.Application.allBeers(letter,page:Long ?= 1)
 GET     /breweries					controllers.Application.allBreweries(letter="",page:Long ?= 1)
 GET     /breweries/:letter			controllers.Application.allBreweries(letter,page:Long ?= 1)
 GET		/search						controllers.Application.search(q,page: Long ?= 1)

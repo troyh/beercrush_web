@@ -88,6 +88,20 @@ object Application extends Controller {
 		page))
   }
   
+  def allBeers(letter:String="", page: Long) = Action {
+	  val MAX_ROWS=20
+	  val parameters=new org.apache.solr.client.solrj.SolrQuery()
+	  parameters.set("q","doctype:beer AND nameForSorting:" + letter.toLowerCase + "*")
+	  parameters.setStart(((page-1) * MAX_ROWS).toInt)
+	  parameters.setRows(MAX_ROWS)
+	  val response=solr.query(parameters)
+	  val numFound=response.getResults().getNumFound()
+	  val docs=response.getResults().asScala
+	  Ok(views.html.allBreweries(docs.map(d => <beer><id>{d.get("id")}</id><name>{d.get("name")}</name></beer>),
+	  	numFound / MAX_ROWS + (if (numFound % MAX_ROWS == 0) 0 else 1),
+		page))
+  }
+  
   def search(query:String, page: Long) = Action {
 	  val MAX_ROWS=20
 	  val parameters=new org.apache.solr.client.solrj.SolrQuery()

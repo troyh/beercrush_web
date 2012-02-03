@@ -1,0 +1,38 @@
+@(beers:Seq[scala.xml.Elem],totalPages:Long, thisPage:Long)
+
+@main("All Beers") {
+
+	<a href="/beers">#</a>
+	<a href="/beers/A">A</a>
+	<a href="/beers/B">B</a>
+	<a href="/beers/C">C</a>
+	<a href="/beers/D">D</a>
+	<a href="/beers/E">E</a>
+	<a href="/beers/F">F</a>
+	<a href="/beers/G">G</a>
+	<a href="/beers/H">H</a>
+	<a href="/beers/I">I</a>
+	<a href="/beers/J">J</a>
+	<a href="/beers/K">K</a>
+	<a href="/beers/L">L</a>
+	<a href="/beers/M">M</a>
+	<a href="/beers/N">N</a>
+	<a href="/beers/O">O</a>
+	<a href="/beers/P">P</a>
+	<a href="/beers/Q">Q</a>
+	<a href="/beers/R">R</a>
+	<a href="/beers/S">S</a>
+	<a href="/beers/T">T</a>
+	<a href="/beers/U">U</a>
+	<a href="/beers/V">V</a>
+	<a href="/beers/W">W</a>
+	<a href="/beers/X">X</a>
+	<a href="/beers/Y">Y</a>
+	<a href="/beers/Z">Z</a>
+	
+	<ul>
+	@beers.map(b => <li><a href={"/" + (b \ "id").text}>{(b \ "name").text}</a></li>)
+	</ul>
+
+	@pageNav(thisPage,totalPages)(None)
+}
