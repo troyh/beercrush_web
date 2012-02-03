@@ -1,7 +1,45 @@
-@(breweries:Seq[scala.xml.Elem])
+@(breweries:Seq[scala.xml.Elem],totalPages:Int, thisPage:Int)
 
 @main("All Breweries") {
+
+	<a href="/breweries">#</a>
+	<a href="/breweries/A">A</a>
+	<a href="/breweries/B">B</a>
+	<a href="/breweries/C">C</a>
+	<a href="/breweries/D">D</a>
+	<a href="/breweries/E">E</a>
+	<a href="/breweries/F">F</a>
+	<a href="/breweries/G">G</a>
+	<a href="/breweries/H">H</a>
+	<a href="/breweries/I">I</a>
+	<a href="/breweries/J">J</a>
+	<a href="/breweries/K">K</a>
+	<a href="/breweries/L">L</a>
+	<a href="/breweries/M">M</a>
+	<a href="/breweries/N">N</a>
+	<a href="/breweries/O">O</a>
+	<a href="/breweries/P">P</a>
+	<a href="/breweries/Q">Q</a>
+	<a href="/breweries/R">R</a>
+	<a href="/breweries/S">S</a>
+	<a href="/breweries/T">T</a>
+	<a href="/breweries/U">U</a>
+	<a href="/breweries/V">V</a>
+	<a href="/breweries/W">W</a>
+	<a href="/breweries/X">X</a>
+	<a href="/breweries/Y">Y</a>
+	<a href="/breweries/Z">Z</a>
+	
 	<ul>
 	@breweries.map(b => <li><a href={"/" + (b \ "id").text}>{(b \ "name").text}</a></li>)
 	</ul>
+	
+	<a href="?page=@{thisPage-1}">&lt;</a>
+	@for(pg <- 1 until totalPages+1) {
+		@pg match {
+			case _ if thisPage==pg => { @pg } 
+			case _ => { <a href="?page=@{pg}">@pg</a> }
+		}
+	}
+	<a href="?page=@{thisPage + 1}">&gt;</a>
 }
