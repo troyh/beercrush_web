@@ -61,8 +61,7 @@ class BeerStyle(id: String, val name: String) {
 object Application extends Controller {
 
   val solr=new org.apache.solr.client.solrj.impl.CommonsHttpSolrServer("http://localhost:8983/solr")
-  
-  
+
   def index = Action {
     Ok(views.html.index("Beer Crush"))
   }
@@ -75,15 +74,18 @@ object Application extends Controller {
 	  Ok(views.html.brewery(Brewery(brewery)))
   }
   
-  def allBreweries(letter:String="") = Action {
-	  // val response=SolrQuery("*")
-	  
+  def allBreweries(letter:String="", page: Long) = Action {
+	  val MAX_ROWS=20
 	  val parameters=new org.apache.solr.client.solrj.SolrQuery()
-	  // parameters.set("q","doctype:brewery")
 	  parameters.set("q","doctype:brewery AND nameForSorting:" + letter.toLowerCase + "*")
+	  parameters.setStart(((page-1) * MAX_ROWS).toInt)
+	  parameters.setRows(MAX_ROWS)
 	  val response=solr.query(parameters)
+	  val numFound=response.getResults().getNumFound()
 	  val docs=response.getResults().asScala
-	  Ok(views.html.allBreweries(docs.map(d => <brewery><id>{d.get("id")}</id><name>{d.get("name")}</name></brewery>),42,1))
+	  Ok(views.html.allBreweries(docs.map(d => <brewery><id>{d.get("id")}</id><name>{d.get("name")}</name></brewery>),
+	  	numFound / MAX_ROWS + (if (numFound % MAX_ROWS == 0) 0 else 1),
+		page))
   }
   
 }

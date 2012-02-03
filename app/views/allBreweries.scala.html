@@ -1,4 +1,4 @@
-@(breweries:Seq[scala.xml.Elem],totalPages:Int, thisPage:Int)
+@(breweries:Seq[scala.xml.Elem],totalPages:Long, thisPage:Long)
 
 @main("All Breweries") {
 
@@ -34,12 +34,12 @@
 	@breweries.map(b => <li><a href={"/" + (b \ "id").text}>{(b \ "name").text}</a></li>)
 	</ul>
 	
-	<a href="?page=@{thisPage-1}">&lt;</a>
-	@for(pg <- 1 until totalPages+1) {
+	@if(thisPage > 1) {<a href="?page=@{thisPage-1}">&lt;</a>}
+	@for(pg <- 1L until totalPages+1) {
 		@pg match {
 			case _ if thisPage==pg => { @pg } 
 			case _ => { <a href="?page=@{pg}">@pg</a> }
 		}
 	}
-	<a href="?page=@{thisPage + 1}">&gt;</a>
+	@if(thisPage < totalPages) {<a href="?page=@{thisPage + 1}">&gt;</a>}
 }
