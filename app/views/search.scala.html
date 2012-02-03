@@ -1,0 +1,11 @@
+@(query: String, totalPages: Long, thisPage: Long, results: Seq[org.apache.solr.common.SolrDocument])
+
+@main("Search Results") {
+	<h1>Search for "@query"</h1>
+	
+	<ul>
+		@results.map(d => <li><a href={"/" + d.get("id")}>{d.get("name")}</a></li>)
+	</ul>
+	
+	@pageNav(thisPage,totalPages)(Some(Map("q" -> query)))
+}

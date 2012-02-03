@@ -6,6 +6,7 @@
 GET     /                           controllers.Application.index
 GET     /breweries					controllers.Application.allBreweries(letter="",page:Long ?= 1)
 GET     /breweries/:letter			controllers.Application.allBreweries(letter,page:Long ?= 1)
+GET		/search						controllers.Application.search(q,page: Long ?= 1)
 # Beer pages
 GET     /:brewery/:beer				controllers.Application.showBeer(brewery,beer)
 GET     /:brewery					controllers.Application.showBrewery(brewery)

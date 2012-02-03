@@ -1,0 +1,16 @@
+@(thisPage: Long, totalPages: Long)(urlArgs: Option[Map[String,String]])
+
+@makeURLArgs(urlArgs: Option[Map[String,String]],page: Long) = {
+	@{"?" + (urlArgs.flatten ++ Map("page" -> page.toString)).map(a => a._1 + "=" + a._2).mkString("&")}
+}
+
+	@if(thisPage > 1) {<a href=@makeURLArgs(urlArgs,thisPage-1)>&lt;</a>}
+	@for(pg <- List(1L,thisPage-2).max until List(thisPage + 5,totalPages + 1).min) {
+		@pg match {
+			case _ if thisPage==pg => { @pg } 
+			case _ => { <a href=@makeURLArgs(urlArgs,pg)>@pg</a> }
+		}
+	}
+	of @totalPages
+	@if(thisPage < totalPages) {<a href=@makeURLArgs(urlArgs,thisPage+1)>&gt;</a>}
+

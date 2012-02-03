@@ -33,13 +33,6 @@
 	<ul>
 	@breweries.map(b => <li><a href={"/" + (b \ "id").text}>{(b \ "name").text}</a></li>)
 	</ul>
-	
-	@if(thisPage > 1) {<a href="?page=@{thisPage-1}">&lt;</a>}
-	@for(pg <- 1L until totalPages+1) {
-		@pg match {
-			case _ if thisPage==pg => { @pg } 
-			case _ => { <a href="?page=@{pg}">@pg</a> }
-		}
-	}
-	@if(thisPage < totalPages) {<a href="?page=@{thisPage + 1}">&gt;</a>}
+
+	@pageNav(thisPage,totalPages)(None)
 }

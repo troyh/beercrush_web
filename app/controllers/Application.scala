@@ -88,4 +88,23 @@ object Application extends Controller {
 		page))
   }
   
+  def search(query:String, page: Long) = Action {
+	  val MAX_ROWS=20
+	  val parameters=new org.apache.solr.client.solrj.SolrQuery()
+	  parameters.set("q",query)
+	  parameters.set("defType","dismax")
+	  parameters.set("qf","name")
+	  parameters.setStart(((page-1) * MAX_ROWS).toInt)
+	  parameters.setRows(MAX_ROWS)
+	  val response=solr.query(parameters)
+	  val numFound=response.getResults().getNumFound()
+	  val docs=response.getResults().asScala
+	  Ok(views.html.search(
+		  query,
+		  (numFound + (MAX_ROWS-1)) / MAX_ROWS,
+		  page,
+		  docs
+	  	))
+  }
+  
 }
