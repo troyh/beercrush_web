@@ -97,7 +97,7 @@ object Application extends Controller {
 	  val response=solr.query(parameters)
 	  val numFound=response.getResults().getNumFound()
 	  val docs=response.getResults().asScala
-	  Ok(views.html.allBreweries(docs.map(d => <beer><id>{d.get("id")}</id><name>{d.get("name")}</name></beer>),
+	  Ok(views.html.allBeers(docs.map(d => <beer><id>{d.get("id")}</id><name>{d.get("name")}</name></beer>),
 	  	numFound / MAX_ROWS + (if (numFound % MAX_ROWS == 0) 0 else 1),
 		page))
   }
