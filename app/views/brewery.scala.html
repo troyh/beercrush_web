@@ -9,4 +9,10 @@
 			<p>@{brewery.address.city}, @{brewery.address.state} @{brewery.address.zip} @{brewery.address.country}</p>
 		</div>
 		<p>Phone: @{brewery.phone}</p>
+		
+		<h2>Beers</h2>
+		
+		<div>
+			<ul>@{brewery.beerList.map(b => <li><a href={"/" + {b.id}}>{b.name}</a></li>)}</ul></ul>
+		</div>
 }

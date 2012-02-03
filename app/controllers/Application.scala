@@ -9,14 +9,16 @@ import scalaj.collection.Imports._
 class BeerCrushPersistentObject(id:String) {
 	val docType=this match {
 		case Brewery(id) => "brewery"
-		case Beer(id,breweryId) => "beer"
+		case Beer(id) => "beer"
+		case _ => "unknown"
 	}
 	val xmlFileLocation="/Users/troy/beerdata/" + docType + "/" + id.replace(":","/") + ".xml"
 	val asXML=scala.xml.XML.loadFile(xmlFileLocation)
 	val name=(asXML \ "name").text
 	val pageURL = {
 		this match {
-			case Brewery(id) => "/brewery/" + id
+			case Brewery(id) => "/" + id
+			case Beer(id) => "/" + id
 			case _ => "/"
 		}
 	}
@@ -34,12 +36,19 @@ case class Brewery(id:String) extends BeerCrushPersistentObject(id) {
 		}
 	}
 	val phone=(this.asXML \ "phone").text
+	def beerList: Seq[Beer] = {
+		val parameters=new org.apache.solr.client.solrj.SolrQuery()
+		parameters.set("q","doctype:beer AND brewery:" + id)
+		val response=Application.solr.query(parameters)
+		val docs=response.getResults().asScala
+		docs.map(beer => Beer(beer.get("id").toString))
+	}
 }
 
-case class Beer(id:String,val breweryId:String) extends BeerCrushPersistentObject(breweryId + ":" + id) {
+case class Beer(id:String) extends BeerCrushPersistentObject(id) {
 	def description: String = (this.asXML \ "description").text
-	def abv: Float = (this.asXML \ "abv").text.toFloat
-	def ibu: Int = (this.asXML \ "ibu").text.toInt
+	def abv: String = (this.asXML \ "abv").text
+	def ibu: String = (this.asXML \ "ibu").text
 	def styles: Seq[BeerStyle] = {
 		(this.asXML \ "styles").map( style => new BeerStyle((style \ "style" \ "bjcp_style_id").text,(style \ "style" \ "name").text))
 	}
@@ -59,9 +68,7 @@ object Application extends Controller {
   }
   
   def showBeer(breweryId:String,beer:String) = Action {
-	  // Beer(brewery,beer)
-	  val beerDoc=xml.XML.loadFile("/Users/troy/beerdata/beer/" + breweryId + "/" + beer + ".xml")
-	  Ok(views.html.beer(Beer(beer,breweryId),Brewery(breweryId)))
+	  Ok(views.html.beer(Beer(breweryId + "/" + beer),Brewery(breweryId)))
   }
 
   def showBrewery(brewery:String) = Action {
@@ -72,7 +79,7 @@ object Application extends Controller {
 	  // val response=SolrQuery("*")
 	  
 	  val parameters=new org.apache.solr.client.solrj.SolrQuery()
-	  parameters.set("q","*")
+	  parameters.set("q","doctype:brewery")
 	  val response=solr.query(parameters)
 	  val docs=response.getResults().asScala
 	  Ok(views.html.allBreweries(docs.map(d => <brewery><id>{d.get("id")}</id><name>{d.get("name")}</name></brewery>)))
