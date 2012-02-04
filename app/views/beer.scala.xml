@@ -1,0 +1,12 @@
+@(beer:Beer,brewery:Brewery)
+@main {
+	<beer>
+		<name>@beer.name</name>
+		<brewery>@brewery.name</brewery>
+		<desc>@beer.description</desc>
+		<styles>@beer.styles.map( style => <style>{style.name}</style>)</styles>
+		<abv>@beer.abv</abv>
+		<ibu>@beer.ibu</ibu>
+	</beer>
+}
+
