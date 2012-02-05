@@ -1,0 +1,18 @@
+@(brewery: Brewery)
+
+@main {
+	<brewery>
+		<name>@{brewery.name}</name>
+		<address>
+			<street>@{brewery.address.street}</street>
+			<city>@{brewery.address.city}</city>
+			<state>@{brewery.address.state}</state>
+			<zip>@{brewery.address.zip}</zip>
+			<country>@{brewery.address.country}</country>
+		</address>
+		<phone>@{brewery.phone}</phone>
+		<beerlist>
+			@{brewery.beerList.map(b => <beer><id>{b.id}</id><name>{b.name}</name></beer>)}
+		</beerlist>
+	</brewery>
+}

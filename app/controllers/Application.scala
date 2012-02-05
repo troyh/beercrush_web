@@ -108,8 +108,13 @@ object Application extends Controller {
 	  }
   }
 
-  def showBrewery(brewery:String) = Action {
-	  Ok(views.html.brewery(Brewery(brewery)))
+  def showBrewery(breweryId:String) = Action { request =>
+	  val brewery=Brewery(breweryId)
+
+	  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
+		  case AcceptHTMLHeader => Ok(views.html.brewery(brewery))
+		  case AcceptXMLHeader  => Ok(views.xml.brewery(brewery))
+	  }
   }
   
   def allBreweries(letter:String="", page: Long) = Action {
