@@ -1,5 +1,6 @@
 package controllers
 
+import util.parsing.combinator._
 import play.api._
 import play.api.mvc._
 import org.apache.solr._
@@ -7,15 +8,15 @@ import scalaj.collection.Imports._
 
 
 class BeerCrushPersistentObject(id:String) {
-	val docType=this match {
+	lazy val docType=this match {
 		case Brewery(id) => "brewery"
 		case Beer(id) => "beer"
 		case _ => "unknown"
 	}
-	val xmlFileLocation="/Users/troy/beerdata/" + docType + "/" + id.replace(":","/") + ".xml"
-	val asXML=scala.xml.XML.loadFile(xmlFileLocation)
-	val name=(asXML \ "name").text
-	val pageURL = {
+	lazy val xmlFileLocation="/Users/troy/beerdata/" + docType + "/" + id.replace(":","/") + ".xml"
+	lazy val asXML=scala.xml.XML.loadFile(xmlFileLocation)
+	lazy val name=(asXML \ "name").text
+	lazy val pageURL = {
 		this match {
 			case Brewery(id) => "/" + id
 			case Beer(id) => "/" + id
@@ -25,7 +26,7 @@ class BeerCrushPersistentObject(id:String) {
 }
 
 case class Brewery(id:String) extends BeerCrushPersistentObject(id) {
-	val address={
+	lazy val address={
 		val address=this.asXML \ "address"
 		new {
 			val street =(address \ "street").text
@@ -35,7 +36,7 @@ case class Brewery(id:String) extends BeerCrushPersistentObject(id) {
 			val country=(address \ "country").text
 		}
 	}
-	val phone=(this.asXML \ "phone").text
+	lazy val phone=(this.asXML \ "phone").text
 	def beerList: Seq[Beer] = {
 		val parameters=new org.apache.solr.client.solrj.SolrQuery()
 		parameters.set("q","doctype:beer AND brewery:" + id)
@@ -55,8 +56,26 @@ case class Beer(id:String) extends BeerCrushPersistentObject(id) {
 }
 
 class BeerStyle(id: String, val name: String) {
-	val pageURL="/style/" + id
+	lazy val pageURL="/style/" + id
 }
+
+// This parsing code from http://www.suryasuravarapu.com/2011/04/scala-parser-combinators-win.html
+case class AcceptHeader(mediaType: String, mediaSubType: String, qualityFactor: Float)
+
+object AcceptHeaderParser extends JavaTokenParsers {
+  lazy val accept: Parser[List[AcceptHeader]] = rep1sep(acceptEntry, ",")
+  lazy val acceptEntry: Parser[AcceptHeader] = (mediaType <~ "/") ~ mediaSubType ~ opt(qualityFactor) ^^ {
+    case t ~ st ~ Some(q) => AcceptHeader(t, st, q.toFloat)
+    case t ~ st ~ None => AcceptHeader(t, st, 1.0F)
+  }
+  lazy val wordRegex = """[\w+\-*]*""".r
+  lazy val mediaType = wordRegex
+  lazy val mediaSubType = wordRegex
+  lazy val qualityFactor = ";" ~> "q" ~> "=" ~> floatingPointNumber
+
+  def parse(input: String): List[AcceptHeader] = parseAll(accept, input).getOrElse(Nil)
+}
+
 
 object Application extends Controller {
 
@@ -65,13 +84,37 @@ object Application extends Controller {
   def index = Action {
     Ok(views.html.index("Beer Crush"))
   }
-  
-  def showBeer(breweryId:String,beer:String) = Action {
-	  Ok(views.html.beer(Beer(breweryId + "/" + beer),Brewery(breweryId)))
+
+	sealed abstract class AcceptHeaderType 
+	case object AcceptXMLHeader extends AcceptHeaderType
+	case object AcceptHTMLHeader extends AcceptHeaderType
+
+  def matchAcceptHeader(ahl: List[AcceptHeader]): AcceptHeaderType = {
+	  ahl match {
+		  case AcceptHeader("text","html",_) :: rest => AcceptHTMLHeader
+		  case AcceptHeader("text","xml",_) :: rest => AcceptXMLHeader
+		  case head :: rest => matchAcceptHeader(rest)
+		  case Nil => AcceptHTMLHeader
+	  }
   }
 
-  def showBrewery(brewery:String) = Action {
-	  Ok(views.html.brewery(Brewery(brewery)))
+  def showBeer(breweryId:String,beerId:String) = Action { request => 
+	  val beer=Beer(breweryId + "/" + beerId)
+	  val brewery=Brewery(breweryId)
+	  
+	  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
+		  case AcceptHTMLHeader => Ok(views.html.beer(beer,brewery))
+		  case AcceptXMLHeader  => Ok(views.xml.beer(beer,brewery))
+	  }
+  }
+
+  def showBrewery(breweryId:String) = Action { request =>
+	  val brewery=Brewery(breweryId)
+
+	  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
+		  case AcceptHTMLHeader => Ok(views.html.brewery(brewery))
+		  case AcceptXMLHeader  => Ok(views.xml.brewery(brewery))
+	  }
   }
   
   def allBreweries(letter:String="", page: Long) = Action {

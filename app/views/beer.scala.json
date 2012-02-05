@@ -1,0 +1,7 @@
+@(beer:Beer,brewery:Brewery)
+@main {
+{{
+	name: @beer.name
+}}	
+}
+
