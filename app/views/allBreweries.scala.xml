@@ -1,6 +1,8 @@
-@(breweries:Seq[scala.xml.Elem],totalPages:Long, thisPage:Long)
+@(breweries:Seq[scala.xml.Elem],totalBreweries:Long, start:Long)
 
 @main {
+	<meta total="@totalBreweries" start="@start">
+	</meta>
 	<breweries>
 	@breweries.map(b => <brewery><id>{(b \ "id").text}</id><name>{(b \ "name").text}</name></brewery>)
 	</breweries>
