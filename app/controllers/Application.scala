@@ -129,6 +129,7 @@ object Application extends Controller {
 	  Ok(views.html.allBreweries(docs.map(d => <brewery><id>{d.get("id")}</id><name>{d.get("name")}</name></brewery>),
 	  	numFound / MAX_ROWS + (if (numFound % MAX_ROWS == 0) 0 else 1),
 		page))
+  	  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
   }
   
   def allBeers(letter:String="", page: Long) = Action {

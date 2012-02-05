@@ -1,0 +1,7 @@
+@(breweries:Seq[scala.xml.Elem],totalPages:Long, thisPage:Long)
+
+@main {
+	<breweries>
+	@breweries.map(b => <brewery><id>{(b \ "id").text}</id><name>{(b \ "name").text}</name></brewery>)
+	</breweries>
+}
