@@ -1,0 +1,9 @@
+@(beers:Seq[scala.xml.Elem],totalBeers:Long, start:Long)
+
+@main {
+
+	<meta total="@totalBeers" start="@start"/>
+	<beers>
+	@beers.map(b => <beer><id>{(b \ "id").text}></id><name>{(b \ "name").text}</name></beer>)
+	</beers>
+}

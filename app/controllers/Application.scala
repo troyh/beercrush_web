@@ -138,7 +138,7 @@ object Application extends Controller {
   	  }
   }
   
-  def allBeers(letter:String="", page: Long) = Action {
+  def allBeers(letter:String="", page: Long) = Action { request =>
 	  val MAX_ROWS=20
 	  val parameters=new org.apache.solr.client.solrj.SolrQuery()
 	  parameters.set("q","doctype:beer AND nameForSorting:" + letter.toLowerCase + "*")
@@ -147,9 +147,16 @@ object Application extends Controller {
 	  val response=solr.query(parameters)
 	  val numFound=response.getResults().getNumFound()
 	  val docs=response.getResults().asScala
-	  Ok(views.html.allBeers(docs.map(d => <beer><id>{d.get("id")}</id><name>{d.get("name")}</name></beer>),
-	  	numFound / MAX_ROWS + (if (numFound % MAX_ROWS == 0) 0 else 1),
-		page))
+	  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
+		case AcceptHTMLHeader => Ok(views.html.allBeers(
+			docs.map(d => <beer><id>{d.get("id")}</id><name>{d.get("name")}</name></beer>),
+			numFound / MAX_ROWS + (if (numFound % MAX_ROWS == 0) 0 else 1),
+			page))
+		case AcceptXMLHeader  => Ok(views.xml.allBeers(
+			docs.map(d => <beer><id>{d.get("id")}</id><name>{d.get("name")}</name></beer>),
+			numFound,
+			response.getResults().getStart()))
+	  }
   }
   
   def search(query:String, page: Long) = Action {
