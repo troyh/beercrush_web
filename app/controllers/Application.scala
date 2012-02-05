@@ -159,7 +159,7 @@ object Application extends Controller {
 	  }
   }
   
-  def search(query:String, page: Long) = Action {
+  def search(query:String, page: Long) = Action { request =>
 	  val MAX_ROWS=20
 	  val parameters=new org.apache.solr.client.solrj.SolrQuery()
 	  parameters.set("q",query)
@@ -176,6 +176,18 @@ object Application extends Controller {
 		  page,
 		  docs
 	  	))
+  	  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
+  		case AcceptHTMLHeader => Ok(views.html.search(
+			query,
+			(numFound + (MAX_ROWS-1)) / MAX_ROWS,
+			page,
+			docs))
+  		case AcceptXMLHeader  => Ok(views.xml.search(
+			query,
+			numFound,
+			response.getResults().getStart(),
+			docs))
+  	  }
   }
   
 }
