@@ -1,4 +1,4 @@
-@(beer:Beer,brewery:Brewery)
+@(beer:Beer,brewery:Brewery, beerForm: Form[MutableBeer])
 
 @main(beer.name + " by " + brewery.name) {
 
@@ -14,5 +14,30 @@
 			<p>ABV:@beer.abv%</p>
 			<p>IBUs:@beer.ibu</p>
 		</div>
+		
+		@helper.form(action = routes.Application.editBeer(brewery.id,beer.id.split("/").last) ) {
+			@helper.inputText(
+				beerForm("name"),
+				'_label -> "Name",
+                '_error -> beerForm.globalError
+			)
+			@helper.inputText(
+				beerForm("description"),
+				'_label -> "Description",
+                '_error -> beerForm.globalError
+			)
+			@helper.inputText(
+				beerForm("abv"),
+				'_label -> "ABV",
+                '_error -> beerForm.globalError
+			)
+			@helper.inputText(
+				beerForm("ibu"),
+				'_label -> "IBU",
+                '_error -> beerForm.globalError
+			)
+			<input type="hidden" name="beerId" value="@{beer.id}" />
+			<input type="submit" value="Save" />
+		}
  
 }

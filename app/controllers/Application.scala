@@ -6,26 +6,33 @@ import play.api.mvc._
 import org.apache.solr._
 import scalaj.collection.Imports._
 
+// object Global extends GlobalSettings {
+// 	val config = new {
+// 		val solr = new {
+// 			var url: String = ""
+// 		}
+// 		val storage = new {
+// 			var location:String = "/tmp"
+// 		}
+// 	}
+// 	override def onStart(app:Application) {
+// 		this.config.solr.url=app.configuration.getString("beercrush.solr.url").getOrElse("")
+// 		this.config.storage.location=app.configuration.getString("beercrush.storage.location").getOrElse("")
+// 	}
+// }
 
-class BeerCrushPersistentObject(id:String) {
-	lazy val docType=this match {
-		case Brewery(id) => "brewery"
-		case Beer(id) => "beer"
-		case _ => "unknown"
-	}
-	lazy val xmlFileLocation="/Users/troy/beerdata/" + docType + "/" + id.replace(":","/") + ".xml"
+trait BeerCrushPersistentObject {
+	val id: String
+	val docType: String
+	lazy val xmlFileLocation="/Users/troy/beerdata/" + docType + "/" + id + ".xml"
+	
 	lazy val asXML=scala.xml.XML.loadFile(xmlFileLocation)
 	lazy val name=(asXML \ "name").text
-	lazy val pageURL = {
-		this match {
-			case Brewery(id) => "/" + id
-			case Beer(id) => "/" + id
-			case _ => "/"
-		}
-	}
+	val pageURL: String = "/" + id
 }
 
-case class Brewery(id:String) extends BeerCrushPersistentObject(id) {
+case class Brewery(val id:String) extends BeerCrushPersistentObject {
+	val docType="brewery"
 	lazy val address={
 		val address=this.asXML \ "address"
 		new {
@@ -42,11 +49,12 @@ case class Brewery(id:String) extends BeerCrushPersistentObject(id) {
 		parameters.set("q","doctype:beer AND brewery:" + id)
 		val response=Application.solr.query(parameters)
 		val docs=response.getResults().asScala
-		docs.map(beer => Beer(beer.get("id").toString))
+		docs.map(doc => Beer(doc.get("id").toString))
 	}
 }
 
-case class Beer(id:String) extends BeerCrushPersistentObject(id) {
+case class Beer(id:String) extends BeerCrushPersistentObject {
+	val docType="beer"
 	def description: String = (this.asXML \ "description").text
 	def abv: String = (this.asXML \ "abv").text
 	def ibu: String = (this.asXML \ "ibu").text
@@ -55,7 +63,49 @@ case class Beer(id:String) extends BeerCrushPersistentObject(id) {
 	}
 }
 
-class BeerStyle(id: String, val name: String) {
+class MutableBeer() {
+	var id:String=""
+	var breweryId:String = ""
+	var name:String = ""
+	var description:Option[String] = None
+	var abv:Option[Float] = None
+	var ibu:Option[Int] = None
+	var ingredients:Option[String] = None
+	var grains:Option[String] = None
+	var hops:Option[String] = None
+	var yeast:Option[String] = None
+	var otherings:Option[String] = None
+	var styles: Option[List[BeerStyle]] = None
+	
+	def store: Beer = {
+		val xml=
+		<beer>
+		  <id>{id}</id>
+		  <brewery_id>{breweryId}</brewery_id>
+		  <calories_per_ml></calories_per_ml>
+		  <abv>{abv.getOrElse("")}</abv>
+		  <ibu>{ibu.getOrElse("")}</ibu>
+		  <name>{name}</name>
+		  <description>{description.flatten}</description>
+		  <availability></availability>
+		  <ingredients>{ingredients.flatten}</ingredients>
+		  <grains>{grains.flatten}</grains>
+		  <hops>{hops.flatten}</hops>
+		  <yeast>{yeast.flatten}</yeast>
+		  <otherings>{otherings.flatten}</otherings>
+		  <styles>
+			  {styles.flatten.map(style => <style><bjcp_style_id>{style.id}</bjcp_style_id><name>{style.name}</name></style>)}
+		  </styles>
+		</beer>
+		
+		scala.xml.XML.loadString(xml.toString)
+		scala.xml.XML.save("/Users/troy/beerdata/editedBeer.xml",xml,"UTF-8",true)
+		
+		Beer(id)
+	}
+}
+
+class BeerStyle(val id: String, val name: String) {
 	lazy val pageURL="/style/" + id
 }
 
@@ -79,6 +129,10 @@ object AcceptHeaderParser extends JavaTokenParsers {
 
 object Application extends Controller {
 
+	import play.api.data._
+	import play.api.data.Forms._
+	import play.api.data.validation.Constraints._
+
   val solr=new org.apache.solr.client.solrj.impl.CommonsHttpSolrServer("http://localhost:8983/solr")
 
   def index = Action {
@@ -98,12 +152,35 @@ object Application extends Controller {
 	  }
   }
 
+  val beerForm: Form[MutableBeer] = Form(
+	  mapping(
+		  // "beerId" -> nonEmptyText,
+		  "name" -> nonEmptyText,
+		  "description" -> optional(nonEmptyText(minLength=10)),
+		  "abv" -> optional(text), // No float or double types?!
+		  "ibu" -> optional(number(min=0,max=200))
+	  )
+	  {
+		  (/*beerId,*/name,description,abv,ibu) => {
+			  val b=new MutableBeer()
+			  b.name=name
+			  b.description=description
+			  b.abv=if (abv.isDefined) Some(abv.get.toFloat) else None
+			  b.ibu=ibu
+			  b
+		  }
+	  }
+	  {
+		  beer => Some(beer.name,beer.description,if (beer.abv.isDefined) Some(beer.abv.toString) else None,beer.ibu)
+	  }
+  )
+	  
   def showBeer(breweryId:String,beerId:String) = Action { request => 
 	  val beer=Beer(breweryId + "/" + beerId)
 	  val brewery=Brewery(breweryId)
 	  
 	  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-		  case AcceptHTMLHeader => Ok(views.html.beer(beer,brewery))
+		  case AcceptHTMLHeader => Ok(views.html.beer(beer,brewery,beerForm))
 		  case AcceptXMLHeader  => Ok(views.xml.beer(beer,brewery))
 	  }
   }
@@ -188,6 +265,30 @@ object Application extends Controller {
 			response.getResults().getStart(),
 			docs))
   	  }
+  }
+  
+  def editBeer(breweryId:String, beerId:String) = Action { implicit request => 
+	  beerForm.bindFromRequest.fold(
+		  // Handle errors
+		  errors => {
+			  BadRequest(errors.toString)
+			  // Ok(views.html.beer(Beer(breweryId + "/" + beerId),Brewery(breweryId),beerForm))
+			  
+		  },
+	      // Handle successful form submission
+	      beer => {
+			  beer.id=breweryId + "/" + beerId
+			  beer.breweryId=breweryId
+			  // Save the doc (which gets the beer back as a Beer, not a MutableBeer)
+			  val editedBeer=beer.store
+			  val brewery=Brewery(breweryId)
+	  
+			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
+				  case AcceptHTMLHeader => Ok(views.html.beer(editedBeer,brewery,beerForm))
+				  case AcceptXMLHeader  => Ok(views.xml.beer(editedBeer,brewery))
+			  }
+		  }
+	  )
   }
   
 }
