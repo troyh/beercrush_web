@@ -83,11 +83,9 @@ case class Beer(
 	val grains:		String,
 	val hops:		String,
 	val yeast:		String,
-	val otherings:	String
-	// val styles: 	List[BeerStyle]
-) extends BeerCrushPersistentObject {
-	def styles: List[BeerStyle] = List() // Temporary
-}
+	val otherings:	String,
+	val styles: 	List[BeerStyle]
+) extends BeerCrushPersistentObject
 
 object MyHelpers {
 	def ifException[T](f: => T)(default:T): T = {
@@ -114,10 +112,10 @@ object Beer {
 			grains = (xml \ "grains").text,
 			hops = (xml \ "hops").text,
 			yeast = (xml \ "yeast").text,
-			otherings = (xml \ "otherings").text
-			// styles = (xml \ "styles").map( style => 
-			// 	new BeerStyle((style \ "style" \ "bjcp_style_id").text,(style \ "style" \ "name").text)
-			// ).toList
+			otherings = (xml \ "otherings").text,
+			styles = (xml \ "styles").map( style => 
+				new BeerStyle((style \ "style" \ "bjcp_style_id").text,(style \ "style" \ "name").text)
+			).toList
 		)
 	}
 	def store(beer: Beer): Beer = {
@@ -136,11 +134,11 @@ object Beer {
 		  <hops>{beer.hops}</hops>
 		  <yeast>{beer.yeast}</yeast>
 		  <otherings>{beer.otherings}</otherings>
+		  <styles>
+		  			  {beer.styles.map(style => <style><bjcp_style_id>{style.id}</bjcp_style_id><name>{style.name}</name></style>)}
+		  </styles>
 		</beer>
 		
-		  // <styles>
-		  // 			  {beer.styles.map(style => <style><bjcp_style_id>{style.id}</bjcp_style_id><name>{style.name}</name></style>)}
-		  // </styles>
 		scala.xml.XML.loadString(xml.toString)
 		scala.xml.XML.save("/Users/troy/beerdata/editedBeer.xml",xml,"UTF-8",true)
 
@@ -209,17 +207,41 @@ object Application extends Controller {
 			"grains" -> text,
 			"hops" -> text,
 			"yeast" -> text,
-			"otherings" -> text
-			// "styles" -> list(text)
+			"otherings" -> text,
+			"styles" -> list(text)
 	  )
 	  {
-	  		  (id:String,breweryId:String,name:String,description:String,abv:String,ibu:Int,ingredients:String,grains:String,hops:String,yeast:String,otherings:String) => {
-	  			  Beer(id,breweryId,name,description,abv.toDouble,ibu,ingredients,grains,hops,yeast,otherings)
-	  		  }
+  		  (id:String,breweryId:String,name:String,description:String,abv:String,ibu:Int,ingredients:String,grains:String,hops:String,yeast:String,otherings:String,styles:List[String]) => {
+  			  Beer(id,
+				  breweryId,
+				  name,
+				  description,
+				  abv.toDouble,
+				  ibu,
+				  ingredients,
+				  grains,
+				  hops,
+				  yeast,
+				  otherings,
+				  styles.map(s => new BeerStyle(s,s))
+			  )
+  		  }
 	  }
 	  {
 		  beer => {
-			  Some(beer.id,beer.breweryId,beer.name,beer.description,beer.abv.toString,beer.ibu,beer.ingredients,beer.grains,beer.hops,beer.yeast,beer.otherings)
+			  Some(beer.id,
+				  beer.breweryId,
+				  beer.name,
+				  beer.description,
+				  beer.abv.toString,
+				  beer.ibu,
+				  beer.ingredients,
+				  beer.grains,
+				  beer.hops,
+				  beer.yeast,
+				  beer.otherings,
+				  beer.styles.map(s => s.id)
+			  )
 		  }
 	  }
   )
