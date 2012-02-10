@@ -149,6 +149,24 @@ object Beer {
 		scala.xml.XML.save("/Users/troy/beerdata/editedBeer.xml",xml,"UTF-8",true)
 
 		beer
+ 
+		/*
+		 * Return a Beer object that has everything including the id and breweryId
+		 */
+		Beer(
+			beerId,
+			breweryId,
+			beer.name,
+			beer.description,
+			beer.abv,
+			beer.ibu,
+			beer.ingredients,
+			beer.grains,
+			beer.hops,
+			beer.yeast,
+			beer.otherings,
+			beer.styles
+		)
 	}
 }
 
