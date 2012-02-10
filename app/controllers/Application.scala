@@ -22,86 +22,129 @@ import scalaj.collection.Imports._
 // }
 
 trait BeerCrushPersistentObject {
-	val id: String
-	val docType: String
-	lazy val xmlFileLocation="/Users/troy/beerdata/" + docType + "/" + id + ".xml"
-	
-	lazy val asXML=scala.xml.XML.loadFile(xmlFileLocation)
-	lazy val name=(asXML \ "name").text
+	val id:String
+	val docType: String = this match {
+		case b: Brewery => "brewery"
+		case b: Beer => "beer"
+	}
 	val pageURL: String = "/" + id
 }
 
-case class Brewery(val id:String) extends BeerCrushPersistentObject {
-	val docType="brewery"
-	lazy val address={
-		val address=this.asXML \ "address"
-		new {
-			val street =(address \ "street").text
-			val city   =(address \ "city").text
-			val state  =(address \ "state").text
-			val zip    =(address \ "zip").text
-			val country=(address \ "country").text
-		}
-	}
-	lazy val phone=(this.asXML \ "phone").text
+case class Brewery(
+	val id:		String,
+	val name: 	String,
+	val address: Address,
+	val phone:	String
+) extends BeerCrushPersistentObject {
 	def beerList: Seq[Beer] = {
 		val parameters=new org.apache.solr.client.solrj.SolrQuery()
 		parameters.set("q","doctype:beer AND brewery:" + id)
 		val response=Application.solr.query(parameters)
 		val docs=response.getResults().asScala
-		docs.map(doc => Beer(doc.get("id").toString))
+		docs.map(doc => Beer.fromExisting(doc.get("id").toString))
 	}
 }
 
-case class Beer(id:String) extends BeerCrushPersistentObject {
-	val docType="beer"
-	def description: String = (this.asXML \ "description").text
-	def abv: String = (this.asXML \ "abv").text
-	def ibu: String = (this.asXML \ "ibu").text
-	def styles: Seq[BeerStyle] = {
-		(this.asXML \ "styles").map( style => new BeerStyle((style \ "style" \ "bjcp_style_id").text,(style \ "style" \ "name").text))
+class Address(
+	val street			: String,
+	val city			: String,
+	val state			: String,
+	val zip				: String,
+	val country			: String
+)
+
+object Brewery {
+	def fromExisting(id:String) = {
+		val xml=scala.xml.XML.loadFile("/Users/troy/beerdata/brewery/" + id + ".xml")
+		val address=xml \ "address"
+		new Brewery(
+			(xml \ "id").text,
+			(xml \ "name").text,
+			new Address(
+				(address \ "street").text,
+				(address \ "city").text,
+				(address \ "state").text,
+				(address \ "zip").text,
+				(address \ "country").text
+			),
+			(xml \ "phone").text
+		)
 	}
 }
 
-class MutableBeer() {
-	var id:String=""
-	var breweryId:String = ""
-	var name:String = ""
-	var description:Option[String] = None
-	var abv:Option[Float] = None
-	var ibu:Option[Int] = None
-	var ingredients:Option[String] = None
-	var grains:Option[String] = None
-	var hops:Option[String] = None
-	var yeast:Option[String] = None
-	var otherings:Option[String] = None
-	var styles: Option[List[BeerStyle]] = None
-	
-	def store: Beer = {
+case class Beer(
+	val id:			String,
+	val breweryId:	String,
+	val name: 		String,
+	val description:String,
+	val abv: 		Double,
+	val ibu: 		Int,
+	val ingredients:String,
+	val grains:		String,
+	val hops:		String,
+	val yeast:		String,
+	val otherings:	String
+	// val styles: 	List[BeerStyle]
+) extends BeerCrushPersistentObject {
+	def styles: List[BeerStyle] = List() // Temporary
+}
+
+object MyHelpers {
+	def ifException[T](f: => T)(default:T): T = {
+		try {
+			f
+		} catch { 
+			case _ => default
+		}
+	}
+}
+
+object Beer {
+	def fromExisting(id:String): Beer = {
+		import MyHelpers._
+		val xml=scala.xml.XML.loadFile("/Users/troy/beerdata/beer/" + id + ".xml")
+		Beer(
+			id = id,
+			breweryId = (xml \ "brewery_id").text,
+			name = (xml \ "name").text,
+			description = (xml \ "description").text,
+			abv = ifException { (xml \ "abv").text.toDouble } (0.0) ,
+			ibu = ifException { (xml \ "ibu").text.toInt } (0),
+			ingredients = (xml \ "ingredients").text,
+			grains = (xml \ "grains").text,
+			hops = (xml \ "hops").text,
+			yeast = (xml \ "yeast").text,
+			otherings = (xml \ "otherings").text
+			// styles = (xml \ "styles").map( style => 
+			// 	new BeerStyle((style \ "style" \ "bjcp_style_id").text,(style \ "style" \ "name").text)
+			// ).toList
+		)
+	}
+	def store(beer: Beer): Beer = {
 		val xml=
 		<beer>
-		  <id>{id}</id>
-		  <brewery_id>{breweryId}</brewery_id>
+		  <id>{beer.id}</id>
+		  <brewery_id>{beer.breweryId}</brewery_id>
 		  <calories_per_ml></calories_per_ml>
-		  <abv>{abv.getOrElse("")}</abv>
-		  <ibu>{ibu.getOrElse("")}</ibu>
-		  <name>{name}</name>
-		  <description>{description.flatten}</description>
+		  <abv>{beer.abv}</abv>
+		  <ibu>{beer.ibu}</ibu>
+		  <name>{beer.name}</name>
+		  <description>{beer.description}</description>
 		  <availability></availability>
-		  <ingredients>{ingredients.flatten}</ingredients>
-		  <grains>{grains.flatten}</grains>
-		  <hops>{hops.flatten}</hops>
-		  <yeast>{yeast.flatten}</yeast>
-		  <otherings>{otherings.flatten}</otherings>
-		  <styles>
-			  {styles.flatten.map(style => <style><bjcp_style_id>{style.id}</bjcp_style_id><name>{style.name}</name></style>)}
-		  </styles>
+		  <ingredients>{beer.ingredients}</ingredients>
+		  <grains>{beer.grains}</grains>
+		  <hops>{beer.hops}</hops>
+		  <yeast>{beer.yeast}</yeast>
+		  <otherings>{beer.otherings}</otherings>
 		</beer>
 		
+		  // <styles>
+		  // 			  {beer.styles.map(style => <style><bjcp_style_id>{style.id}</bjcp_style_id><name>{style.name}</name></style>)}
+		  // </styles>
 		scala.xml.XML.loadString(xml.toString)
 		scala.xml.XML.save("/Users/troy/beerdata/editedBeer.xml",xml,"UTF-8",true)
-		
-		Beer(id)
+
+		beer
 	}
 }
 
@@ -131,6 +174,8 @@ object Application extends Controller {
 
 	import play.api.data._
 	import play.api.data.Forms._
+	import play.api.data.format.Formats._
+	import play.api.data.format._
 	import play.api.data.validation.Constraints._
 
   val solr=new org.apache.solr.client.solrj.impl.CommonsHttpSolrServer("http://localhost:8983/solr")
@@ -152,41 +197,45 @@ object Application extends Controller {
 	  }
   }
 
-  val beerForm: Form[MutableBeer] = Form(
+  val beerForm: Form[Beer] = Form(
 	  mapping(
-		  // "beerId" -> nonEmptyText,
-		  "name" -> nonEmptyText,
-		  "description" -> optional(nonEmptyText(minLength=10)),
-		  "abv" -> optional(text), // No float or double types?!
-		  "ibu" -> optional(number(min=0,max=200))
+	  		"id" -> text,
+			"breweryId" -> nonEmptyText,
+			"name" -> nonEmptyText,
+			"description" -> nonEmptyText(minLength=10),
+			"abv" -> text, // No float or double types?!
+			"ibu" -> number(min=0,max=200),
+	  		"ingredients" -> text,
+			"grains" -> text,
+			"hops" -> text,
+			"yeast" -> text,
+			"otherings" -> text
+			// "styles" -> list(text)
 	  )
 	  {
-		  (/*beerId,*/name,description,abv,ibu) => {
-			  val b=new MutableBeer()
-			  b.name=name
-			  b.description=description
-			  b.abv=if (abv.isDefined) Some(abv.get.toFloat) else None
-			  b.ibu=ibu
-			  b
-		  }
+	  		  (id:String,breweryId:String,name:String,description:String,abv:String,ibu:Int,ingredients:String,grains:String,hops:String,yeast:String,otherings:String) => {
+	  			  Beer(id,breweryId,name,description,abv.toDouble,ibu,ingredients,grains,hops,yeast,otherings)
+	  		  }
 	  }
 	  {
-		  beer => Some(beer.name,beer.description,if (beer.abv.isDefined) Some(beer.abv.toString) else None,beer.ibu)
+		  beer => {
+			  Some(beer.id,beer.breweryId,beer.name,beer.description,beer.abv.toString,beer.ibu,beer.ingredients,beer.grains,beer.hops,beer.yeast,beer.otherings)
+		  }
 	  }
   )
 	  
   def showBeer(breweryId:String,beerId:String) = Action { request => 
-	  val beer=Beer(breweryId + "/" + beerId)
-	  val brewery=Brewery(breweryId)
+	  val beer=Beer.fromExisting(breweryId + "/" + beerId)
+	  val brewery=Brewery.fromExisting(breweryId)
 	  
 	  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-		  case AcceptHTMLHeader => Ok(views.html.beer(beer,brewery,beerForm))
+		  case AcceptHTMLHeader => Ok(views.html.beer(beer,brewery,beerForm.fill(beer)))
 		  case AcceptXMLHeader  => Ok(views.xml.beer(beer,brewery))
 	  }
   }
 
   def showBrewery(breweryId:String) = Action { request =>
-	  val brewery=Brewery(breweryId)
+	  val brewery=Brewery.fromExisting(breweryId)
 
 	  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
 		  case AcceptHTMLHeader => Ok(views.html.brewery(brewery))
@@ -277,15 +326,15 @@ object Application extends Controller {
 		  },
 	      // Handle successful form submission
 	      beer => {
-			  beer.id=breweryId + "/" + beerId
-			  beer.breweryId=breweryId
-			  // Save the doc (which gets the beer back as a Beer, not a MutableBeer)
-			  val editedBeer=beer.store
-			  val brewery=Brewery(breweryId)
+			  // beer.id=breweryId + "/" + beerId
+			  // beer.breweryId=breweryId
+			  // Save the doc
+			  Beer.store(beer)
+			  val brewery=Brewery.fromExisting(beer.breweryId)
 	  
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-				  case AcceptHTMLHeader => Ok(views.html.beer(editedBeer,brewery,beerForm))
-				  case AcceptXMLHeader  => Ok(views.xml.beer(editedBeer,brewery))
+				  case AcceptHTMLHeader => Ok(views.html.beer(beer,brewery,beerForm))
+				  case AcceptXMLHeader  => Ok(views.xml.beer(beer,brewery))
 			  }
 		  }
 	  )
