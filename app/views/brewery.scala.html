@@ -1,4 +1,4 @@
-@(brewery: Brewery)
+@(brewery: Brewery,breweryForm: Form[Brewery])
 
 @main(brewery.name) {
 
@@ -15,4 +15,46 @@
 		<div>
 			<ul>@{brewery.beerList.map(b => <li><a href={"/" + {b.id}}>{b.name}</a></li>)}</ul></ul>
 		</div>
+		
+		<div id="editForm">
+		@helper.form(action = routes.Application.editBrewery(brewery.id) ) {
+			@helper.inputText(
+				breweryForm("name"),
+				'_label -> "Name",
+                '_error -> breweryForm.error("name")
+			)
+			@helper.inputText(
+				breweryForm("address.street"),
+				'_label -> "Street",
+                '_error -> breweryForm.error("address.street")
+			)
+			@helper.inputText(
+				breweryForm("address.city"),
+				'_label -> "City",
+                '_error -> breweryForm.error("address.city")
+			)
+			@helper.inputText(
+				breweryForm("address.state"),
+				'_label -> "State",
+                '_error -> breweryForm.error("address.state")
+			)
+			@helper.inputText(
+				breweryForm("address.zip"),
+				'_label -> "Zip Code",
+                '_error -> breweryForm.error("address.zip")
+			)
+			@helper.inputText(
+				breweryForm("address.country"),
+				'_label -> "Country",
+                '_error -> breweryForm.error("address.country")
+			)
+			@helper.inputText(
+				breweryForm("phone"),
+				'_label -> "Phone",
+                '_error -> breweryForm.error("phone")
+			)
+			<input type="submit" value="Save" />
+		}
+		</div>
+
 }

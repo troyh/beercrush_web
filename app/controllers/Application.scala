@@ -46,7 +46,7 @@ case class Brewery(
 	}
 }
 
-class Address(
+case class Address(
 	val street			: String,
 	val city			: String,
 	val state			: String,
@@ -299,6 +299,22 @@ object Application extends Controller {
 		  }
 	  }
   )
+  
+  val breweryForm: Form[Brewery] = Form(
+	  mapping(
+		  "name" -> nonEmptyText,
+		  "address" -> mapping(
+  			"street" -> text,
+  			"city" -> text,
+  			"state" -> text,
+  			"zip" -> text,
+  			"country" -> text
+		  )(Address.apply)(Address.unapply),
+		  "phone" -> text
+      )
+	  { (name,address,phone) => Brewery("",name,address,phone) }
+	  { brewery => Some(brewery.name,brewery.address,brewery.phone) }
+  )
 	  
   def showBeer(breweryId:String,beerId:String) = Action { request => 
 	  val beer=Beer.fromExisting(breweryId + "/" + beerId)
@@ -314,7 +330,7 @@ object Application extends Controller {
 	  val brewery=Brewery.fromExisting(breweryId)
 
 	  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-		  case AcceptHTMLHeader => Ok(views.html.brewery(brewery))
+		  case AcceptHTMLHeader => Ok(views.html.brewery(brewery,breweryForm))
 		  case AcceptXMLHeader  => Ok(views.xml.brewery(brewery))
 	  }
   }
@@ -396,7 +412,6 @@ object Application extends Controller {
 	  beerForm.bindFromRequest.fold(
 		  // Handle errors
 		  errors => {
-			  // BadRequest(errors.toString)
 			  Ok(views.html.beer(Beer.fromExisting(breweryId + "/" + beerId),Brewery.fromExisting(breweryId),errors))
 		  },
 	      // Handle successful form submission
@@ -408,6 +423,23 @@ object Application extends Controller {
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
 				  case AcceptHTMLHeader => Ok(views.html.beer(newBeer,brewery,beerForm.fill(newBeer)))
 				  case AcceptXMLHeader  => Ok(views.xml.beer(newBeer,brewery))
+			  }
+		  }
+	  )
+  }
+  
+  def editBrewery(breweryId: String) = Action { implicit request =>
+	  breweryForm.bindFromRequest.fold(
+		  errors => {
+			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
+				  case AcceptHTMLHeader => Ok(views.html.brewery(Brewery.fromExisting(breweryId),errors))
+				  case AcceptXMLHeader  => Ok(views.xml.brewery(Brewery.fromExisting(breweryId)))
+			  }
+		  },
+		  brewery => {
+			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
+				  case AcceptHTMLHeader => Ok(views.html.brewery(brewery,breweryForm.fill(brewery)))
+				  case AcceptXMLHeader  => Ok(views.xml.brewery(brewery))
 			  }
 		  }
 	  )

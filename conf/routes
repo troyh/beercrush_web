@@ -13,6 +13,7 @@ GET		/search						controllers.Application.search(q,page: Long ?= 1)
 GET     /:brewery/:beer				controllers.Application.showBeer(brewery,beer)
 POST    /:brewery/:beer				controllers.Application.editBeer(brewery,beer)
 GET     /:brewery					controllers.Application.showBrewery(brewery)
+POST    /:brewery					controllers.Application.editBrewery(brewery)
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.at(path="/public", file)
