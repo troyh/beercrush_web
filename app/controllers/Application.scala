@@ -118,11 +118,11 @@ object Beer {
 			).toList
 		)
 	}
-	def store(beer: Beer): Beer = {
+	def store(beerId: String, breweryId: String, beer: Beer): Beer = {
 		val xml=
 		<beer>
-		  <id>{beer.id}</id>
-		  <brewery_id>{beer.breweryId}</brewery_id>
+		  <id>{beerId}</id>
+		  <brewery_id>{breweryId}</brewery_id>
 		  <calories_per_ml></calories_per_ml>
 		  <abv>{beer.abv}</abv>
 		  <ibu>{beer.ibu}</ibu>
@@ -198,9 +198,9 @@ object Application extends Controller {
   val beerForm: Form[Beer] = Form(
 	  mapping(
 	  		"id" -> text,
-			"breweryId" -> nonEmptyText,
+			"breweryId" -> text,
 			"name" -> nonEmptyText,
-			"description" -> nonEmptyText(minLength=10),
+			"description" -> text,
 			"abv" -> text, // No float or double types?!
 			"ibu" -> number(min=0,max=200),
 	  		"ingredients" -> text,
@@ -348,11 +348,9 @@ object Application extends Controller {
 		  },
 	      // Handle successful form submission
 	      beer => {
-			  // beer.id=breweryId + "/" + beerId
-			  // beer.breweryId=breweryId
 			  // Save the doc
-			  Beer.store(beer)
-			  val brewery=Brewery.fromExisting(beer.breweryId)
+			  Beer.store(breweryId + "/" + beerId, breweryId, beer)
+			  val brewery=Brewery.fromExisting(breweryId)
 	  
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
 				  case AcceptHTMLHeader => Ok(views.html.beer(beer,brewery,beerForm))
