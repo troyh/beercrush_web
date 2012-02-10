@@ -36,13 +36,33 @@
 				'_label -> "IBU",
                 '_error -> beerForm.globalError
 			)
-			<input type="hidden" name="id" value="" />
-			<input type="hidden" name="breweryId" value="" />
-	  		<input type="hidden" name="ingredients" value="" />
-			<input type="hidden" name="grains" value="" />
-			<input type="hidden" name="hops" value="" />
-			<input type="hidden" name="yeast" value="" />
-			<input type="hidden" name="otherings" value="" />
+			@helper.inputText(
+				beerForm("ingredients"),
+				'_label -> "Ingredients",
+                '_error -> beerForm.globalError
+			)
+			@helper.inputText(
+				beerForm("grains"),
+				'_label -> "Grains",
+                '_error -> beerForm.globalError
+			)
+			@helper.inputText(
+				beerForm("hops"),
+				'_label -> "Hops",
+                '_error -> beerForm.globalError
+			)
+			@helper.inputText(
+				beerForm("yeast"),
+				'_label -> "Yeast",
+                '_error -> beerForm.globalError
+			)
+			@helper.inputText(
+				beerForm("otherings"),
+				'_label -> "Other ingredients",
+                '_error -> beerForm.globalError
+			)
+			<!-- <input type="hidden" name="id" value="" /> -->
+			<!-- <input type="hidden" name="breweryId" value="" /> -->
 			<input type="submit" value="Save" />
 		}
  

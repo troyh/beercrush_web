@@ -52,6 +52,17 @@ class Address(
 	val zip				: String,
 	val country			: String
 )
+object Address {
+	def fromXML(node: xml.NodeSeq) = {
+		new Address(
+			(node \ "street").text,
+			(node \ "city").text,
+			(node \ "state").text,
+			(node \ "zip").text,
+			(node \ "country").text
+		)
+	}
+}
 
 object Brewery {
 	def fromExisting(id:String) = {
@@ -60,13 +71,7 @@ object Brewery {
 		new Brewery(
 			(xml \ "id").text,
 			(xml \ "name").text,
-			new Address(
-				(address \ "street").text,
-				(address \ "city").text,
-				(address \ "state").text,
-				(address \ "zip").text,
-				(address \ "country").text
-			),
+			Address.fromXML(xml \ "address"),
 			(xml \ "phone").text
 		)
 	}
@@ -197,8 +202,6 @@ object Application extends Controller {
 
   val beerForm: Form[Beer] = Form(
 	  mapping(
-	  		"id" -> text,
-			"breweryId" -> text,
 			"name" -> nonEmptyText,
 			"description" -> text,
 			"abv" -> text, // No float or double types?!
@@ -211,9 +214,10 @@ object Application extends Controller {
 			"styles" -> list(text)
 	  )
 	  {
-  		  (id:String,breweryId:String,name:String,description:String,abv:String,ibu:Int,ingredients:String,grains:String,hops:String,yeast:String,otherings:String,styles:List[String]) => {
-  			  Beer(id,
-				  breweryId,
+  		  (name:String,description:String,abv:String,ibu:Int,ingredients:String,grains:String,hops:String,yeast:String,otherings:String,styles:List[String]) => {
+  			  Beer(
+				  "",
+				  "",
 				  name,
 				  description,
 				  abv.toDouble,
@@ -229,8 +233,7 @@ object Application extends Controller {
 	  }
 	  {
 		  beer => {
-			  Some(beer.id,
-				  beer.breweryId,
+			  Some(
 				  beer.name,
 				  beer.description,
 				  beer.abv.toString,
