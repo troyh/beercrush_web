@@ -147,8 +147,6 @@ object Beer {
 		
 		scala.xml.XML.loadString(xml.toString)
 		scala.xml.XML.save("/Users/troy/beerdata/editedBeer.xml",xml,"UTF-8",true)
-
-		beer
  
 		/*
 		 * Return a Beer object that has everything including the id and breweryId
@@ -223,7 +221,14 @@ object Application extends Controller {
 	  mapping(
 			"name" -> nonEmptyText,
 			"description" -> text,
-			"abv" -> text.verifying(
+			"abv" -> text.transform({ s: String =>
+				/* Extract the digits from any noise, i.e., percent sign (%) or leading spaces */
+					val regex="^\\s*([\\d\\.]+)\\s*%?\\s*$".r
+					s match {
+						case regex(digits) => digits
+						case _ => s
+					}
+				},{ s: String => s }).verifying(
 				/**
 				*	The ABV value must be numeric (including real numbers), convertable to a Double
 				*	and between 0 and 100. The string can have a percentage sign (%) that gets ignored.
@@ -397,12 +402,12 @@ object Application extends Controller {
 	      // Handle successful form submission
 	      beer => {
 			  // Save the doc
-			  Beer.store(breweryId + "/" + beerId, breweryId, beer)
+			  val newBeer=Beer.store(breweryId + "/" + beerId, breweryId, beer)
 			  val brewery=Brewery.fromExisting(breweryId)
 	  
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-				  case AcceptHTMLHeader => Ok(views.html.beer(beer,brewery,beerForm.fill(beer)))
-				  case AcceptXMLHeader  => Ok(views.xml.beer(beer,brewery))
+				  case AcceptHTMLHeader => Ok(views.html.beer(newBeer,brewery,beerForm.fill(newBeer)))
+				  case AcceptXMLHeader  => Ok(views.xml.beer(newBeer,brewery))
 			  }
 		  }
 	  )
