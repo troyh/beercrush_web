@@ -14,56 +14,56 @@
 			<p>ABV:@beer.abv%</p>
 			<p>IBUs:@beer.ibu</p>
 		</div>
-		
+
+		<div id="editForm">
 		@helper.form(action = routes.Application.editBeer(brewery.id,beer.id.split("/").last) ) {
 			@helper.inputText(
 				beerForm("name"),
 				'_label -> "Name",
-                '_error -> beerForm.globalError
+                '_error -> beerForm.error("name")
 			)
-			@helper.inputText(
+			@helper.textarea(
 				beerForm("description"),
 				'_label -> "Description",
-                '_error -> beerForm.globalError
+                '_error -> beerForm.error("description")
 			)
 			@helper.inputText(
 				beerForm("abv"),
 				'_label -> "ABV",
-                '_error -> beerForm.globalError
+                '_error -> beerForm.error("abv")
 			)
 			@helper.inputText(
 				beerForm("ibu"),
-				'_label -> "IBU",
-                '_error -> beerForm.globalError
+				'_label -> "IBUs",
+                '_error -> beerForm.error("ibu")
 			)
 			@helper.inputText(
 				beerForm("ingredients"),
 				'_label -> "Ingredients",
-                '_error -> beerForm.globalError
+                '_error -> beerForm.error("ingredients")
 			)
 			@helper.inputText(
 				beerForm("grains"),
 				'_label -> "Grains",
-                '_error -> beerForm.globalError
+                '_error -> beerForm.error("grains")
 			)
 			@helper.inputText(
 				beerForm("hops"),
 				'_label -> "Hops",
-                '_error -> beerForm.globalError
+                '_error -> beerForm.error("hops")
 			)
 			@helper.inputText(
 				beerForm("yeast"),
 				'_label -> "Yeast",
-                '_error -> beerForm.globalError
+                '_error -> beerForm.error("yeast")
 			)
 			@helper.inputText(
 				beerForm("otherings"),
 				'_label -> "Other ingredients",
-                '_error -> beerForm.globalError
+                '_error -> beerForm.error("otherings")
 			)
-			<!-- <input type="hidden" name="id" value="" /> -->
-			<!-- <input type="hidden" name="breweryId" value="" /> -->
 			<input type="submit" value="Save" />
 		}
- 
+		</div>
+
 }

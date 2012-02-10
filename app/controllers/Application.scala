@@ -5,6 +5,7 @@ import play.api._
 import play.api.mvc._
 import org.apache.solr._
 import scalaj.collection.Imports._
+import play.api.data.validation.{Constraint, Valid, Invalid, ValidationError}
 
 // object Global extends GlobalSettings {
 // 	val config = new {
@@ -204,7 +205,34 @@ object Application extends Controller {
 	  mapping(
 			"name" -> nonEmptyText,
 			"description" -> text,
-			"abv" -> text, // No float or double types?!
+			"abv" -> text.verifying(
+				/**
+				*	The ABV value must be numeric (including real numbers), convertable to a Double
+				*	and between 0 and 100. The string can have a percentage sign (%) that gets ignored.
+				*/
+				Constraint { abv: String => {
+					abv.isEmpty() match {
+						case true => Valid
+						case false => try {
+							val regex="^\\s*([\\d\\.]+)\\s*%?\\s*$".r
+							abv match {
+								case regex(digits) => {
+									val value=digits.toDouble
+									(0 <= value && value <= 25) match {
+										case true => Valid
+										case false => Invalid(ValidationError("Must be between 0 and 25"))
+									}
+								}
+								case _ => Invalid(ValidationError("Must be a percentage"))
+							}
+						}
+						catch {
+							case _ => Invalid(ValidationError("This is not an ABV value that makes sense"))
+						}
+					}
+				}}
+			), 
+			/* Why no float or double types?! */
 			"ibu" -> number(min=0,max=200),
 	  		"ingredients" -> text,
 			"grains" -> text,
@@ -345,9 +373,8 @@ object Application extends Controller {
 	  beerForm.bindFromRequest.fold(
 		  // Handle errors
 		  errors => {
-			  BadRequest(errors.toString)
-			  // Ok(views.html.beer(Beer(breweryId + "/" + beerId),Brewery(breweryId),beerForm))
-			  
+			  // BadRequest(errors.toString)
+			  Ok(views.html.beer(Beer.fromExisting(breweryId + "/" + beerId),Brewery.fromExisting(breweryId),errors))
 		  },
 	      // Handle successful form submission
 	      beer => {
