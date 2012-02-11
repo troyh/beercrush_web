@@ -6,6 +6,7 @@ import play.api.mvc._
 import org.apache.solr._
 import scalaj.collection.Imports._
 import play.api.data.validation.{Constraint, Valid, Invalid, ValidationError}
+import models._
 
 // object Global extends GlobalSettings {
 // 	val config = new {

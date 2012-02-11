@@ -43,9 +43,11 @@
 				'_label -> "Zip Code",
                 '_error -> breweryForm.error("address.zip")
 			)
-			@helper.inputText(
+			@helper.select(
 				breweryForm("address.country"),
+                options = Countries.list.map { country => (country,country) },
 				'_label -> "Country",
+                '_default -> "--- Choose a country ---",
                 '_error -> breweryForm.error("address.country")
 			)
 			@helper.inputText(
