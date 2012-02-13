@@ -322,7 +322,7 @@ object Application extends Controller {
 	  }
   )
   
-  class BreweryForm(val breweryId:String) extends Form[Brewery](
+  class BreweryForm extends Form[Brewery](
 	  mapping(
 		  "name" -> nonEmptyText,
 		  "address" -> mapping(
@@ -334,12 +334,15 @@ object Application extends Controller {
 		  )(Address.apply)(Address.unapply),
 		  "phone" -> text
       )
-	  { (name,address,phone) => Brewery(breweryId,name,address,phone) }
+	  { (name,address,phone) => Brewery(breweryForm.breweryId,name,address,phone) }
 	  { brewery => Some(brewery.name,brewery.address,brewery.phone) },
 	  Map.empty,
 	  Nil,
 	  None
-  )
+  ) {
+		var breweryId:String = ""
+  }
+  val breweryForm = new BreweryForm
 	  
   def showBeer(breweryId:String,beerId:String) = Action { request => 
 	  val beer=Beer.fromExisting(breweryId + "/" + beerId)
@@ -352,7 +355,7 @@ object Application extends Controller {
   }
 
   def showBrewery(breweryId:String) = Action { request =>
-	  val breweryForm: BreweryForm = new BreweryForm(breweryId)
+	  breweryForm.breweryId=breweryId
 	  val brewery=Brewery.fromExisting(breweryId)
 
 	  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
@@ -455,7 +458,7 @@ object Application extends Controller {
   }
   
   def editBrewery(breweryId: String) = Action { implicit request =>
-	  val breweryForm: BreweryForm = new BreweryForm(breweryId)
+	  breweryForm.breweryId=breweryId
 	  breweryForm.bindFromRequest.fold(
 		  errors => {
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
