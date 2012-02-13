@@ -77,6 +77,29 @@ object Brewery {
 			(xml \ "phone").text
 		)
 	}
+
+	def store(breweryId:String,brewery:Brewery): Brewery = {
+		val xml=
+		<brewery>
+		  <id>{breweryId}</id>
+		  <name>{brewery.name}‎</name>
+		  <address>
+		    <street>{brewery.address.street}</street>
+		    <city>{brewery.address.city}</city>
+		    <state>{brewery.address.state}</state>
+		    <zip>{brewery.address.zip}</zip>
+		    <latitude></latitude>
+		    <longitude></longitude>
+		    <country>{brewery.address.country}</country>
+		  </address>
+		  <phone>{brewery.phone}</phone>
+		</brewery>	
+		
+		scala.xml.XML.loadString(xml.toString)
+		scala.xml.XML.save("/Users/troy/beerdata/editedBrewery.xml",xml,"UTF-8",true)
+		
+		Brewery(breweryId,brewery.name,brewery.address,brewery.phone)
+	}
 }
 
 case class Beer(
@@ -438,9 +461,10 @@ object Application extends Controller {
 			  }
 		  },
 		  brewery => {
+			  val newBrewery=Brewery.store(breweryId,brewery)
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-				  case AcceptHTMLHeader => Ok(views.html.brewery(brewery,breweryForm.fill(brewery)))
-				  case AcceptXMLHeader  => Ok(views.xml.brewery(brewery))
+				  case AcceptHTMLHeader => Ok(views.html.brewery(newBrewery,breweryForm.fill(newBrewery)))
+				  case AcceptXMLHeader  => Ok(views.xml.brewery(newBrewery))
 			  }
 		  }
 	  )
