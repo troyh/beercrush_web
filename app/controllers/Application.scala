@@ -354,7 +354,7 @@ object Application extends Controller {
 	  val brewery=Brewery.fromExisting(breweryId)
 
 	  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-		  case AcceptHTMLHeader => Ok(views.html.brewery(brewery,breweryForm))
+		  case AcceptHTMLHeader => Ok(views.html.brewery(brewery,breweryForm.fill(brewery)))
 		  case AcceptXMLHeader  => Ok(views.xml.brewery(brewery))
 	  }
   }
