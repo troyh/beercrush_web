@@ -78,10 +78,10 @@ object Brewery {
 		)
 	}
 
-	def store(breweryId:String,brewery:Brewery): Brewery = {
+	def store(brewery:Brewery): Unit = {
 		val xml=
 		<brewery>
-		  <id>{breweryId}</id>
+		  <id>{brewery.id}</id>
 		  <name>{brewery.name}‎</name>
 		  <address>
 		    <street>{brewery.address.street}</street>
@@ -97,8 +97,6 @@ object Brewery {
 		
 		scala.xml.XML.loadString(xml.toString)
 		scala.xml.XML.save("/Users/troy/beerdata/editedBrewery.xml",xml,"UTF-8",true)
-		
-		Brewery(breweryId,brewery.name,brewery.address,brewery.phone)
 	}
 }
 
@@ -324,7 +322,7 @@ object Application extends Controller {
 	  }
   )
   
-  val breweryForm: Form[Brewery] = Form(
+  class BreweryForm(val breweryId:String) extends Form[Brewery](
 	  mapping(
 		  "name" -> nonEmptyText,
 		  "address" -> mapping(
@@ -336,8 +334,11 @@ object Application extends Controller {
 		  )(Address.apply)(Address.unapply),
 		  "phone" -> text
       )
-	  { (name,address,phone) => Brewery("",name,address,phone) }
-	  { brewery => Some(brewery.name,brewery.address,brewery.phone) }
+	  { (name,address,phone) => Brewery(breweryId,name,address,phone) }
+	  { brewery => Some(brewery.name,brewery.address,brewery.phone) },
+	  Map.empty,
+	  Nil,
+	  None
   )
 	  
   def showBeer(breweryId:String,beerId:String) = Action { request => 
@@ -351,6 +352,7 @@ object Application extends Controller {
   }
 
   def showBrewery(breweryId:String) = Action { request =>
+	  val breweryForm: BreweryForm = new BreweryForm(breweryId)
 	  val brewery=Brewery.fromExisting(breweryId)
 
 	  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
@@ -453,6 +455,7 @@ object Application extends Controller {
   }
   
   def editBrewery(breweryId: String) = Action { implicit request =>
+	  val breweryForm: BreweryForm = new BreweryForm(breweryId)
 	  breweryForm.bindFromRequest.fold(
 		  errors => {
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
@@ -461,10 +464,10 @@ object Application extends Controller {
 			  }
 		  },
 		  brewery => {
-			  val newBrewery=Brewery.store(breweryId,brewery)
+			  Brewery.store(brewery)
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-				  case AcceptHTMLHeader => Ok(views.html.brewery(newBrewery,breweryForm.fill(newBrewery)))
-				  case AcceptXMLHeader  => Ok(views.xml.brewery(newBrewery))
+				  case AcceptHTMLHeader => Ok(views.html.brewery(brewery,breweryForm.fill(brewery)))
+				  case AcceptXMLHeader  => Ok(views.xml.brewery(brewery))
 			  }
 		  }
 	  )
