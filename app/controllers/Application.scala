@@ -24,24 +24,47 @@ import models._
 // }
 
 object BeerCrush {
-	type BreweryId = String
-    type BeerId = String
-}
-trait BeerCrushPersistentObject {
-	val id:String
-	val docType: String = this match {
-		case b: Brewery => "brewery"
-		case b: Beer => "beer"
+	abstract class PersistentObject {
+		val id: Id
+		val pageURL: String
 	}
-	val pageURL: String = "/" + id
+	
+	object PersistentObject {
+		def fileLocationFromId(id: Id) = {
+			"/Users/troy/beerdata/beer/" + id.toString + ".xml"
+		}
+	}
+	
+	class Id(id: String) {
+		override def toString = id
+	}
+	
+	case class BreweryId(id: String) extends Id(id) {
+		// TODO: verify the id looks like a brewery id
+		lazy val pageURL = { "/" + id }
+	}
+	object BreweryId {
+		implicit def string2id(s: String): BreweryId = { new BreweryId(s) }
+	}
+
+	case class BeerId(id: String) extends Id(id) {
+		// TODO: verify the id looks like a beer id
+	}
+	object BeerId {
+		implicit def string2id(s: String): BeerId = { new BeerId(s) }
+	}
+
 }
+	
+
 
 case class Brewery(
 	val id:		BeerCrush.BreweryId,
 	val name: 	String,
 	val address: Address,
 	val phone:	String
-) extends BeerCrushPersistentObject {
+) extends BeerCrush.PersistentObject {
+	lazy val pageURL = { "/" + id }
 	def beerList: Seq[Beer] = {
 		val parameters=new org.apache.solr.client.solrj.SolrQuery()
 		parameters.set("q","doctype:beer AND brewery:" + id)
@@ -71,7 +94,7 @@ object Address {
 }
 
 object Brewery {
-	def fromExisting(id:String) = {
+	def fromExisting(id:BeerCrush.BreweryId) = {
 		val xml=scala.xml.XML.loadFile("/Users/troy/beerdata/brewery/" + id + ".xml")
 		val address=xml \ "address"
 		new Brewery(
@@ -105,8 +128,8 @@ object Brewery {
 }
 
 case class Beer(
-	val id:			String,
-	val breweryId:	String,
+	val id:			BeerCrush.BeerId,
+	val breweryId:	BeerCrush.BreweryId,
 	val name: 		String,
 	val description:String,
 	val abv: 		Double,
@@ -117,7 +140,9 @@ case class Beer(
 	val yeast:		String,
 	val otherings:	String,
 	val styles: 	List[BeerStyle]
-) extends BeerCrushPersistentObject
+) extends BeerCrush.PersistentObject {
+	lazy val pageURL = { "/" + id }
+}
 
 object MyHelpers {
 	def ifException[T](f: => T)(default:T): T = {
@@ -130,9 +155,9 @@ object MyHelpers {
 }
 
 object Beer {
-	def fromExisting(id:String): Beer = {
+	def fromExisting(id:BeerCrush.BeerId): Beer = {
 		import MyHelpers._
-		val xml=scala.xml.XML.loadFile("/Users/troy/beerdata/beer/" + id + ".xml")
+		val xml=scala.xml.XML.loadFile(BeerCrush.PersistentObject.fileLocationFromId(id))
 		Beer(
 			id = id,
 			breweryId = (xml \ "brewery_id").text,
