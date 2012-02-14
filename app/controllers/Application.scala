@@ -324,17 +324,27 @@ object Application extends Controller {
   )
   
   
-  type BreweryId = String
-  val breweryFormMap = (apply: Function3[String,Address,String,Brewery], unapply: Function1[Brewery,Option[(String,Address,String)]]) => mapping(
-  		  "name" -> nonEmptyText,
-  		  "address" -> mapping(
-  			"street" -> text,
-  			"city" -> text,
-  			"state" -> text,
-  			"zip" -> text,
-  			"country" -> text
-  		  )(Address.apply)(Address.unapply),
-  		  "phone" -> text)(apply)(unapply)
+	type BreweryId = String
+	class BreweryForm(breweryId:BreweryId) extends Form[Brewery](
+		  	mapping(
+				"name" -> nonEmptyText,
+				"address" -> mapping(
+					"street" -> text,
+					"city" -> text,
+					"state" -> text,
+					"zip" -> text,
+					"country" -> text
+				)(Address.apply)(Address.unapply),
+				"phone" -> text
+				)
+			  { (name,address,phone) => Brewery(breweryId,name,address,phone) }
+			  { brewery => Some(brewery.name,brewery.address,brewery.phone) },
+			  Map.empty,
+			  Nil,
+			  None
+		  )
+	{
+	}
 	  
   def showBeer(breweryId:String,beerId:String) = Action { request => 
 	  val beer=Beer.fromExisting(breweryId + "/" + beerId)
@@ -347,11 +357,7 @@ object Application extends Controller {
   }
 
   def showBrewery(breweryId:BreweryId) = Action { request =>
-	  val breweryForm = Form[Brewery](
-		  breweryFormMap(
-			  { (name,address,phone) => Brewery(breweryId,name,address,phone) },
-			  { brewery => Some(brewery.name,brewery.address,brewery.phone) })
-	  )
+	  val breweryForm = new BreweryForm(breweryId)
 	  val brewery=Brewery.fromExisting(breweryId)
 
 	  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
@@ -454,12 +460,7 @@ object Application extends Controller {
   }
   
   def editBrewery(breweryId: BreweryId) = Action { implicit request =>
-	  val breweryForm = Form[Brewery](
-		  breweryFormMap(
-			  { (name,address,phone) => Brewery(breweryId,name,address,phone) },
-			  { brewery => Some(brewery.name,brewery.address,brewery.phone) }
-		  )
-	  )
+	  val breweryForm = new BreweryForm(breweryId)
 	  breweryForm.bindFromRequest.fold(
 		  errors => {
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
