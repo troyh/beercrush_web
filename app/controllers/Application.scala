@@ -23,6 +23,10 @@ import models._
 // 	}
 // }
 
+object BeerCrush {
+	type BreweryId = String
+    type BeerId = String
+}
 trait BeerCrushPersistentObject {
 	val id:String
 	val docType: String = this match {
@@ -33,7 +37,7 @@ trait BeerCrushPersistentObject {
 }
 
 case class Brewery(
-	val id:		String,
+	val id:		BeerCrush.BreweryId,
 	val name: 	String,
 	val address: Address,
 	val phone:	String
@@ -146,7 +150,7 @@ object Beer {
 			).toList
 		)
 	}
-	def store(beerId: String, breweryId: String, beer: Beer): Beer = {
+	def store(beerId: BeerCrush.BeerId, breweryId: BeerCrush.BreweryId, beer: Beer): Beer = {
 		val xml=
 		<beer>
 		  <id>{beerId}</id>
@@ -240,7 +244,7 @@ object Application extends Controller {
 	  }
   }
 
-  val beerForm: Form[Beer] = Form(
+  class BeerForm(breweryId:BeerCrush.BreweryId, beerId: BeerCrush.BeerId) extends Form[Beer](
 	  mapping(
 			"name" -> nonEmptyText,
 			"description" -> text,
@@ -290,8 +294,8 @@ object Application extends Controller {
 	  {
   		  (name:String,description:String,abv:String,ibu:Int,ingredients:String,grains:String,hops:String,yeast:String,otherings:String,styles:List[String]) => {
   			  Beer(
-				  "",
-				  "",
+				  beerId,
+				  breweryId,
 				  name,
 				  description,
 				  abv.toDouble,
@@ -320,12 +324,16 @@ object Application extends Controller {
 				  beer.styles.map(s => s.id)
 			  )
 		  }
-	  }
+	  },
+	  Map.empty,
+	  Nil,
+	  None
   )
+  {
+  }
   
   
-	type BreweryId = String
-	class BreweryForm(breweryId:BreweryId) extends Form[Brewery](
+	class BreweryForm(breweryId:BeerCrush.BreweryId) extends Form[Brewery](
 		  	mapping(
 				"name" -> nonEmptyText,
 				"address" -> mapping(
@@ -346,7 +354,8 @@ object Application extends Controller {
 	{
 	}
 	  
-  def showBeer(breweryId:String,beerId:String) = Action { request => 
+  def showBeer(breweryId:BeerCrush.BreweryId,beerId:BeerCrush.BeerId) = Action { request => 
+	  val beerForm=new BeerForm(breweryId,beerId)
 	  val beer=Beer.fromExisting(breweryId + "/" + beerId)
 	  val brewery=Brewery.fromExisting(breweryId)
 	  
@@ -356,7 +365,7 @@ object Application extends Controller {
 	  }
   }
 
-  def showBrewery(breweryId:BreweryId) = Action { request =>
+  def showBrewery(breweryId:BeerCrush.BreweryId) = Action { request =>
 	  val breweryForm = new BreweryForm(breweryId)
 	  val brewery=Brewery.fromExisting(breweryId)
 
@@ -439,7 +448,8 @@ object Application extends Controller {
   	  }
   }
   
-  def editBeer(breweryId:String, beerId:String) = Action { implicit request => 
+  def editBeer(breweryId:BeerCrush.BreweryId, beerId:BeerCrush.BeerId) = Action { implicit request => 
+	  val beerForm=new BeerForm(breweryId,beerId)
 	  beerForm.bindFromRequest.fold(
 		  // Handle errors
 		  errors => {
@@ -459,7 +469,7 @@ object Application extends Controller {
 	  )
   }
   
-  def editBrewery(breweryId: BreweryId) = Action { implicit request =>
+  def editBrewery(breweryId: BeerCrush.BreweryId) = Action { implicit request =>
 	  val breweryForm = new BreweryForm(breweryId)
 	  breweryForm.bindFromRequest.fold(
 		  errors => {
