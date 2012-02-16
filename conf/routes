@@ -12,6 +12,7 @@ GET		/search						controllers.Application.search(q,page: Long ?= 1)
 # Beer pages
 GET     /:brewery/:beer				controllers.Application.showBeer(brewery,beer)
 POST    /:brewery/:beer				controllers.Application.editBeer(brewery,beer)
+POST    /:brewery/:beer/photo		controllers.Application.addBeerPhoto(brewery,beer)
 GET     /:brewery					controllers.Application.showBrewery(brewery)
 POST    /:brewery					controllers.Application.editBrewery(brewery)
 

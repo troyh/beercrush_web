@@ -513,4 +513,41 @@ object Application extends Controller {
 	  )
   }
   
+  def addBeerPhoto(breweryId: BeerCrush.BreweryId, beerId: BeerCrush.BeerId) = Action { request =>
+	  request.body.asMultipartFormData match {
+		  case Some(mfd) => { // It's multipartFormData
+			  mfd.file("photo").map( uploadedFile => 
+				  // val filename=uploadedFile.filename
+				  uploadedFile.contentType.map(t =>  t match {
+					  case "img/jpg"  => Some(".jpg")
+					  case "img/jpeg" => Some(".jpg")
+					  case "img/png"  => Some(".png")
+					  case _ => None
+				  }).map( ext => {
+					  // It's a photo!
+					  uploadedFile.ref.moveTo()
+					  // uploadedFile.ref.moveTo("/tmp/"+ breweryId + "/" + beerId + uniqId + ext)
+					  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
+						  case AcceptHTMLHeader => Ok("")
+						  // case AcceptHTMLHeader => Ok(views.html.beerPhotoUploaded(brewery))
+						  case AcceptXMLHeader  => Accepted("")
+						  // case AcceptXMLHeader  => Ok(views.xml.beerPhotoUploaded(brewery))
+					  }
+				  }
+				  ).getOrElse(UnsupportedMediaType("Unsupported image format"))
+			).getOrElse { NotAcceptable("Photo Missing") }
+		  }
+		  case None => { // Not multipartFormData, try raw
+			  request.body.asRaw match {
+				  case Some(raw) => {
+					  Ok
+				  }
+				  case None => { // I can't handle this type for a photo
+					  NotAcceptable
+				  }
+			  }
+		  }
+	  }
+  }
+  
 }
