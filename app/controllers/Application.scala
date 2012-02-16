@@ -7,6 +7,7 @@ import org.apache.solr._
 import scalaj.collection.Imports._
 import play.api.data.validation.{Constraint, Valid, Invalid, ValidationError}
 import models._
+import java.io._
 
 // object Global extends GlobalSettings {
 // 	val config = new {
@@ -249,7 +250,6 @@ object Application extends Controller {
 	import play.api.data.format._
 	import play.api.data.validation.Constraints._
 
-	Logger.info("Controller instantiated!")
   val solr=new org.apache.solr.client.solrj.impl.CommonsHttpSolrServer("http://localhost:8983/solr")
 
   def index = Action {
@@ -516,26 +516,26 @@ object Application extends Controller {
   def addBeerPhoto(breweryId: BeerCrush.BreweryId, beerId: BeerCrush.BeerId) = Action { request =>
 	  request.body.asMultipartFormData match {
 		  case Some(mfd) => { // It's multipartFormData
-			  mfd.file("photo").map( uploadedFile => 
+			  mfd.file("photo").map( uploadedFile => {
 				  // val filename=uploadedFile.filename
 				  uploadedFile.contentType.map(t =>  t match {
-					  case "img/jpg"  => Some(".jpg")
-					  case "img/jpeg" => Some(".jpg")
-					  case "img/png"  => Some(".png")
+					  case "image/jpg"  => Some(".jpg")
+					  case "image/jpeg" => Some(".jpg")
+					  case "image/png"  => Some(".png")
 					  case _ => None
-				  }).map( ext => {
+				  }).map( { case Some(ext) => {
 					  // It's a photo!
-					  uploadedFile.ref.moveTo()
-					  // uploadedFile.ref.moveTo("/tmp/"+ breweryId + "/" + beerId + uniqId + ext)
+					  val uniqId="-someuniqueidhere"
+					  uploadedFile.ref.moveTo(new File("/tmp/"+ breweryId + "/" + beerId + uniqId + ext),replace=true)
 					  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
 						  case AcceptHTMLHeader => Ok("")
 						  // case AcceptHTMLHeader => Ok(views.html.beerPhotoUploaded(brewery))
 						  case AcceptXMLHeader  => Accepted("")
 						  // case AcceptXMLHeader  => Ok(views.xml.beerPhotoUploaded(brewery))
 					  }
-				  }
+					  }}
 				  ).getOrElse(UnsupportedMediaType("Unsupported image format"))
-			).getOrElse { NotAcceptable("Photo Missing") }
+			}).getOrElse { NotAcceptable("Photo Missing") }
 		  }
 		  case None => { // Not multipartFormData, try raw
 			  request.body.asRaw match {

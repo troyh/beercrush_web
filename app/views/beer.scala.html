@@ -14,6 +14,11 @@
 			<p>ABV:@beer.abv%</p>
 			<p>IBUs:@beer.ibu</p>
 		</div>
+		
+		@helper.form(action = routes.Application.addBeerPhoto(beer.breweryId.toString,beer.id.toString.split("/").last), 'enctype -> "multipart/form-data") {
+			<input type="file" name="photo" />
+			<input type="submit" value="Upload" />
+		}
 
 		<div id="editForm">
 		@helper.form(action = routes.Application.editBeer(brewery.id.toString,beer.id.toString.split("/").last) ) {
