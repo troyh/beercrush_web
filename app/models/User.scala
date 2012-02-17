@@ -9,10 +9,17 @@ class User(
   
 object User {
   def findUser(username:String): Option[User] = {
-	  if (username!="troy")
-	  None
-	  else
-	  Some(new User(username,"hello","1st Person"))
+		  val filename=new java.io.File("/Users/troy/beerdata/user/" + username + ".xml")
+		  if (filename.exists()) {
+			val xml=scala.xml.XML.loadFile(filename)
+			  Some(new User(
+				  (xml \ "username").text,
+				  (xml \ "password").text,
+				  (xml \ "name").text
+				))
+			}
+		else
+			None
   }
 }
   
