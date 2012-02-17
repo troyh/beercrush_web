@@ -1,4 +1,4 @@
-@(query: String, totalPages: Long, thisPage: Long, results: Seq[org.apache.solr.common.SolrDocument])
+@(query: String, totalPages: Long, thisPage: Long, results: Seq[org.apache.solr.common.SolrDocument])(implicit request: Request[_])
 
 @main("Search Results") {
 	<h1>Search for "@query"</h1>

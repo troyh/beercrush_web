@@ -1,4 +1,4 @@
-@(beer:Beer,brewery:Brewery, beerForm: Form[Beer])
+@(beer:Beer,brewery:Brewery, beerForm: Form[Beer])(implicit request: Request[_])
 
 @main(beer.name + " by " + brewery.name) {
 

@@ -1,0 +1,21 @@
+@(userForm: Form[User])(implicit request: Request[_])
+
+@main("Login") {
+	
+	@helper.form(action = routes.Application.login()) {
+		@helper.inputText(
+			userForm("username"),
+			'_label -> "Username",
+            '_error -> userForm.error("username")
+		)
+		@helper.inputPassword(
+			userForm("password"),
+			'_label -> "Password",
+            '_error -> userForm.error("password")
+		)
+		<input type="submit" value="Login" />
+		
+	}
+	
+}
+

@@ -1,4 +1,4 @@
-@(beers:Seq[scala.xml.Elem],totalPages:Long, thisPage:Long)
+@(beers:Seq[scala.xml.Elem],totalPages:Long, thisPage:Long)(implicit request: Request[_])
 
 @main("All Beers") {
 

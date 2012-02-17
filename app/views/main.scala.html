@@ -1,4 +1,4 @@
-@(title: String = "Beer Crush")(content: Html)
+@(title: String = "Beer Crush")(content: Html)(implicit request: Request[_])
 
 <!DOCTYPE html>
 
@@ -11,6 +11,7 @@
     </head>
     <body>
 		<h1><a href="/">Beer Crush</a></h1>
+		@if(request.session.isEmpty) {<a href="/login">Login</a> } else { Hi @request.session.get("name")! <a href="/logout">Logout</a> } 
 		<form action="/search" method="get"><input type="text" name="q" /><input type="submit" value="Search"></form>
 		<hr />
         @content

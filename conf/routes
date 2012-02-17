@@ -4,6 +4,9 @@
 
 # Home page
 GET     /                           controllers.Application.index
+GET     /login                      controllers.Application.showLoginForm()
+POST    /login                      controllers.Application.login(username ?= "",password ?= "")
+GET     /logout                     controllers.Application.logout
 GET     /beers						controllers.Application.allBeers(letter="",page:Long ?= 1)
 GET     /beers/:letter				controllers.Application.allBeers(letter,page:Long ?= 1)
 GET     /breweries					controllers.Application.allBreweries(letter="",page:Long ?= 1)

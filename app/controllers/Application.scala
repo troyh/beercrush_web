@@ -3,6 +3,7 @@ package controllers
 import util.parsing.combinator._
 import play.api._
 import play.api.mvc._
+import play.api.mvc.Security._
 import org.apache.solr._
 import scalaj.collection.Imports._
 import play.api.data.validation.{Constraint, Valid, Invalid, ValidationError}
@@ -252,7 +253,7 @@ object Application extends Controller {
 
   val solr=new org.apache.solr.client.solrj.impl.CommonsHttpSolrServer("http://localhost:8983/solr")
 
-  def index = Action {
+  def index = Action { implicit request => 
     Ok(views.html.index("Beer Crush"))
   }
 
@@ -269,6 +270,21 @@ object Application extends Controller {
 	  }
   }
 
+  class LoginForm extends Form[User](
+	  mapping(
+		  "username" -> nonEmptyText,
+		  "password" -> nonEmptyText.verifying( password => {
+			  val user=User.findUser(username)
+			  password==user.password
+		  })
+	  )
+	  { (username,password) => User.findUser(username) }
+	  { user => Some(user.username,user.password)},
+	  Map.empty,
+	  Nil,
+	  None
+  )
+  
   class BeerForm(breweryId:BeerCrush.BreweryId, beerId: BeerCrush.BeerId) extends Form[Beer](
 	  mapping(
 			"name" -> nonEmptyText,
@@ -379,7 +395,7 @@ object Application extends Controller {
 	{
 	}
 	  
-  def showBeer(breweryId:BeerCrush.BreweryId,beerId:BeerCrush.BeerId) = Action { request => 
+  def showBeer(breweryId:BeerCrush.BreweryId,beerId:BeerCrush.BeerId) = Action { implicit request => 
 	  val beerForm=new BeerForm(breweryId,beerId)
 	  val beer=Beer.fromExisting(breweryId + "/" + beerId)
 	  val brewery=Brewery.fromExisting(breweryId)
@@ -390,7 +406,7 @@ object Application extends Controller {
 	  }
   }
 
-  def showBrewery(breweryId:BeerCrush.BreweryId) = Action { request =>
+  def showBrewery(breweryId:BeerCrush.BreweryId) = Action { implicit request =>
 	  val breweryForm = new BreweryForm(breweryId)
 	  val brewery=Brewery.fromExisting(breweryId)
 
@@ -400,7 +416,7 @@ object Application extends Controller {
 	  }
   }
   
-  def allBreweries(letter:String="", page: Long) = Action { request =>
+  def allBreweries(letter:String="", page: Long) = Action { implicit request =>
 	  val MAX_ROWS=20
 	  val parameters=new org.apache.solr.client.solrj.SolrQuery()
 	  parameters.set("q","doctype:brewery AND nameForSorting:" + letter.toLowerCase + "*")
@@ -421,7 +437,7 @@ object Application extends Controller {
   	  }
   }
   
-  def allBeers(letter:String="", page: Long) = Action { request =>
+  def allBeers(letter:String="", page: Long) = Action { implicit request =>
 	  val MAX_ROWS=20
 	  val parameters=new org.apache.solr.client.solrj.SolrQuery()
 	  parameters.set("q","doctype:beer AND nameForSorting:" + letter.toLowerCase + "*")
@@ -442,7 +458,7 @@ object Application extends Controller {
 	  }
   }
   
-  def search(query:String, page: Long) = Action { request =>
+  def search(query:String, page: Long) = Action { implicit request =>
 	  val MAX_ROWS=20
 	  val parameters=new org.apache.solr.client.solrj.SolrQuery()
 	  parameters.set("q",query)
@@ -527,7 +543,7 @@ object Application extends Controller {
 					  // It's a photo!
 
 					  val format=new java.text.SimpleDateFormat("yyyyMMddhhmmssSSSZ")
-					  val uniqId="Anonymous-" + format.format(new java.util.Date())
+					  val uniqId=request.session.get("username").getOrElse("Anonymous") + "-" + format.format(new java.util.Date())
 
 					  // Move it to where it belongs
 					  uploadedFile.ref.moveTo(new File("/Users/troy/beerdata/photos/"+ breweryId + "/" + beerId + "/" + uniqId + ext),replace=true)
@@ -556,5 +572,33 @@ object Application extends Controller {
 		  }
 	  }
   }
+
+  def showLoginForm = Action { implicit request =>
+	  val blankForm=new LoginForm
+	  Ok(views.html.login(blankForm))
+  }
+  
+  def login(username: String = "", password: String = "") = Action { implicit request => 
+	  val loginForm=new LoginForm
+	  loginForm.bindFromRequest.fold(
+		  errors => {
+			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
+				  case AcceptHTMLHeader => Ok(views.html.login(errors))
+				  // case AcceptXMLHeader  => Ok(views.xml.login())
+			  }
+		  },
+		  user => {
+			  val session=request.session + ("username" -> user.username) + ("name" -> user.name)
+			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
+				  case AcceptHTMLHeader => Redirect(routes.Application.index).withSession(session)
+				  // case AcceptXMLHeader  => Ok(views.xml.login(loginForm))
+			  }
+		  }
+	)
+ }
+ 
+	def logout = Action { implicit request => 
+		Redirect(routes.Application.index).withSession(request.session - "username")
+	}
   
 }
