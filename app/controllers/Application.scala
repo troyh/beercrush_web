@@ -525,8 +525,15 @@ object Application extends Controller {
 					  case _ => None
 				  }).map( { case Some(ext) => {
 					  // It's a photo!
-					  val uniqId="-someuniqueidhere"
-					  uploadedFile.ref.moveTo(new File("/tmp/"+ breweryId + "/" + beerId + uniqId + ext),replace=true)
+
+					  val format=new java.text.SimpleDateFormat("yyyyMMddhhmmssSSSZ")
+					  val uniqId="Anonymous-" + format.format(new java.util.Date())
+
+					  // Move it to where it belongs
+					  uploadedFile.ref.moveTo(new File("/Users/troy/beerdata/photos/"+ breweryId + "/" + beerId + "/" + uniqId + ext),replace=true)
+					  // TODO: Make different sizes (thumbnail, small, medium, large, etc.)
+					  // TODO: Notify someone so that the photos get backed-up, added to Solr's index, etc.
+
 					  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
 						  case AcceptHTMLHeader => Ok("")
 						  // case AcceptHTMLHeader => Ok(views.html.beerPhotoUploaded(brewery))
