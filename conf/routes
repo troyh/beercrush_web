@@ -4,6 +4,7 @@
 
 # Home page
 GET     /                           controllers.Application.index
+POST    /newuser                    controllers.Application.createAccount()
 GET     /login                      controllers.Application.showLoginForm()
 POST    /login                      controllers.Application.login(username ?= "",password ?= "")
 GET     /logout                     controllers.Application.logout

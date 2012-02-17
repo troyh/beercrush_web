@@ -1,7 +1,31 @@
 @(userForm: Form[User])(implicit request: Request[_])
 
 @main("Login") {
-	
+
+		<h1>New user?</h1>
+
+	@helper.form(action = routes.Application.createAccount()) {
+		@helper.inputText(
+			userForm("username"),
+			'_label -> "Username",
+            '_error -> userForm.globalError
+		)
+		@helper.inputPassword(
+			userForm("passwords.password1"),
+			'_label -> "Password",
+            '_error -> userForm.error("passwords")
+		)
+		@helper.inputPassword(
+			userForm("passwords.password2"),
+			'_label -> "Password",
+            '_error -> userForm.error("passwords")
+		)
+		<input type="submit" value="Create Account" />
+		
+	}
+		
+		<h1>Already registered?</h1>
+		
 	@helper.form(action = routes.Application.login()) {
 		@helper.inputText(
 			userForm("username"),

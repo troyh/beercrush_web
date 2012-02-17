@@ -275,11 +275,42 @@ object Application extends Controller {
 		  "username" -> nonEmptyText,
 		  "password" -> nonEmptyText.verifying( password => {
 			  val user=User.findUser(username)
-			  password==user.password
+			  user.isDefined && password==user.get.password
 		  })
 	  )
-	  { (username,password) => User.findUser(username) }
+	  { (username,password) => User.findUser(username).get }
 	  { user => Some(user.username,user.password)},
+	  Map.empty,
+	  Nil,
+	  None
+  )
+
+  class CreateAccountForm extends Form[User](
+	  mapping(
+		  "username" -> nonEmptyText,
+		  "passwords" -> tuple(
+			  "password1" -> text(minLength=6),
+			  "password2" -> text
+		  ).verifying("Passwords don't match", passwords => passwords._1 == passwords._2)
+	  )
+	  { (username,passwords) => new User(username,passwords._1,"") }
+	  { user => Some(user.username,(user.password,user.password))}.verifying(
+		  "This username is already taken",
+		  user => !User.findUser(user.username).isDefined
+	  ),
+	  Map.empty,
+	  Nil,
+	  None
+  )
+	  
+  class UserForm extends Form[User](
+	  mapping(
+		  "username" -> nonEmptyText,
+		  "password" -> nonEmptyText,
+		  "name" -> text
+	  )
+	  { (username,password,name) => new User(username,password,name) }
+	  { user => Some(user.username,user.password,user.name)},
 	  Map.empty,
 	  Nil,
 	  None
@@ -598,7 +629,38 @@ object Application extends Controller {
  }
  
 	def logout = Action { implicit request => 
-		Redirect(routes.Application.index).withSession(request.session - "username")
+		Redirect(routes.Application.index).withNewSession
 	}
-  
+	
+	def createAccount() = Action { implicit request => 
+		val acceptFormat=matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse("")))
+		val accountForm=new CreateAccountForm
+		accountForm.bindFromRequest.fold(
+  		  errors => { // Handle errors
+			  Logger.info("createAccount error")
+			  acceptFormat match {
+				  case AcceptHTMLHeader => Ok(views.html.login(errors))
+				  // case AcceptXMLHeader  => Ok(views.xml.login())
+			  }
+  		  },
+  	      user => { // Handle successful form submission
+				// Create the account and then display it to the user
+				val userXML=
+				<user>
+					<ctime></ctime>
+					<username>{user.username}</username>
+					<password>{user.password}</password>
+					<name>{user.name}</name>
+				</user>
+				scala.xml.XML.save("/Users/troy/beerdata/user/" + user.username + ".xml",userXML,"UTF-8",true)
+				
+				val form=new UserForm
+			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
+				  case AcceptHTMLHeader => Ok(views.html.userAccount(form.fill(user)))
+				  // case AcceptXMLHeader  => Ok(views.xml.login(loginForm))
+			  }
+		  }
+		)
+	}
+
 }
