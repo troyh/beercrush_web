@@ -8,6 +8,9 @@ POST    /newuser                    controllers.Application.createAccount()
 GET     /login                      controllers.Application.showLoginForm()
 POST    /login                      controllers.Application.login(username ?= "",password ?= "")
 GET     /logout                     controllers.Application.logout
+# User pages
+GET     /user/:user					controllers.Application.showUser(user)
+
 GET     /beers						controllers.Application.allBeers(letter="",page:Long ?= 1)
 GET     /beers/:letter				controllers.Application.allBeers(letter,page:Long ?= 1)
 GET     /breweries					controllers.Application.allBreweries(letter="",page:Long ?= 1)

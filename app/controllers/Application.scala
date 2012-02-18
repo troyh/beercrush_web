@@ -655,12 +655,27 @@ object Application extends Controller {
 				scala.xml.XML.save("/Users/troy/beerdata/user/" + user.username + ".xml",userXML,"UTF-8",true)
 				
 				val form=new UserForm
-			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-				  case AcceptHTMLHeader => Ok(views.html.userAccount(form.fill(user)))
+				acceptFormat match {
+				  case AcceptHTMLHeader => Redirect(routes.Application.showUser(user.username))
 				  // case AcceptXMLHeader  => Ok(views.xml.login(loginForm))
 			  }
 		  }
 		)
 	}
 
+	def showUser(userId: String) = Action { implicit request =>
+		val acceptFormat=matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse("")))
+		User.findUser(userId) match {
+			case Some(user) => {
+				val form=new UserForm
+				acceptFormat match {
+				  case AcceptHTMLHeader => Ok(views.html.userAccount(form.fill(user)))
+				  // case AcceptXMLHeader  => Ok(views.xml.login(loginForm))
+			  }
+		  }
+		  case None => {
+			  Ok("")
+		  }
+		}
+	}
 }
