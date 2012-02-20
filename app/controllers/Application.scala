@@ -4,6 +4,7 @@ import util.parsing.combinator._
 import play.api._
 import play.api.mvc._
 import play.api.mvc.Security._
+import play.api.libs.json._
 import org.apache.solr._
 import scalaj.collection.Imports._
 import play.api.data.validation.{Constraint, Valid, Invalid, ValidationError}
@@ -259,12 +260,14 @@ object Application extends Controller {
 
 	sealed abstract class AcceptHeaderType 
 	case object AcceptXMLHeader extends AcceptHeaderType
+	case object AcceptJSONHeader extends AcceptHeaderType
 	case object AcceptHTMLHeader extends AcceptHeaderType
 
   def matchAcceptHeader(ahl: List[AcceptHeader]): AcceptHeaderType = {
 	  ahl match {
 		  case AcceptHeader("text","html",_) :: rest => AcceptHTMLHeader
 		  case AcceptHeader("text","xml",_) :: rest => AcceptXMLHeader
+		  case AcceptHeader("application","json",_) :: rest => AcceptJSONHeader
 		  case head :: rest => matchAcceptHeader(rest)
 		  case Nil => AcceptHTMLHeader
 	  }
@@ -434,6 +437,21 @@ object Application extends Controller {
 	  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
 		  case AcceptHTMLHeader => Ok(views.html.beer(beer,brewery,beerForm.fill(beer)))
 		  case AcceptXMLHeader  => Ok(views.xml.beer(beer,brewery))
+		  case AcceptJSONHeader  => Ok(Json.toJson(JsObject(List(
+			  "id" -> JsString(beer.id.toString),
+			  "brewery" -> JsObject(List(
+				  "id" -> JsString(brewery.id.toString),
+				  "name" -> JsString(brewery.name)
+			  )),
+			  "name" -> JsString(beer.name),
+			  "description" -> JsString(beer.description),
+			  "styles" -> JsArray(beer.styles.map(s => JsObject(List(
+				  "id" -> JsString(s.id),
+				  "name" -> JsString(s.name)
+			  )))),
+			  "abv" -> JsNumber(beer.abv),
+			  "ibu" -> JsNumber(beer.ibu)
+		  ))))
 	  }
   }
 
