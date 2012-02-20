@@ -26,6 +26,10 @@ import java.io._
 // 	}
 // }
 
+trait JsonFormat {
+	def asJson: JsObject
+}
+
 object BeerCrush {
 	abstract class PersistentObject {
 		val id: Id
@@ -66,7 +70,7 @@ case class Brewery(
 	val name: 	String,
 	val address: Address,
 	val phone:	String
-) extends BeerCrush.PersistentObject {
+) extends BeerCrush.PersistentObject with JsonFormat {
 	lazy val pageURL = { "/" + id }
 	def beerList: Seq[Beer] = {
 		val parameters=new org.apache.solr.client.solrj.SolrQuery()
@@ -74,6 +78,15 @@ case class Brewery(
 		val response=Application.solr.query(parameters)
 		val docs=response.getResults().asScala
 		docs.map(doc => Beer.fromExisting(doc.get("id").toString))
+	}
+	
+	def asJson = {
+		JsObject(List(
+			"id" -> JsString(this.id.toString),
+			"name" -> JsString(this.name),
+			"address" -> this.address.asJson,
+			"phone" -> JsString(this.phone)
+		))
 	}
 }
 
@@ -83,7 +96,17 @@ case class Address(
 	val state			: String,
 	val zip				: String,
 	val country			: String
-)
+) extends JsonFormat {
+	def asJson = {
+		JsObject(List(
+			"street" -> JsString(this.street),
+			"city" -> JsString(this.city),
+			"state" -> JsString(this.state),
+			"zip" -> JsString(this.zip),
+			"country" -> JsString(this.country)
+		))
+	}
+}
 object Address {
 	def fromXML(node: xml.NodeSeq) = {
 		new Address(
@@ -130,9 +153,6 @@ object Brewery {
 	}
 }
 
-trait JsonFormat {
-	def asJson: JsObject
-}
 case class Beer(
 	val id:			BeerCrush.BeerId,
 	val breweryId:	BeerCrush.BreweryId,
@@ -466,6 +486,7 @@ object Application extends Controller {
 	  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
 		  case AcceptHTMLHeader => Ok(views.html.brewery(brewery,breweryForm.fill(brewery)))
 		  case AcceptXMLHeader  => Ok(views.xml.brewery(brewery))
+		  case AcceptJSONHeader  => Ok(Json.toJson(brewery.asJson))
 	  }
   }
   
@@ -487,6 +508,18 @@ object Application extends Controller {
   			docs.map(d => <brewery><id>{d.get("id")}</id><name>{d.get("name")}</name></brewery>),
   	  	  	numFound,
   	  		response.getResults().getStart()))
+		  case AcceptJSONHeader  => Ok(Json.toJson(
+			  JsObject(List(
+				  "meta" -> JsObject(List(
+				   "total" -> JsNumber(numFound),
+				   "start" -> JsNumber(response.getResults().getStart())
+				  )),
+				  "breweries" -> JsArray(docs.map(d => JsObject(List(
+							"id" -> JsString(d.get("id").toString),
+							"name" -> JsString(d.get("name").toString)
+				  ))).toList)
+		  	  ))
+		  ))
   	  }
   }
   
@@ -558,6 +591,7 @@ object Application extends Controller {
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
 				  case AcceptHTMLHeader => Ok(views.html.beer(newBeer,brewery,beerForm.fill(newBeer)))
 				  case AcceptXMLHeader  => Ok(views.xml.beer(newBeer,brewery))
+				  case AcceptJSONHeader  => Ok(Json.toJson(newBeer.asJson))
 			  }
 		  }
 	  )
@@ -570,6 +604,7 @@ object Application extends Controller {
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
 				  case AcceptHTMLHeader => Ok(views.html.brewery(Brewery.fromExisting(breweryId),errors))
 				  case AcceptXMLHeader  => Ok(views.xml.brewery(Brewery.fromExisting(breweryId)))
+				  case AcceptJSONHeader  => Ok(Json.toJson(Brewery.fromExisting(breweryId).asJson))
 			  }
 		  },
 		  brewery => {
@@ -577,6 +612,7 @@ object Application extends Controller {
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
 				  case AcceptHTMLHeader => Ok(views.html.brewery(brewery,breweryForm.fill(brewery)))
 				  case AcceptXMLHeader  => Ok(views.xml.brewery(brewery))
+				  case AcceptJSONHeader  => Ok(Json.toJson(brewery.asJson))
 			  }
 		  }
 	  )
