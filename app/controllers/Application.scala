@@ -130,6 +130,9 @@ object Brewery {
 	}
 }
 
+trait JsonFormat {
+	def asJson: JsObject
+}
 case class Beer(
 	val id:			BeerCrush.BeerId,
 	val breweryId:	BeerCrush.BreweryId,
@@ -143,8 +146,23 @@ case class Beer(
 	val yeast:		String,
 	val otherings:	String,
 	val styles: 	List[BeerStyle]
-) extends BeerCrush.PersistentObject {
+) extends BeerCrush.PersistentObject with JsonFormat {
 	lazy val pageURL = { "/" + id }
+	
+	def asJson = {
+	  JsObject(List(
+		  "id" -> JsString(this.id.toString),
+		  "brewery" -> JsString(this.breweryId.toString),
+		  "name" -> JsString(this.name),
+		  "description" -> JsString(this.description),
+		  "styles" -> JsArray(this.styles.map(s => JsObject(List(
+			  "id" -> JsString(s.id),
+			  "name" -> JsString(s.name)
+		  )))),
+		  "abv" -> JsNumber(this.abv),
+		  "ibu" -> JsNumber(this.ibu)
+	  ))
+	}
 }
 
 object MyHelpers {
@@ -437,21 +455,7 @@ object Application extends Controller {
 	  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
 		  case AcceptHTMLHeader => Ok(views.html.beer(beer,brewery,beerForm.fill(beer)))
 		  case AcceptXMLHeader  => Ok(views.xml.beer(beer,brewery))
-		  case AcceptJSONHeader  => Ok(Json.toJson(JsObject(List(
-			  "id" -> JsString(beer.id.toString),
-			  "brewery" -> JsObject(List(
-				  "id" -> JsString(brewery.id.toString),
-				  "name" -> JsString(brewery.name)
-			  )),
-			  "name" -> JsString(beer.name),
-			  "description" -> JsString(beer.description),
-			  "styles" -> JsArray(beer.styles.map(s => JsObject(List(
-				  "id" -> JsString(s.id),
-				  "name" -> JsString(s.name)
-			  )))),
-			  "abv" -> JsNumber(beer.abv),
-			  "ibu" -> JsNumber(beer.ibu)
-		  ))))
+		  case AcceptJSONHeader  => Ok(Json.toJson(beer.asJson))
 	  }
   }
 
