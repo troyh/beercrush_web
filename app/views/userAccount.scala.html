@@ -2,24 +2,26 @@
 
 @main("Login") {
 	
-	<h1>User</h1>
+	<h1>Username: @userForm.get.id</h1>
 	
-	@helper.form(action = routes.Application.login()) {
+	@helper.form(action = routes.Application.editAccount()) {
 		@helper.inputText(
-			userForm("username"),
-			'_label -> "Username",
-            '_error -> userForm.error("username")
+			userForm("name"),
+			'_label -> "Name",
+            '_error -> userForm.error("name")
 		)
 		@helper.inputPassword(
 			userForm("password"),
 			'_label -> "Password",
             '_error -> userForm.error("password")
 		)
-		@helper.inputText(
-			userForm("name"),
-			'_label -> "Name",
-            '_error -> userForm.error("name")
+		@helper.textarea(
+			userForm("aboutme"),
+			'_label -> "About Me",
+			'rows -> 5,
+			'cols -> 80,
+			'_error -> userForm.error("aboutme")
 		)
-		<input type="submit" value="Login" />
+		<input type="submit" value="Save" />
 }
 }
