@@ -285,7 +285,7 @@ object Application extends Controller {
 			  "password2" -> text
 		  ).verifying("Passwords don't match", passwords => passwords._1 == passwords._2)
 	  )
-	  { (username,passwords) => new User(UserId.string2id(username),passwords._1,"") }
+	  { (username,passwords) => new User(UserId.string2id(username),passwords._1,"","") }
 	  { user => Some(user.id,(user.password,user.password))}.verifying(
 		  "This username is already taken",
 		  user => !User.findUser(user.id).isDefined
@@ -301,10 +301,11 @@ object Application extends Controller {
 			  "main" -> text,
 			  "confirm" -> text
 		  ).verifying("Passwords don't match", passwords => passwords._1 == passwords._2),
-		  "name" -> text
+		  "name" -> text,
+		  "aboutme" -> text
 	  )
-	  { (password,name) => new User(username,password._1,name) }
-	  { user => Some(("",""),user.name)},
+	  { (password,name,aboutme) => new User(username,password._1,name,aboutme) }
+	  { user => Some(("",""),user.name,user.aboutme)},
 	  Map.empty,
 	  Nil,
 	  None

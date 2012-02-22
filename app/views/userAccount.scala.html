@@ -4,6 +4,8 @@
 	
 	<h1>Username: @userId</h1>
 	
+	<a href="/user/@userId">My public page</a>
+	
 	@helper.form(action = routes.Application.editAccount()) {
 		@helper.inputText(
 			userForm("name"),

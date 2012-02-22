@@ -13,7 +13,8 @@ implicit def string2id(id: String) = new UserId(id)
 class User(
   userId: UserId,
   val password: String,
-  val name: String
+  val name: String,
+  val aboutme: String
 ) extends PersistentObject(userId) {
 	lazy val pageURL = "/user/" + id
 	def save = {
@@ -30,6 +31,7 @@ class User(
 			<username>{this.id}</username>
 			<password enctype="MD5">{md5pass}</password>
 			<name>{this.name}</name>
+			<aboutme>{this.aboutme}</aboutme>
 		</user>
 		
 		scala.xml.XML.save("/Users/troy/beerdata/user/" + this.id + ".xml",userXML,"UTF-8",true)
@@ -44,7 +46,8 @@ object User {
 			  Some(new User(
 				  (xml \ "username").text,
 				  (xml \ "password").text,
-				  (xml \ "name").text
+				  (xml \ "name").text,
+				  (xml \ "aboutme").text
 				))
 			}
 		else
