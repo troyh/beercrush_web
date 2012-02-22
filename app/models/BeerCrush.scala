@@ -1,5 +1,9 @@
 package BeerCrush
 
+object BeerCrush {
+	val ISO8601DateFormat="yyyy-MM-dd'T'HH:mm:ssZ"
+}
+
 abstract class PersistentObject(val id: Id) {
 	val pageURL: String
 	def save: Unit

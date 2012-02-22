@@ -34,7 +34,7 @@ trait JsonFormat {
 
 
 case class Brewery(
-	breweryId:	BeerCrush.BreweryId,
+	breweryId:	BreweryId,
 	val name: 	String,
 	val address: Address,
 	val phone:	String
@@ -109,7 +109,7 @@ object Address {
 }
 
 object Brewery {
-	def fromExisting(id:BeerCrush.BreweryId) = {
+	def fromExisting(id:BreweryId) = {
 		val xml=scala.xml.XML.loadFile("/Users/troy/beerdata/brewery/" + id + ".xml")
 		val address=xml \ "address"
 		new Brewery(
@@ -122,8 +122,8 @@ object Brewery {
 }
 
 case class Beer(
-	beerId:			BeerCrush.BeerId,
-	val breweryId:	BeerCrush.BreweryId,
+	beerId:			BeerId,
+	val breweryId:	BreweryId,
 	val name: 		String,
 	val description:String,
 	val abv: 		Double,
@@ -134,7 +134,7 @@ case class Beer(
 	val yeast:		String,
 	val otherings:	String,
 	val styles: 	List[BeerStyle]
-) extends BeerCrush.PersistentObject(beerId) with JsonFormat {
+) extends PersistentObject(beerId) with JsonFormat {
 	lazy val pageURL = { "/" + id }
 
 	def save = {
@@ -189,9 +189,9 @@ object MyHelpers {
 }
 
 object Beer {
-	def fromExisting(id:BeerCrush.BeerId): Beer = {
+	def fromExisting(id:BeerId): Beer = {
 		import MyHelpers._
-		val xml=scala.xml.XML.loadFile(BeerCrush.PersistentObject.fileLocationFromId(id))
+		val xml=scala.xml.XML.loadFile(PersistentObject.fileLocationFromId(id))
 		Beer(
 			beerId = id,
 			breweryId = (xml \ "brewery_id").text,
@@ -285,7 +285,7 @@ object Application extends Controller {
 			  "password2" -> text
 		  ).verifying("Passwords don't match", passwords => passwords._1 == passwords._2)
 	  )
-	  { (username,passwords) => new User(UserId.string2id(username),passwords._1,"","") }
+	  { (username,passwords) => new User(UserId.string2id(username),new java.util.Date(),passwords._1,"","") }
 	  { user => Some(user.id,(user.password,user.password))}.verifying(
 		  "This username is already taken",
 		  user => !User.findUser(user.id).isDefined
@@ -304,14 +304,14 @@ object Application extends Controller {
 		  "name" -> text,
 		  "aboutme" -> text
 	  )
-	  { (password,name,aboutme) => new User(username,password._1,name,aboutme) }
+	  { (password,name,aboutme) => new User(username,new java.util.Date(),password._1,name,aboutme) }
 	  { user => Some(("",""),user.name,user.aboutme)},
 	  Map.empty,
 	  Nil,
 	  None
   )
   
-  class BeerForm(breweryId:BeerCrush.BreweryId, beerId: BeerCrush.BeerId) extends Form[Beer](
+  class BeerForm(breweryId:BreweryId, beerId: BeerId) extends Form[Beer](
 	  mapping(
 			"name" -> nonEmptyText,
 			"description" -> text,
@@ -400,7 +400,7 @@ object Application extends Controller {
   }
   
   
-	class BreweryForm(breweryId:BeerCrush.BreweryId) extends Form[Brewery](
+	class BreweryForm(breweryId:BreweryId) extends Form[Brewery](
 		  	mapping(
 				"name" -> nonEmptyText,
 				"address" -> mapping(
@@ -421,7 +421,7 @@ object Application extends Controller {
 	{
 	}
 	  
-  def showBeer(breweryId:BeerCrush.BreweryId,beerId:BeerCrush.BeerId) = Action { implicit request => 
+  def showBeer(breweryId:BreweryId,beerId:BeerId) = Action { implicit request => 
 	  val beerForm=new BeerForm(breweryId,beerId)
 	  val beer=Beer.fromExisting(breweryId + "/" + beerId)
 	  val brewery=Brewery.fromExisting(breweryId)
@@ -433,7 +433,7 @@ object Application extends Controller {
 	  }
   }
 
-  def showBrewery(breweryId:BeerCrush.BreweryId) = Action { implicit request =>
+  def showBrewery(breweryId:BreweryId) = Action { implicit request =>
 	  val breweryForm = new BreweryForm(breweryId)
 	  val brewery=Brewery.fromExisting(breweryId)
 
@@ -529,7 +529,7 @@ object Application extends Controller {
   	  }
   }
   
-  def editBeer(breweryId:BeerCrush.BreweryId, beerId:BeerCrush.BeerId) = Action { implicit request => 
+  def editBeer(breweryId:BreweryId, beerId:BeerId) = Action { implicit request => 
 	  val beerForm=new BeerForm(breweryId,beerId)
 	  beerForm.bindFromRequest.fold(
 		  // Handle errors
@@ -551,7 +551,7 @@ object Application extends Controller {
 	  )
   }
   
-  def editBrewery(breweryId: BeerCrush.BreweryId) = Action { implicit request =>
+  def editBrewery(breweryId: BreweryId) = Action { implicit request =>
 	  val breweryForm = new BreweryForm(breweryId)
 	  breweryForm.bindFromRequest.fold(
 		  errors => {
@@ -572,7 +572,7 @@ object Application extends Controller {
 	  )
   }
   
-  def addBeerPhoto(breweryId: BeerCrush.BreweryId, beerId: BeerCrush.BeerId) = Action { request =>
+  def addBeerPhoto(breweryId: BreweryId, beerId: BeerId) = Action { request =>
 	  request.body.asMultipartFormData match {
 		  case Some(mfd) => { // It's multipartFormData
 			  mfd.file("photo").map( uploadedFile => {
@@ -709,11 +709,39 @@ object Application extends Controller {
 	  		  },
 	  	      user => { // Handle successful form submission
 	  				val session=request.session + ("username" -> user.id) + ("name" -> user.name)
-					// Create the account and then display it to the user
-					user.save
+
+					// Get the current user info
+					val (ctime,md5password)=User.findUser(username) match {
+						case Some(existingUser) => {
+							val password=user.password match {
+								/* Not changing password; use the existing MD5 password */
+								case s if (s.isEmpty) => existingUser.password
+								/* Changing password; MD5 it, never store it in clear text */
+								case s => java.security.MessageDigest.getInstance("MD5").digest(s.getBytes).map("%02x".format(_)).mkString
+							}
+							(
+								existingUser.ctime,
+								password
+							)
+						}
+						case None => (
+							new java.util.Date(),
+							java.security.MessageDigest.getInstance("MD5").digest(user.password.getBytes).map("%02x".format(_)).mkString
+						)
+					}
+					
+					// Create a new user that merges the existing User info and that from the submitted form
+					val newUser=new User(
+						username,
+						ctime,
+						md5password,
+						user.name,
+						user.aboutme
+					)
+					newUser.save
 				
 					acceptFormat match {
-					  case AcceptHTMLHeader => Ok(views.html.userAccount(username,accountForm.fill(user))).withSession(session)
+					  case AcceptHTMLHeader => Ok(views.html.userAccount(username,accountForm.fill(newUser))).withSession(session)
 					  // case AcceptXMLHeader  => Ok(views.xml.login(loginForm))
 				  }
 			  }

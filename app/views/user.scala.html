@@ -3,7 +3,8 @@
 @main("User " + user.id) {
 
 	<h1>@user.name (@user.id)</h1>
+	<div>Joined @user.ctime</div>
 	
-	<div>@user.aboutme</div>
+	<div>@user.aboutme.split("\n").map(s => <p>{s}</p>)</div>
 	
 }
