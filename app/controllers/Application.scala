@@ -710,38 +710,35 @@ object Application extends Controller {
 	  	      user => { // Handle successful form submission
 	  				val session=request.session + ("username" -> user.id) + ("name" -> user.name)
 
-					// Get the current user info
-					val (ctime,md5password)=User.findUser(username) match {
+					// Make a new User object as a merging of the submitted form's User and an existing User (if any)
+					val userToSave=User.findUser(username) match {
 						case Some(existingUser) => {
-							val password=user.password match {
-								/* Not changing password; use the existing MD5 password */
-								case s if (s.isEmpty) => existingUser.password
-								/* Changing password; MD5 it, never store it in clear text */
-								case s => java.security.MessageDigest.getInstance("MD5").digest(s.getBytes).map("%02x".format(_)).mkString
-							}
-							(
+							new User(
+								username,
 								existingUser.ctime,
-								password
+								user.password match {
+									/* Not changing password; use the existing MD5 password */
+									case s if (s.isEmpty) => existingUser.password
+									/* Changing password; MD5 it, never store it in clear text */
+									case s => java.security.MessageDigest.getInstance("MD5").digest(s.getBytes).map("%02x".format(_)).mkString
+								},
+								user.name,
+								user.aboutme
 							)
 						}
-						case None => (
+						case None => new User(
+							username,
 							new java.util.Date(),
-							java.security.MessageDigest.getInstance("MD5").digest(user.password.getBytes).map("%02x".format(_)).mkString
+							java.security.MessageDigest.getInstance("MD5").digest(user.password.getBytes).map("%02x".format(_)).mkString,
+							user.name,
+							user.aboutme
 						)
 					}
 					
-					// Create a new user that merges the existing User info and that from the submitted form
-					val newUser=new User(
-						username,
-						ctime,
-						md5password,
-						user.name,
-						user.aboutme
-					)
-					newUser.save
+					userToSave.save
 				
 					acceptFormat match {
-					  case AcceptHTMLHeader => Ok(views.html.userAccount(username,accountForm.fill(newUser))).withSession(session)
+					  case AcceptHTMLHeader => Ok(views.html.userAccount(username,accountForm.fill(userToSave))).withSession(session)
 					  // case AcceptXMLHeader  => Ok(views.xml.login(loginForm))
 				  }
 			  }
