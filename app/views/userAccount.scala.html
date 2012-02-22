@@ -1,8 +1,8 @@
-@(userForm: Form[User])(implicit request: Request[_])
+@(userId: UserId, userForm: Form[User])(implicit request: Request[_])
 
 @main("Login") {
 	
-	<h1>Username: @userForm.get.id</h1>
+	<h1>Username: @userId</h1>
 	
 	@helper.form(action = routes.Application.editAccount()) {
 		@helper.inputText(
@@ -11,8 +11,13 @@
             '_error -> userForm.error("name")
 		)
 		@helper.inputPassword(
-			userForm("password"),
+			userForm("password.main"),
 			'_label -> "Password",
+            '_error -> userForm.error("password")
+		)
+		@helper.inputPassword(
+			userForm("password.confirm"),
+			'_label -> "Confirm Password",
             '_error -> userForm.error("password")
 		)
 		@helper.textarea(

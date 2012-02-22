@@ -298,11 +298,14 @@ object Application extends Controller {
 	  
   class UserForm(username: UserId) extends Form[User](
 	  mapping(
-		  "password" -> nonEmptyText,
+		  "password" -> tuple(
+			  "main" -> text,
+			  "confirm" -> text
+		  ).verifying("Passwords don't match", passwords => passwords._1 == passwords._2),
 		  "name" -> text
 	  )
-	  { (password,name) => new User(username,password,name) }
-	  { user => Some(user.password,user.name)},
+	  { (password,name) => new User(username,password._1,name) }
+	  { user => Some(("",""),user.name)},
 	  Map.empty,
 	  Nil,
 	  None
@@ -687,7 +690,7 @@ object Application extends Controller {
 			user match {
 				case Some(u) => {
 					val form=new UserForm(username)
-					Ok(views.html.userAccount(form.fill(u)))
+					Ok(views.html.userAccount(username,form.fill(u)))
 				}
 				case None => Unauthorized
 			}
@@ -701,17 +704,17 @@ object Application extends Controller {
 			accountForm.bindFromRequest.fold(
 	  		  errors => { // Handle errors
 				  acceptFormat match {
-					  case AcceptHTMLHeader => Ok(views.html.userAccount(errors))
+					  case AcceptHTMLHeader => Ok(views.html.userAccount(username,errors))
 					  // case AcceptXMLHeader  => Ok(views.xml.login())
 				  }
 	  		  },
 	  	      user => { // Handle successful form submission
-  				val session=request.session + ("username" -> user.id) + ("name" -> user.name)
+	  				val session=request.session + ("username" -> user.id) + ("name" -> user.name)
 					// Create the account and then display it to the user
 					user.save
 				
 					acceptFormat match {
-					  case AcceptHTMLHeader => Ok(views.html.userAccount(accountForm.fill(user))).withSession(session)
+					  case AcceptHTMLHeader => Ok(views.html.userAccount(username,accountForm.fill(user))).withSession(session)
 					  // case AcceptXMLHeader  => Ok(views.xml.login(loginForm))
 				  }
 			  }
