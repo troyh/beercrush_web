@@ -269,7 +269,6 @@ object Application extends Controller {
 	  )
 	  { (username,password) => User.findUser(username).get }
 	  { user => Some(user.id,user.password)}.verifying( user => {
-			  Logger.info("Looking for user named " + user.id)
 			  val existingUser=User.findUser(user.id)
 			  existingUser.isDefined && user.password==existingUser.get.password
 	  }),
@@ -649,7 +648,6 @@ object Application extends Controller {
 		val accountForm=new CreateAccountForm
 		accountForm.bindFromRequest.fold(
   		  errors => { // Handle errors
-			  Logger.info("createAccount error")
 			  acceptFormat match {
 				  case AcceptHTMLHeader => Ok(views.html.login(errors))
 				  // case AcceptXMLHeader  => Ok(views.xml.login())
