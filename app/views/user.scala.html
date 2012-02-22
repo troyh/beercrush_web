@@ -1,6 +1,6 @@
 @(user: User)(implicit request: Request[_])
 
-@main("User" + user.id) {
+@main("User " + user.id) {
 
 	<h1>@user.name (@user.id)</h1>
 	
