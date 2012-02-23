@@ -277,22 +277,22 @@ object Application extends Controller {
 	  None
   )
 
-  class CreateAccountForm extends Form[User](
-	  mapping(
-		  "username" -> nonEmptyText,
-		  "passwords" -> tuple(
-			  "password1" -> text(minLength=6),
-			  "password2" -> text
-		  ).verifying("Passwords don't match", passwords => passwords._1 == passwords._2)
-	  )
-	  { (username,passwords) => new User(UserId.string2id(username),new java.util.Date(),passwords._1,"","") }
-	  { user => Some(user.id,(user.password,user.password))}.verifying(
-		  "This username is already taken",
-		  user => !User.findUser(user.id).isDefined
-	  ),
-	  Map.empty,
-	  Nil,
-	  None
+  class NewUserForm extends Form[User](
+  	  mapping(
+  		  "username" -> nonEmptyText,
+  		  "passwords" -> tuple(
+  			  "password1" -> text(minLength=6),
+  			  "password2" -> text
+  		  ).verifying("Passwords don't match", passwords => passwords._1 == passwords._2)
+  	  )
+  	  { (username,passwords) => new User(UserId.string2id(username),new java.util.Date(),passwords._1,"","") }
+  	  { user => Some(user.id,(user.password,user.password))}.verifying(
+  		  "This username is already taken",
+  		  user => !User.findUser(user.id).isDefined
+  	  ),
+  	  Map.empty,
+  	  Nil,
+  	  None
   )
 	  
   class UserForm(username: UserId) extends Form[User](
@@ -644,27 +644,27 @@ object Application extends Controller {
 		Redirect(routes.Application.index).withNewSession
 	}
 	
-	def createAccount() = Action { implicit request => 
+	def createAccount = Action { implicit request => 
 		val acceptFormat=matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse("")))
-		val accountForm=new CreateAccountForm
-		accountForm.bindFromRequest.fold(
-  		  errors => { // Handle errors
-			  acceptFormat match {
-				  case AcceptHTMLHeader => Ok(views.html.login(errors))
-				  // case AcceptXMLHeader  => Ok(views.xml.login())
-			  }
-  		  },
-  	      user => { // Handle successful form submission
-				val session=request.session + ("username" -> user.id) + ("name" -> user.name)
+		val newUserForm=new NewUserForm()
+		newUserForm.bindFromRequest.fold(
+			errors => { // Handle errors
+				acceptFormat match {
+					case AcceptHTMLHeader => Ok(views.html.login(errors))
+					// case AcceptXMLHeader  => Ok(views.xml.login())
+				}
+			},
+			newUser => { // Handle successful form submission
+				val session=request.session + ("username" -> newUser.id) + ("name" -> newUser.name)
 			  
 				// Create the account and then display it to the user
-				user.save
+				newUser.save
 				
 				acceptFormat match {
 				  case AcceptHTMLHeader => Redirect(routes.Application.showAccount).withSession(session)
 				  // case AcceptXMLHeader  => Ok(views.xml.login(loginForm))
 			  }
-		  }
+			}
 		)
 	}
 

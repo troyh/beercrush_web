@@ -4,7 +4,7 @@
 
 # Home page
 GET     /                           controllers.Application.index
-POST    /newuser                    controllers.Application.createAccount()
+POST    /new/user                   controllers.Application.createAccount
 GET     /login                      controllers.Application.showLoginForm()
 POST    /login                      controllers.Application.login(username ?= "",password ?= "")
 GET     /logout                     controllers.Application.logout
@@ -12,7 +12,7 @@ GET     /logout                     controllers.Application.logout
 GET     /myaccount					controllers.Application.showAccount
 POST    /myaccount					controllers.Application.editAccount
 GET     /user/:user					controllers.Application.showUser(user)
-
+# Browsing and Searching
 GET     /beers						controllers.Application.allBeers(letter="",page:Long ?= 1)
 GET     /beers/:letter				controllers.Application.allBeers(letter,page:Long ?= 1)
 GET     /breweries					controllers.Application.allBreweries(letter="",page:Long ?= 1)
@@ -22,6 +22,7 @@ GET		/search						controllers.Application.search(q,page: Long ?= 1)
 GET     /:brewery/:beer				controllers.Application.showBeer(brewery,beer)
 POST    /:brewery/:beer				controllers.Application.editBeer(brewery,beer)
 POST    /:brewery/:beer/photo		controllers.Application.addBeerPhoto(brewery,beer)
+# Brewery pages
 GET     /:brewery					controllers.Application.showBrewery(brewery)
 POST    /:brewery					controllers.Application.editBrewery(brewery)
 
