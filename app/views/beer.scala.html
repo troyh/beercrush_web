@@ -1,10 +1,13 @@
-@(beer:Beer,brewery:Brewery, beerForm: Form[Beer])(implicit request: Request[_])
+@(beer:Option[Beer], beerForm: Form[Beer])(implicit request: Request[_])
 
-@main(beer.name + " by " + brewery.name) {
+@main(beer.map { b => b.name + " by " + b.brewery.name }.getOrElse("New beer")) {
 
+	@beer match {
+		case None => {}
+		case Some(beer) => {
 		<h1>@beer.name</h1>
 		
-		<div>Brewery: <a href=@brewery.pageURL>@brewery.name</a></div>
+		<div>Brewery: <a href=@beer.brewery.pageURL>@beer.brewery.name</a></div>
 		
 		<p>@beer.description</p>
 		
@@ -19,9 +22,11 @@
 			<input type="file" name="photo" />
 			<input type="submit" value="Upload" />
 		}
+		}
+	}
 
 		<div id="editForm">
-		@helper.form(action = routes.Application.editBeer(beer.id) ) {
+		@helper.form(action = routes.Application.editBeer(beer.map{ _.id.toString }.getOrElse("+beer")) ) {
 			@helper.inputText(
 				beerForm("name"),
 				'_label -> "Name",

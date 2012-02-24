@@ -164,6 +164,7 @@ case class Beer(
 	val styles: 	List[BeerStyle]
 ) extends PersistentObject(beerId) with JsonFormat {
 	lazy val pageURL = { "/" + id }
+	lazy val brewery = Brewery.fromExisting(breweryId)
 
 	def save = {
 		val xml=
@@ -463,7 +464,7 @@ object Application extends Controller {
 			  val brewery=Brewery.fromExisting(beer.breweryId)
 	  
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-				  case AcceptHTMLHeader => Ok(views.html.beer(beer,brewery,beerForm.fill(beer)))
+				  case AcceptHTMLHeader => Ok(views.html.beer(Some(beer),beerForm.fill(beer)))
 				  case AcceptXMLHeader  => Ok(views.xml.beer(beer,brewery))
 				  case AcceptJSONHeader  => Ok(Json.toJson(beer.asJson))
 			  }
@@ -570,14 +571,12 @@ object Application extends Controller {
   
   def newBeer(breweryId:BreweryId) = editBeer(None)
   
-  // def editBeerRoute(beerId:String) = editBeer(Some(beerId))
-  
   def editBeer(beerId:Option[BeerId]) = Action { implicit request => 
 	  val beerForm=new BeerForm(beerId)
 	  beerForm.bindFromRequest.fold(
 		  // Handle errors
 		  errors => {
-			  Ok(views.html.beer(Beer.fromExisting(beerId).get,Brewery.fromExisting(beerId.get.breweryId),errors))
+			  Ok(views.html.beer(Beer.fromExisting(beerId),errors))
 		  },
 	      // Handle successful form submission
 	      beer => {
@@ -585,7 +584,7 @@ object Application extends Controller {
 			  beer.save
 			  val brewery=Brewery.fromExisting(beerId.get.breweryId)
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-				  case AcceptHTMLHeader => Ok(views.html.beer(beer,brewery,beerForm.fill(beer)))
+				  case AcceptHTMLHeader => Ok(views.html.beer(Some(beer),beerForm.fill(beer)))
 				  case AcceptXMLHeader  => Ok(views.xml.beer(beer,brewery))
 				  case AcceptJSONHeader  => Ok(Json.toJson(beer.asJson))
 			  }
@@ -594,16 +593,6 @@ object Application extends Controller {
   }
   
   def newBrewery = editBrewery("")
-  // def newBrewery = Action { implicit request =>
-  // 	  val breweryForm = new BreweryForm("")
-  // 	  breweryForm.bindFromRequest.fold(
-  // 		  errors => {},
-  // 		  brewery => {
-  // 			  val newId="made-up-id-based-on-name"
-  // 			  editBrewery(newId)
-  // 		  }
-  // 	  )
-  // }
 
   def editBrewery(breweryId: BreweryId) = Action { implicit request =>
 	  val f=new BreweryForm(breweryId)
