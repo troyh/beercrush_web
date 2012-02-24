@@ -60,19 +60,11 @@ case class Brewery(
 		<brewery>
 		  <id>{thisId}</id>
 		  <name>{this.name}‎</name>
-		  <address>
-		    <street>{this.address.street}</street>
-		    <city>{this.address.city}</city>
-		    <state>{this.address.state}</state>
-		    <zip>{this.address.zip}</zip>
-		    <latitude></latitude>
-		    <longitude></longitude>
-		    <country>{this.address.country}</country>
-		  </address>
+		  { address.asXML }
 		  <phone>{this.phone}</phone>
 		</brewery>	
 		
-		scala.xml.XML.loadString(xml.toString)
+		// scala.xml.XML.loadString(xml.toString)
 		scala.xml.XML.save("/Users/troy/beerdata/editedBrewery.xml",xml,"UTF-8",true)
 	}
 	
@@ -86,36 +78,52 @@ case class Brewery(
 	}
 }
 
+trait XmlFormat {
+	def asXML: xml.Node
+}
+
 case class Address(
-	val street			: String,
-	val city			: String,
-	val state			: String,
-	val zip				: String,
-	val country			: String
-) extends JsonFormat {
-	def asJson = {
-		JsObject(List(
-			"street" -> JsString(this.street),
-			"city" -> JsString(this.city),
-			"state" -> JsString(this.state),
-			"zip" -> JsString(this.zip),
-			"country" -> JsString(this.country)
-		))
+	val street			: Option[String] = None,
+	val city			: Option[String] = None,
+	val state			: Option[String] = None,
+	val zip				: Option[String] = None,
+	val country			: Option[String] = None
+) extends XmlFormat with JsonFormat {
+	def asXML = {
+	  <address>
+	    { street.map { s => <street>{s}</street> }.getOrElse() }
+	    { city.map { s => <city>{s}</city> }.getOrElse() }
+	    { state.map { s => <state>{s}</state> }.getOrElse() }
+	    { zip.map { s => <zip>{s}</zip> }.getOrElse() }
+	    <latitude></latitude>
+	    <longitude></longitude>
+	    { country.map { s => <country>{s}</country> }.getOrElse() }
+	  </address>
 	}
+	def asJson = JsObject(
+		(
+			street.map("street" -> JsString(_)) ::
+			city.map { "city" -> JsString(_) } ::
+			state.map { "state" -> JsString(_) } ::
+			zip.map { "zip" -> JsString(_) } ::
+			country.map { "country" -> JsString(_) } :: 
+			Nil
+		).filter(_.isDefined).map(_.get)
+	)
 }
 object Address {
 	def fromXML(node: xml.NodeSeq) = {
 		new Address(
-			(node \ "street").text,
-			(node \ "city").text,
-			(node \ "state").text,
-			(node \ "zip").text,
-			(node \ "country").text
+			(node \ "street").headOption.map { _.text },
+			(node \ "city").headOption.map { _.text },
+			(node \ "state").headOption.map { _.text },
+			(node \ "zip").headOption.map { _.text },
+			(node \ "country").headOption.map { _.text }
 		)
 	}
 }
 
-object NonExistentBrewery extends Brewery("","",Address("","","","",""),"") {
+object NonExistentBrewery extends Brewery("","",Address(),"") {
 	override def beerList: Seq[Beer] = Seq()
 }
 
@@ -421,11 +429,11 @@ object Application extends Controller {
 		  	mapping(
 				"name" -> nonEmptyText,
 				"address" -> mapping(
-					"street" -> text,
-					"city" -> text,
-					"state" -> text,
-					"zip" -> text,
-					"country" -> text
+					"street" -> optional(text),
+					"city" -> optional(text),
+					"state" -> optional(text),
+					"zip" -> optional(text),
+					"country" -> optional(text)
 				)(Address.apply)(Address.unapply),
 				"phone" -> text
 				)
