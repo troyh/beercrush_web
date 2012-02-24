@@ -19,12 +19,12 @@ GET     /breweries					controllers.Application.allBreweries(letter="",page:Long 
 GET     /breweries/:letter			controllers.Application.allBreweries(letter,page:Long ?= 1)
 GET		/search						controllers.Application.search(q,page: Long ?= 1)
 # Beer pages
-GET     /:brewery/:beer				controllers.Application.showBeer(brewery,beer)
+GET     /$beerid<[a-zA-Z0-9-]+/[a-zA-Z0-9-]+>				controllers.Application.showBeer(beerid)
 POST    /:brewery/+beer 			controllers.Application.newBeer(brewery)
-POST    /:brewery/:beer				controllers.Application.editBeer(brewery,beer)
+POST    /$beerid<[a-zA-Z0-9-]+/[a-zA-Z0-9-]+>				controllers.Application.editBeer(beerid)
 POST    /:brewery/:beer/photo		controllers.Application.addBeerPhoto(brewery,beer)
 # Brewery pages
-POST    /+brewery                controllers.Application.newBrewery
+POST    /+brewery                controllers.Application.newBrewery()
 GET     /:brewery					controllers.Application.showBrewery(brewery)
 POST    /:brewery					controllers.Application.editBrewery(brewery)
 

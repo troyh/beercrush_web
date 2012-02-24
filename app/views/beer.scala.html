@@ -21,7 +21,7 @@
 		}
 
 		<div id="editForm">
-		@helper.form(action = routes.Application.editBeer(brewery.id.toString,beer.id.toString.split("/").last) ) {
+		@helper.form(action = routes.Application.editBeer(beer.id) ) {
 			@helper.inputText(
 				beerForm("name"),
 				'_label -> "Name",

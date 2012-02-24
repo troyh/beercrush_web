@@ -2,7 +2,7 @@ package models
 
 import BeerCrush._
 
-class UserId(id: String) extends Id(id) {
+class UserId(id: String) extends Id(Some(id)) {
 }
 object UserId {
 implicit def string2id(id: String) = new UserId(id)
@@ -15,7 +15,7 @@ class User(
   val password: String,
   val name: String,
   val aboutme: String
-) extends PersistentObject(userId) {
+) extends PersistentObject(Some(userId)) {
 	lazy val pageURL = "/user/" + id
 	def save = {
 		val dateFormat=new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat)

@@ -38,14 +38,14 @@ case class Brewery(
 	val name: 	String,
 	val address: Address,
 	val phone:	Option[String]
-) extends PersistentObject(breweryId) with JsonFormat {
+) extends PersistentObject(Some(breweryId)) with JsonFormat {
 	lazy val pageURL = { "/" + id }
 	def beerList: Seq[Beer] = {
 		val parameters=new org.apache.solr.client.solrj.SolrQuery()
 		parameters.set("q","doctype:beer AND brewery:" + id)
 		val response=Application.solr.query(parameters)
 		val docs=response.getResults().asScala
-		docs.map(doc => Beer.fromExisting(doc.get("id").toString))
+		docs.map(doc => Beer.fromExisting(Some(doc.get("id").toString)).get)
 	}
 
 	def save: Unit = {
@@ -150,7 +150,7 @@ object Brewery {
 }
 
 case class Beer(
-	beerId:			BeerId,
+	beerId:			Option[BeerId],
 	val breweryId:	BreweryId,
 	val name: 		String,
 	val description:String,
@@ -168,7 +168,7 @@ case class Beer(
 	def save = {
 		val xml=
 		<beer>
-		  <id>{this.id}</id>
+		  <id>{this.id.get}</id>
 		  <brewery_id>{this.breweryId}</brewery_id>
 		  <calories_per_ml></calories_per_ml>
 		  <abv>{this.abv}</abv>
@@ -217,25 +217,31 @@ object MyHelpers {
 }
 
 object Beer {
-	def fromExisting(id:BeerId): Beer = {
+	def fromExisting(id:Option[BeerId]): Option[Beer] = {
 		import MyHelpers._
-		val xml=scala.xml.XML.loadFile(PersistentObject.fileLocationFromId(id))
-		Beer(
-			beerId = id,
-			breweryId = (xml \ "brewery_id").text,
-			name = (xml \ "name").text,
-			description = (xml \ "description").text,
-			abv = ifException { (xml \ "abv").text.toDouble } (0.0) ,
-			ibu = ifException { (xml \ "ibu").text.toInt } (0),
-			ingredients = (xml \ "ingredients").text,
-			grains = (xml \ "grains").text,
-			hops = (xml \ "hops").text,
-			yeast = (xml \ "yeast").text,
-			otherings = (xml \ "otherings").text,
-			styles = (xml \ "styles").map( style => 
-				new BeerStyle((style \ "style" \ "bjcp_style_id").text,(style \ "style" \ "name").text)
-			).toList
-		)
+		
+		id match {
+			case None => None
+			case Some(beerId) => {
+				val xml=scala.xml.XML.loadFile(PersistentObject.fileLocationFromId(beerId))
+				Some(Beer(
+					beerId = id,
+					breweryId = (xml \ "brewery_id").text,
+					name = (xml \ "name").text,
+					description = (xml \ "description").text,
+					abv = ifException { (xml \ "abv").text.toDouble } (0.0) ,
+					ibu = ifException { (xml \ "ibu").text.toInt } (0),
+					ingredients = (xml \ "ingredients").text,
+					grains = (xml \ "grains").text,
+					hops = (xml \ "hops").text,
+					yeast = (xml \ "yeast").text,
+					otherings = (xml \ "otherings").text,
+					styles = (xml \ "styles").map( style => 
+						new BeerStyle((style \ "style" \ "bjcp_style_id").text,(style \ "style" \ "name").text)
+					).toList
+				))
+			}
+		}
 	}
 }
 
@@ -296,8 +302,8 @@ object Application extends Controller {
 		  "password" -> nonEmptyText
 	  )
 	  { (username,password) => User.findUser(username).get }
-	  { user => Some(user.id,user.password)}.verifying( user => {
-			  val existingUser=User.findUser(user.id)
+	  { user => Some(user.id.get,user.password)}.verifying( user => {
+			  val existingUser=User.findUser(user.id.get)
 			  existingUser.isDefined && user.password==existingUser.get.password
 	  }),
 	  Map.empty,
@@ -314,9 +320,9 @@ object Application extends Controller {
   		  ).verifying("Passwords don't match", passwords => passwords._1 == passwords._2)
   	  )
   	  { (username,passwords) => new User(UserId.string2id(username),new java.util.Date(),passwords._1,"","") }
-  	  { user => Some(user.id,(user.password,user.password))}.verifying(
+  	  { user => Some(user.id.get,(user.password,user.password))}.verifying(
   		  "This username is already taken",
-  		  user => !User.findUser(user.id).isDefined
+  		  user => !User.findUser(user.id.get).isDefined
   	  ),
   	  Map.empty,
   	  Nil,
@@ -339,7 +345,7 @@ object Application extends Controller {
 	  None
   )
   
-  class BeerForm(breweryId:BreweryId, beerId: BeerId) extends Form[Beer](
+  class BeerForm(beerId: Option[BeerId]) extends Form[Beer](
 	  mapping(
 			"name" -> nonEmptyText,
 			"description" -> text,
@@ -390,7 +396,7 @@ object Application extends Controller {
   		  (name:String,description:String,abv:String,ibu:Int,ingredients:String,grains:String,hops:String,yeast:String,otherings:String,styles:List[String]) => {
   			  Beer(
 				  beerId,
-				  breweryId,
+				  beerId.get.breweryId,
 				  name,
 				  description,
 				  abv.toDouble,
@@ -449,15 +455,19 @@ object Application extends Controller {
 	{
 	}
 	  
-  def showBeer(breweryId:BreweryId,beerId:BeerId) = Action { implicit request => 
-	  val beerForm=new BeerForm(breweryId,beerId)
-	  val beer=Beer.fromExisting(breweryId + "/" + beerId)
-	  val brewery=Brewery.fromExisting(breweryId)
+  def showBeer(beerId:BeerId) = Action { implicit request => 
+	  Beer.fromExisting(Some(beerId)) match {
+		  case None => NotFound
+		  case Some(beer) => {
+			  val beerForm=new BeerForm(beer.beerId)
+			  val brewery=Brewery.fromExisting(beer.breweryId)
 	  
-	  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-		  case AcceptHTMLHeader => Ok(views.html.beer(beer,brewery,beerForm.fill(beer)))
-		  case AcceptXMLHeader  => Ok(views.xml.beer(beer,brewery))
-		  case AcceptJSONHeader  => Ok(Json.toJson(beer.asJson))
+			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
+				  case AcceptHTMLHeader => Ok(views.html.beer(beer,brewery,beerForm.fill(beer)))
+				  case AcceptXMLHeader  => Ok(views.xml.beer(beer,brewery))
+				  case AcceptJSONHeader  => Ok(Json.toJson(beer.asJson))
+			  }
+		  }
 	  }
   }
 
@@ -558,20 +568,22 @@ object Application extends Controller {
   	  }
   }
   
-  def newBeer(breweryId:BreweryId) = TODO
+  def newBeer(breweryId:BreweryId) = editBeer(None)
   
-  def editBeer(breweryId:BreweryId, beerId:BeerId) = Action { implicit request => 
-	  val beerForm=new BeerForm(breweryId,beerId)
+  // def editBeerRoute(beerId:String) = editBeer(Some(beerId))
+  
+  def editBeer(beerId:Option[BeerId]) = Action { implicit request => 
+	  val beerForm=new BeerForm(beerId)
 	  beerForm.bindFromRequest.fold(
 		  // Handle errors
 		  errors => {
-			  Ok(views.html.beer(Beer.fromExisting(breweryId + "/" + beerId),Brewery.fromExisting(breweryId),errors))
+			  Ok(views.html.beer(Beer.fromExisting(beerId).get,Brewery.fromExisting(beerId.get.breweryId),errors))
 		  },
 	      // Handle successful form submission
 	      beer => {
 			  // Save the doc
 			  beer.save
-			  val brewery=Brewery.fromExisting(breweryId)
+			  val brewery=Brewery.fromExisting(beerId.get.breweryId)
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
 				  case AcceptHTMLHeader => Ok(views.html.beer(beer,brewery,beerForm.fill(beer)))
 				  case AcceptXMLHeader  => Ok(views.xml.beer(beer,brewery))
@@ -678,7 +690,7 @@ object Application extends Controller {
 			  }
 		  },
 		  user => {
-			  val session=request.session + ("username" -> user.id) + ("name" -> user.name)
+			  val session=request.session + ("username" -> user.id.get) + ("name" -> user.name)
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
 				  case AcceptHTMLHeader => Redirect(routes.Application.index).withSession(session)
 				  // case AcceptXMLHeader  => Ok(views.xml.login(loginForm))
@@ -702,7 +714,7 @@ object Application extends Controller {
 				}
 			},
 			newUser => { // Handle successful form submission
-				val session=request.session + ("username" -> newUser.id) + ("name" -> newUser.name)
+				val session=request.session + ("username" -> newUser.id.get) + ("name" -> newUser.name)
 			  
 				// Create the account and then display it to the user
 				newUser.save
@@ -755,7 +767,7 @@ object Application extends Controller {
 				  }
 	  		  },
 	  	      user => { // Handle successful form submission
-	  				val session=request.session + ("username" -> user.id) + ("name" -> user.name)
+	  				val session=request.session + ("username" -> user.id.get) + ("name" -> user.name)
 
 					// Make a new User object as a merging of the submitted form's User and an existing User (if any)
 					val userToSave=User.findUser(username) match {
