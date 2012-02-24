@@ -37,7 +37,7 @@ case class Brewery(
 	breweryId:	BreweryId,
 	val name: 	String,
 	val address: Address,
-	val phone:	String
+	val phone:	Option[String]
 ) extends PersistentObject(breweryId) with JsonFormat {
 	lazy val pageURL = { "/" + id }
 	def beerList: Seq[Beer] = {
@@ -61,21 +61,20 @@ case class Brewery(
 		  <id>{thisId}</id>
 		  <name>{this.name}‎</name>
 		  { address.asXML }
-		  <phone>{this.phone}</phone>
+		  { phone.map { s => <phone>{s}</phone>} getOrElse() }
 		</brewery>	
 		
 		// scala.xml.XML.loadString(xml.toString)
 		scala.xml.XML.save("/Users/troy/beerdata/editedBrewery.xml",xml,"UTF-8",true)
 	}
 	
-	def asJson = {
-		JsObject(List(
-			"id" -> JsString(this.id.toString),
-			"name" -> JsString(this.name),
-			"address" -> this.address.asJson,
-			"phone" -> JsString(this.phone)
-		))
-	}
+	def asJson = JsObject((
+		Some("id" -> JsString(this.id.toString)) ::
+		Some("name" -> JsString(this.name)) :: 
+		Some("address" -> this.address.asJson) :: 
+		(phone.map { "phone" -> JsString(_) }) ::
+		Nil
+	).filter(_.isDefined).map(_.get))
 }
 
 trait XmlFormat {
@@ -123,7 +122,7 @@ object Address {
 	}
 }
 
-object NonExistentBrewery extends Brewery("","",Address(),"") {
+object NonExistentBrewery extends Brewery("","",Address(),None) {
 	override def beerList: Seq[Beer] = Seq()
 }
 
@@ -137,7 +136,7 @@ object Brewery {
 				(xml \ "id").text,
 				(xml \ "name").text,
 				Address.fromXML(xml \ "address"),
-				(xml \ "phone").text
+				(xml \ "phone").headOption.map{_.text}
 			)
 		}
 		catch {
@@ -435,7 +434,7 @@ object Application extends Controller {
 					"zip" -> optional(text),
 					"country" -> optional(text)
 				)(Address.apply)(Address.unapply),
-				"phone" -> text
+				"phone" -> optional(text)
 				)
 			  { (name,address,phone) => Brewery(breweryId,name,address,phone) }
 			  { brewery => Some(brewery.name,brewery.address,brewery.phone) },
