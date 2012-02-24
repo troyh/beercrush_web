@@ -49,9 +49,16 @@ case class Brewery(
 	}
 
 	def save: Unit = {
+		val thisId=this.id match {
+			case id if (id.isEmpty) => {
+				/* Make up an ID for this */
+				"[^a-zA-Z0-9]+".r.replaceAllIn("['\"]+".r.replaceAllIn(this.name,""),"-") 
+			}
+			case _ => { this.id }
+		}
 		val xml=
 		<brewery>
-		  <id>{this.id}</id>
+		  <id>{thisId}</id>
 		  <name>{this.name}‎</name>
 		  <address>
 		    <street>{this.address.street}</street>
@@ -108,16 +115,26 @@ object Address {
 	}
 }
 
+object NonExistentBrewery extends Brewery("","",Address("","","","",""),"") {
+	override def beerList: Seq[Beer] = Seq()
+}
+
 object Brewery {
-	def fromExisting(id:BreweryId) = {
-		val xml=scala.xml.XML.loadFile("/Users/troy/beerdata/brewery/" + id + ".xml")
-		val address=xml \ "address"
-		new Brewery(
-			(xml \ "id").text,
-			(xml \ "name").text,
-			Address.fromXML(xml \ "address"),
-			(xml \ "phone").text
-		)
+	
+	def fromExisting(id:BreweryId): Brewery = {
+		try {
+			val xml=scala.xml.XML.loadFile("/Users/troy/beerdata/brewery/" + id + ".xml")
+			val address=xml \ "address"
+			new Brewery(
+				(xml \ "id").text,
+				(xml \ "name").text,
+				Address.fromXML(xml \ "address"),
+				(xml \ "phone").text
+			)
+		}
+		catch {
+			case _ => NonExistentBrewery
+		}
 	}
 }
 
@@ -435,12 +452,13 @@ object Application extends Controller {
 
   def showBrewery(breweryId:BreweryId) = Action { implicit request =>
 	  val breweryForm = new BreweryForm(breweryId)
-	  val brewery=Brewery.fromExisting(breweryId)
-
-	  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-		  case AcceptHTMLHeader => Ok(views.html.brewery(brewery,breweryForm.fill(brewery)))
-		  case AcceptXMLHeader  => Ok(views.xml.brewery(brewery))
-		  case AcceptJSONHeader  => Ok(Json.toJson(brewery.asJson))
+	  Brewery.fromExisting(breweryId) match {
+		  case NonExistentBrewery => NotFound
+		  case brewery: Brewery => matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
+			  case AcceptHTMLHeader => Ok(views.html.brewery(brewery,breweryForm.fill(brewery)))
+			  case AcceptXMLHeader  => Ok(views.xml.brewery(brewery))
+			  case AcceptJSONHeader  => Ok(Json.toJson(brewery.asJson))
+		  }
 	  }
   }
   
@@ -529,6 +547,8 @@ object Application extends Controller {
   	  }
   }
   
+  def newBeer(breweryId:BreweryId) = TODO
+  
   def editBeer(breweryId:BreweryId, beerId:BeerId) = Action { implicit request => 
 	  val beerForm=new BeerForm(breweryId,beerId)
 	  beerForm.bindFromRequest.fold(
@@ -541,7 +561,6 @@ object Application extends Controller {
 			  // Save the doc
 			  beer.save
 			  val brewery=Brewery.fromExisting(breweryId)
-	  
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
 				  case AcceptHTMLHeader => Ok(views.html.beer(beer,brewery,beerForm.fill(beer)))
 				  case AcceptXMLHeader  => Ok(views.xml.beer(beer,brewery))
@@ -551,25 +570,42 @@ object Application extends Controller {
 	  )
   }
   
+  def newBrewery = editBrewery("")
+  // def newBrewery = Action { implicit request =>
+  // 	  val breweryForm = new BreweryForm("")
+  // 	  breweryForm.bindFromRequest.fold(
+  // 		  errors => {},
+  // 		  brewery => {
+  // 			  val newId="made-up-id-based-on-name"
+  // 			  editBrewery(newId)
+  // 		  }
+  // 	  )
+  // }
+
   def editBrewery(breweryId: BreweryId) = Action { implicit request =>
-	  val breweryForm = new BreweryForm(breweryId)
-	  breweryForm.bindFromRequest.fold(
+	  val f=new BreweryForm(breweryId)
+	  f.bindFromRequest.fold(
 		  errors => {
+			  Logger.info("editBrewery errors")
+			  val brewery=Brewery.fromExisting(breweryId)
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-				  case AcceptHTMLHeader => Ok(views.html.brewery(Brewery.fromExisting(breweryId),errors))
-				  case AcceptXMLHeader  => Ok(views.xml.brewery(Brewery.fromExisting(breweryId)))
-				  case AcceptJSONHeader  => Ok(Json.toJson(Brewery.fromExisting(breweryId).asJson))
-			  }
-		  },
-		  brewery => {
-			  brewery.save
-			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-				  case AcceptHTMLHeader => Ok(views.html.brewery(brewery,breweryForm.fill(brewery)))
+				  case AcceptHTMLHeader => Ok(views.html.brewery(brewery,errors))
 				  case AcceptXMLHeader  => Ok(views.xml.brewery(brewery))
 				  case AcceptJSONHeader  => Ok(Json.toJson(brewery.asJson))
 			  }
+		  },
+		  brewery => {
+			  Logger.info("editBrewery success")
+			  brewery.save
+
+			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
+				  case AcceptHTMLHeader => Ok(views.html.brewery(Brewery.fromExisting(brewery.breweryId),f.fill(brewery)))
+				  case AcceptXMLHeader  => Ok(views.xml.brewery(Brewery.fromExisting(brewery.breweryId)))
+				  case AcceptJSONHeader  => Ok(Json.toJson(Brewery.fromExisting(brewery.breweryId).asJson))
+			  }
 		  }
 	  )
+	  
   }
   
   def addBeerPhoto(breweryId: BreweryId, beerId: BeerId) = Action { request =>
