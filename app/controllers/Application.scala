@@ -78,7 +78,7 @@ case class Brewery(
 }
 
 trait XmlFormat {
-	def asXML: xml.Node
+	def asXML: xml.NodeSeq
 }
 
 case class Address(
@@ -89,6 +89,9 @@ case class Address(
 	val country			: Option[String] = None
 ) extends XmlFormat with JsonFormat {
 	def asXML = {
+		List(street,city,state,zip,country).filter(_.isDefined).size match {
+			case 0 => Seq()
+			case _ => 
 	  <address>
 	    { street.map { s => <street>{s}</street> }.getOrElse() }
 	    { city.map { s => <city>{s}</city> }.getOrElse() }
@@ -98,6 +101,7 @@ case class Address(
 	    <longitude></longitude>
 	    { country.map { s => <country>{s}</country> }.getOrElse() }
 	  </address>
+		}
 	}
 	def asJson = JsObject(
 		(
