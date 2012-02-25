@@ -1,4 +1,4 @@
-@(beer:Beer)
+@(beer:models.Beer)
 @main {
 	<beer>
 		<name>@beer.name</name>
