@@ -126,51 +126,46 @@ object Address {
 	}
 }
 
-object NonExistentBrewery extends Brewery("","",Address(),None) {
-	override def beerList: Seq[Beer] = Seq()
-}
-
 object Brewery {
 	
-	def fromExisting(id:BreweryId): Brewery = {
+	def fromExisting(id:BreweryId): Option[Brewery] = {
 		try {
 			val xml=scala.xml.XML.loadFile("/Users/troy/beerdata/brewery/" + id + ".xml")
 			val address=xml \ "address"
-			new Brewery(
+			Some(new Brewery(
 				(xml \ "id").text,
 				(xml \ "name").text,
 				Address.fromXML(xml \ "address"),
 				(xml \ "phone").headOption.map{_.text}
-			)
+			))
 		}
 		catch {
-			case _ => NonExistentBrewery
+			case _ => None
 		}
 	}
 }
 
 case class Beer(
 	beerId:			Option[BeerId],
-	val breweryId:	BreweryId,
 	val name: 		String,
-	val description:String,
-	val abv: 		Double,
-	val ibu: 		Int,
-	val ingredients:String,
-	val grains:		String,
-	val hops:		String,
-	val yeast:		String,
-	val otherings:	String,
-	val styles: 	List[BeerStyle]
+	val description:Option[String],
+	val abv: 		Option[Double],
+	val ibu: 		Option[Int],
+	val ingredients:Option[String],
+	val grains:		Option[String],
+	val hops:		Option[String],
+	val yeast:		Option[String],
+	val otherings:	Option[String],
+	val styles: 	Option[List[BeerStyle]]
 ) extends PersistentObject(beerId) with JsonFormat {
 	lazy val pageURL = { "/" + id }
-	lazy val brewery = Brewery.fromExisting(breweryId)
+	lazy val brewery = Brewery.fromExisting(beerId.get.breweryId)
 
 	def save = {
 		val xml=
 		<beer>
 		  <id>{this.id.get}</id>
-		  <brewery_id>{this.breweryId}</brewery_id>
+		  { brewery.map{ b => <brewery_id>{b.breweryId}</brewery_id>}.getOrElse() }
 		  <calories_per_ml></calories_per_ml>
 		  <abv>{this.abv}</abv>
 		  <ibu>{this.ibu}</ibu>
@@ -183,7 +178,7 @@ case class Beer(
 		  <yeast>{this.yeast}</yeast>
 		  <otherings>{this.otherings}</otherings>
 		  <styles>
-		  			  {this.styles.map(style => <style><bjcp_style_id>{style.id}</bjcp_style_id><name>{style.name}</name></style>)}
+		  			  {styles.map(_.map(style => <style><bjcp_style_id>{style.id}</bjcp_style_id><name>{style.name}</name></style>))}
 		  </styles>
 		</beer>
 		
@@ -191,20 +186,21 @@ case class Beer(
 		scala.xml.XML.save("/Users/troy/beerdata/editedBeer.xml",xml,"UTF-8",true)
 	}
 	
-	def asJson = {
-	  JsObject(List(
-		  "id" -> JsString(this.id.toString),
-		  "brewery" -> JsString(this.breweryId.toString),
-		  "name" -> JsString(this.name),
-		  "description" -> JsString(this.description),
-		  "styles" -> JsArray(this.styles.map(s => JsObject(List(
+	def asJson = JsObject(
+		(
+		  beerId.map{"id" -> JsString(_)} ::
+		  brewery.map{b => "brewery" -> JsString(b.breweryId)} ::
+		  Some("name" -> JsString(name)) ::
+		  description.map{"description" -> JsString(_)} ::
+		  styles.map{ss => "styles" -> JsArray(ss.map(s => JsObject(List(
 			  "id" -> JsString(s.id),
 			  "name" -> JsString(s.name)
-		  )))),
-		  "abv" -> JsNumber(this.abv),
-		  "ibu" -> JsNumber(this.ibu)
-	  ))
-	}
+		  ))))} ::
+		  abv.map{"abv" -> JsNumber(_)} ::
+		  ibu.map{"ibu" -> JsNumber(_)} ::
+		  Nil
+		).filter(_.isDefined).map{_.get}
+	)
 }
 
 object MyHelpers {
@@ -227,19 +223,18 @@ object Beer {
 				val xml=scala.xml.XML.loadFile(PersistentObject.fileLocationFromId(beerId))
 				Some(Beer(
 					beerId = id,
-					breweryId = (xml \ "brewery_id").text,
 					name = (xml \ "name").text,
-					description = (xml \ "description").text,
-					abv = ifException { (xml \ "abv").text.toDouble } (0.0) ,
-					ibu = ifException { (xml \ "ibu").text.toInt } (0),
-					ingredients = (xml \ "ingredients").text,
-					grains = (xml \ "grains").text,
-					hops = (xml \ "hops").text,
-					yeast = (xml \ "yeast").text,
-					otherings = (xml \ "otherings").text,
-					styles = (xml \ "styles").map( style => 
+					description = (xml \ "description").headOption.map{_.text},
+					abv = (xml \ "abv").headOption.map{_.text.toDouble},
+					ibu = (xml \ "ibu").headOption.map{_.text.toInt},
+					ingredients = (xml \ "ingredients").headOption.map{_.text},
+					grains = (xml \ "grains").headOption.map{_.text},
+					hops = (xml \ "hops").headOption.map{_.text},
+					yeast = (xml \ "yeast").headOption.map{_.text},
+					otherings = (xml \ "otherings").headOption.map{_.text},
+					styles = Some((xml \ "styles").map( style => 
 						new BeerStyle((style \ "style" \ "bjcp_style_id").text,(style \ "style" \ "name").text)
-					).toList
+					).toList)
 				))
 			}
 		}
@@ -349,65 +344,64 @@ object Application extends Controller {
   class BeerForm(beerId: Option[BeerId]) extends Form[Beer](
 	  mapping(
 			"name" -> nonEmptyText,
-			"description" -> text,
-			"abv" -> text.transform({ s: String =>
-				/* Extract the digits from any noise, i.e., percent sign (%) or leading spaces */
-					val regex="^\\s*([\\d\\.]+)\\s*%?\\s*$".r
-					s match {
-						case regex(digits) => digits
-						case _ => s
-					}
-				},{ s: String => s }).verifying(
-				/**
-				*	The ABV value must be numeric (including real numbers), convertable to a Double
-				*	and between 0 and 100. The string can have a percentage sign (%) that gets ignored.
-				*/
-				Constraint { abv: String => {
-					abv.isEmpty() match {
-						case true => Valid
-						case false => try {
-							val regex="^\\s*([\\d\\.]+)\\s*%?\\s*$".r
-							abv match {
-								case regex(digits) => {
-									val value=digits.toDouble
-									(0 <= value && value <= 25) match {
-										case true => Valid
-										case false => Invalid(ValidationError("Must be between 0 and 25"))
-									}
-								}
-								case _ => Invalid(ValidationError("Must be a percentage"))
-							}
-						}
-						catch {
-							case _ => Invalid(ValidationError("This is not an ABV value that makes sense"))
-						}
-					}
-				}}
-			), 
+			"description" -> optional(text),
+			"abv" -> optional(text), //.transform({ s: Option[String] =>
+			// 	/* Extract the digits from any noise, i.e., percent sign (%) or leading spaces */
+			// 		val regex="^\\s*([\\d\\.]+)\\s*%?\\s*$".r
+			// 		s match {
+			// 			case regex(digits) => Some(digits)
+			// 			case _ => Some(s)
+			// 		}
+			// 	},{ s: Some[_] => Some("") }).verifying(
+			// 	/**
+			// 	*	The ABV value must be numeric (including real numbers), convertable to a Double
+			// 	*	and between 0 and 100. The string can have a percentage sign (%) that gets ignored.
+			// 	*/
+			// 	Constraint { abv: String => {
+			// 		abv.isEmpty() match {
+			// 			case true => Valid
+			// 			case false => try {
+			// 				val regex="^\\s*([\\d\\.]+)\\s*%?\\s*$".r
+			// 				abv match {
+			// 					case regex(digits) => {
+			// 						val value=digits.toDouble
+			// 						(0 <= value && value <= 25) match {
+			// 							case true => Valid
+			// 							case false => Invalid(ValidationError("Must be between 0 and 25"))
+			// 						}
+			// 					}
+			// 					case _ => Invalid(ValidationError("Must be a percentage"))
+			// 				}
+			// 			}
+			// 			catch {
+			// 				case _ => Invalid(ValidationError("This is not an ABV value that makes sense"))
+			// 			}
+			// 		}
+			// 	}}
+			// ), 
 			/* Why no float or double types?! */
-			"ibu" -> number(min=0,max=200),
-	  		"ingredients" -> text,
-			"grains" -> text,
-			"hops" -> text,
-			"yeast" -> text,
-			"otherings" -> text,
-			"styles" -> list(text)
+			"ibu" -> optional(number(min=0,max=200)),
+	  		"ingredients" -> optional(text),
+			"grains" -> optional(text),
+			"hops" -> optional(text),
+			"yeast" -> optional(text),
+			"otherings" -> optional(text),
+			"styles" -> optional(list(text))
 	  )
 	  {
-  		  (name:String,description:String,abv:String,ibu:Int,ingredients:String,grains:String,hops:String,yeast:String,otherings:String,styles:List[String]) => {
+  		  (name:String,description:Option[String],abv:Option[String],ibu:Option[Int],ingredients:Option[String],grains:Option[String],hops:Option[String],yeast:Option[String],otherings:Option[String],styles:Option[List[String]]) => {
   			  Beer(
-				  beerId,
-				  beerId.get.breweryId,
-				  name,
-				  description,
-				  abv.toDouble,
-				  ibu,
-				  ingredients,
-				  grains,
-				  hops,
-				  yeast,
-				  otherings,
-				  styles.map(s => new BeerStyle(s,s))
+				  beerId = beerId,
+				  name = name,
+				  description = description,
+				  abv = Some(abv.toString.toDouble),
+				  ibu = ibu,
+				  ingredients = ingredients,
+				  grains = grains,
+				  hops = hops,
+				  yeast = yeast,
+				  otherings = otherings,
+				  styles = styles.map{_.map(s => new BeerStyle(s,s))}
 			  )
   		  }
 	  }
@@ -416,14 +410,14 @@ object Application extends Controller {
 			  Some(
 				  beer.name,
 				  beer.description,
-				  beer.abv.toString,
+				  beer.abv.map{_.toString},
 				  beer.ibu,
 				  beer.ingredients,
 				  beer.grains,
 				  beer.hops,
 				  beer.yeast,
 				  beer.otherings,
-				  beer.styles.map(s => s.id)
+				  beer.styles.map(_.map(s => s.id))
 			  )
 		  }
 	  },
@@ -461,11 +455,10 @@ object Application extends Controller {
 		  case None => NotFound
 		  case Some(beer) => {
 			  val beerForm=new BeerForm(beer.beerId)
-			  val brewery=Brewery.fromExisting(beer.breweryId)
 	  
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
 				  case AcceptHTMLHeader => Ok(views.html.beer(Some(beer),beerForm.fill(beer)))
-				  case AcceptXMLHeader  => Ok(views.xml.beer(beer,brewery))
+				  case AcceptXMLHeader  => Ok(views.xml.beer(beer))
 				  case AcceptJSONHeader  => Ok(Json.toJson(beer.asJson))
 			  }
 		  }
@@ -475,7 +468,7 @@ object Application extends Controller {
   def showBrewery(breweryId:BreweryId) = Action { implicit request =>
 	  val breweryForm = new BreweryForm(breweryId)
 	  Brewery.fromExisting(breweryId) match {
-		  case NonExistentBrewery => NotFound
+		  case None => NotFound
 		  case brewery: Brewery => matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
 			  case AcceptHTMLHeader => Ok(views.html.brewery(brewery,breweryForm.fill(brewery)))
 			  case AcceptXMLHeader  => Ok(views.xml.brewery(brewery))
@@ -582,10 +575,9 @@ object Application extends Controller {
 	      beer => {
 			  // Save the doc
 			  beer.save
-			  val brewery=Brewery.fromExisting(beerId.get.breweryId)
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
 				  case AcceptHTMLHeader => Ok(views.html.beer(Some(beer),beerForm.fill(beer)))
-				  case AcceptXMLHeader  => Ok(views.xml.beer(beer,brewery))
+				  case AcceptXMLHeader  => Ok(views.xml.beer(beer))
 				  case AcceptJSONHeader  => Ok(Json.toJson(beer.asJson))
 			  }
 		  }
@@ -598,22 +590,20 @@ object Application extends Controller {
 	  val f=new BreweryForm(breweryId)
 	  f.bindFromRequest.fold(
 		  errors => {
-			  Logger.info("editBrewery errors")
 			  val brewery=Brewery.fromExisting(breweryId)
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-				  case AcceptHTMLHeader => Ok(views.html.brewery(brewery,errors))
-				  case AcceptXMLHeader  => Ok(views.xml.brewery(brewery))
-				  case AcceptJSONHeader  => Ok(Json.toJson(brewery.asJson))
+				  case AcceptHTMLHeader => Ok(views.html.brewery(brewery.get,errors))
+				  case AcceptXMLHeader  => Ok(views.xml.brewery(brewery.get))
+				  case AcceptJSONHeader  => Ok(Json.toJson(brewery.get.asJson))
 			  }
 		  },
 		  brewery => {
-			  Logger.info("editBrewery success")
 			  brewery.save
 
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-				  case AcceptHTMLHeader => Ok(views.html.brewery(Brewery.fromExisting(brewery.breweryId),f.fill(brewery)))
-				  case AcceptXMLHeader  => Ok(views.xml.brewery(Brewery.fromExisting(brewery.breweryId)))
-				  case AcceptJSONHeader  => Ok(Json.toJson(Brewery.fromExisting(brewery.breweryId).asJson))
+				  case AcceptHTMLHeader => Ok(views.html.brewery(Brewery.fromExisting(brewery.breweryId).get,f.fill(brewery)))
+				  case AcceptXMLHeader  => Ok(views.xml.brewery(Brewery.fromExisting(brewery.breweryId).get))
+				  case AcceptJSONHeader  => Ok(Json.toJson(Brewery.fromExisting(brewery.breweryId).get.asJson))
 			  }
 		  }
 	  )

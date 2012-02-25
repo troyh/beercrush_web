@@ -1,10 +1,10 @@
-@(beer:Beer,brewery:Brewery)
+@(beer:Beer)
 @main {
 	<beer>
 		<name>@beer.name</name>
-		<brewery>@brewery.name</brewery>
+		<brewery>@beer.brewery.map(_.name)</brewery>
 		<desc>@beer.description</desc>
-		<styles>@beer.styles.map( style => <style>{style.name}</style>)</styles>
+		@beer.styles.map(s => <styles>@{s.map( style => <style>{style.name}</style>)}</styles>)
 		<abv>@beer.abv</abv>
 		<ibu>@beer.ibu</ibu>
 	</beer>

@@ -1,24 +1,24 @@
 @(beer:Option[Beer], beerForm: Form[Beer])(implicit request: Request[_])
 
-@main(beer.map { b => b.name + " by " + b.brewery.name }.getOrElse("New beer")) {
+@main(beer.map { b => b.name + " by " + b.brewery.map(_.name) }.getOrElse("New beer")) {
 
 	@beer match {
 		case None => {}
 		case Some(beer) => {
 		<h1>@beer.name</h1>
 		
-		<div>Brewery: <a href=@beer.brewery.pageURL>@beer.brewery.name</a></div>
+		<div>Brewery: <a href=@beer.brewery.map(_.pageURL)>@beer.brewery.map(_.name)</a></div>
 		
 		<p>@beer.description</p>
 		
-		<div>Style:<ul>@beer.styles.map( style => <li><a href={style.pageURL}>{style.name}</a></li>)</ul></div>
+		<div>Style:<ul>@beer.styles.get.map( style => <li><a href={style.pageURL}>{style.name}</a></li>)</ul></div>
 		
 		<div>
 			<p>ABV:@beer.abv%</p>
 			<p>IBUs:@beer.ibu</p>
 		</div>
 		
-		@helper.form(action = routes.Application.addBeerPhoto(beer.breweryId.toString,beer.id.toString.split("/").last), 'enctype -> "multipart/form-data") {
+		@helper.form(action = routes.Application.addBeerPhoto(beer.brewery.get.breweryId.toString,beer.id.toString.split("/").last), 'enctype -> "multipart/form-data") {
 			<input type="file" name="photo" />
 			<input type="submit" value="Upload" />
 		}
