@@ -2,6 +2,7 @@ package controllers
 
 import play.api.data._
 import play.api.data.Forms._
+import play.api.data.validation.{Constraint, Valid, Invalid, ValidationError}
 import play.api.libs.json._
 import play.api.mvc._
 import play.api.mvc.Security._
@@ -104,40 +105,34 @@ object Application extends Controller {
 	  mapping(
 			"name" -> nonEmptyText,
 			"description" -> optional(text),
-			"abv" -> optional(text), //.transform({ s: Option[String] =>
-			// 	/* Extract the digits from any noise, i.e., percent sign (%) or leading spaces */
-			// 		val regex="^\\s*([\\d\\.]+)\\s*%?\\s*$".r
-			// 		s match {
-			// 			case regex(digits) => Some(digits)
-			// 			case _ => Some(s)
-			// 		}
-			// 	},{ s: Some[_] => Some("") }).verifying(
-			// 	/**
-			// 	*	The ABV value must be numeric (including real numbers), convertable to a Double
-			// 	*	and between 0 and 100. The string can have a percentage sign (%) that gets ignored.
-			// 	*/
-			// 	Constraint { abv: String => {
-			// 		abv.isEmpty() match {
-			// 			case true => Valid
-			// 			case false => try {
-			// 				val regex="^\\s*([\\d\\.]+)\\s*%?\\s*$".r
-			// 				abv match {
-			// 					case regex(digits) => {
-			// 						val value=digits.toDouble
-			// 						(0 <= value && value <= 25) match {
-			// 							case true => Valid
-			// 							case false => Invalid(ValidationError("Must be between 0 and 25"))
-			// 						}
-			// 					}
-			// 					case _ => Invalid(ValidationError("Must be a percentage"))
-			// 				}
-			// 			}
-			// 			catch {
-			// 				case _ => Invalid(ValidationError("This is not an ABV value that makes sense"))
-			// 			}
-			// 		}
-			// 	}}
-			// ), 
+			"abv" -> optional(text).verifying(
+				/**
+				*	The ABV value must be numeric (including real numbers), convertable to a Double
+				*	and between 0 and 100. The string can have a percentage sign (%) that gets ignored.
+				*/
+				Constraint { abv: Option[String] => {
+					abv match {
+						case None => Valid
+						case Some(s) if (s.isEmpty) => Valid
+						case Some(s) => try {
+							val regex="^\\s*([\\d\\.]+)\\s*%?\\s*$".r
+							abv match {
+								case regex(digits) => {
+									val value=digits.toDouble
+									(0 <= value && value <= 25) match {
+										case true => Valid
+										case false => Invalid(ValidationError("Must be between 0 and 25"))
+									}
+								}
+								case _ => Invalid(ValidationError("Must be a percentage"))
+							}
+						}
+						catch {
+							case _ => Invalid(ValidationError("This is not an ABV value that makes sense"))
+						}
+					}
+				}}
+			), 
 			/* Why no float or double types?! */
 			"ibu" -> optional(number(min=0,max=200)),
 	  		"ingredients" -> optional(text),
