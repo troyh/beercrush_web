@@ -30,11 +30,12 @@ case class BreweryId(breweryId: String) extends Id(Some(breweryId)) {
 }
 object BreweryId {
 	implicit def string2id(s: String): BreweryId = { new BreweryId(s) }
+	// implicit def string2oid(id: String): Option
 }
 
 case class BeerId(beerId: String) extends Id(Some(beerId)) {
 	// TODO: verify the id looks like a beer id
-	def breweryId = beerId.split('/').first
+	def breweryId: BreweryId = beerId.split('/').first
 }
 object BeerId {
 	implicit def string2id(s: String): BeerId = { new BeerId(s) }

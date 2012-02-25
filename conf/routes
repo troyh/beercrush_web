@@ -22,7 +22,7 @@ GET		/search						controllers.Application.search(q,page: Long ?= 1)
 GET     /$beerid<[a-zA-Z0-9-]+/[a-zA-Z0-9-]+>				controllers.Application.showBeer(beerid)
 POST    /:brewery/+beer 			controllers.Application.newBeer(brewery)
 POST    /$beerid<[a-zA-Z0-9-]+/[a-zA-Z0-9-]+>				controllers.Application.editBeer(beerid)
-POST    /:brewery/:beer/photo		controllers.Application.addBeerPhoto(brewery,beer)
+POST    /$beerid<[a-zA-Z0-9-]+/[a-zA-Z0-9-]+>/photo		controllers.Application.addBeerPhoto(beerid)
 # Brewery pages
 POST    /+brewery                controllers.Application.newBrewery()
 GET     /:brewery					controllers.Application.showBrewery(brewery)

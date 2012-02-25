@@ -159,24 +159,35 @@ case class Beer(
 	val styles: 	Option[List[BeerStyle]]
 ) extends PersistentObject(beerId) with JsonFormat {
 	lazy val pageURL = { "/" + id }
-	lazy val brewery = Brewery.fromExisting(beerId.get.breweryId)
+	lazy val brewery = {
+		val bid: Option[BreweryId]=beerId.map(_.breweryId)
+		// val bid: BreweryId = b.breweryId
+		bid match {
+			case None => None
+			case Some(id) => Brewery.fromExisting(id)
+		}
+	}
 
 	def save = {
+		val theBeerId=beerId match {
+			case None => /* Make up an ID */ "[^a-zA-Z0-9]+".r.replaceAllIn(name.replace("'",""),"-")
+			case Some(id) => id
+		}
 		val xml=
 		<beer>
-		  <id>{this.id.get}</id>
+		  <id>{theBeerId}</id>
 		  { brewery.map{ b => <brewery_id>{b.breweryId}</brewery_id>}.getOrElse() }
 		  <calories_per_ml></calories_per_ml>
-		  <abv>{this.abv}</abv>
-		  <ibu>{this.ibu}</ibu>
-		  <name>{this.name}</name>
-		  <description>{this.description}</description>
+		  { abv.map{ abv => <abv>{abv}</abv>}.getOrElse() }
+		  { ibu.map{ ibu => <ibu>{ibu}</ibu>}.getOrElse() }
+		  <name>{name}</name>
+		  { description.map{ s => <description>{s}</description>}.getOrElse() }
 		  <availability></availability>
-		  <ingredients>{this.ingredients}</ingredients>
-		  <grains>{this.grains}</grains>
-		  <hops>{this.hops}</hops>
-		  <yeast>{this.yeast}</yeast>
-		  <otherings>{this.otherings}</otherings>
+		  { ingredients.map{ s => <ingredients>{s}</ingredients>}.getOrElse() }
+		  { grains.map{ s => <grains>{s}</grains>}.getOrElse() }
+		  { hops.map{ s => <hops>{s}</hops>}.getOrElse() }
+		  { yeast.map{ s => <yeast>{s}</yeast>}.getOrElse() }
+		  { otherings.map{ s => <otherings>{s}</otherings>}.getOrElse() }
 		  <styles>
 		  			  {styles.map(_.map(style => <style><bjcp_style_id>{style.id}</bjcp_style_id><name>{style.name}</name></style>))}
 		  </styles>
@@ -394,7 +405,7 @@ object Application extends Controller {
 				  beerId = beerId,
 				  name = name,
 				  description = description,
-				  abv = Some(abv.toString.toDouble),
+				  abv = abv.map(_.toString.toDouble),
 				  ibu = ibu,
 				  ingredients = ingredients,
 				  grains = grains,
@@ -610,7 +621,7 @@ object Application extends Controller {
 	  
   }
   
-  def addBeerPhoto(breweryId: BreweryId, beerId: BeerId) = Action { request =>
+  def addBeerPhoto(beerId: BeerId) = Action { request =>
 	  request.body.asMultipartFormData match {
 		  case Some(mfd) => { // It's multipartFormData
 			  mfd.file("photo").map( uploadedFile => {
@@ -627,7 +638,7 @@ object Application extends Controller {
 					  val uniqId=request.session.get("username").getOrElse("Anonymous") + "-" + format.format(new java.util.Date())
 
 					  // Move it to where it belongs
-					  uploadedFile.ref.moveTo(new File("/Users/troy/beerdata/photos/"+ breweryId + "/" + beerId + "/" + uniqId + ext),replace=true)
+					  uploadedFile.ref.moveTo(new File("/Users/troy/beerdata/photos/"+ beerId + "/" + uniqId + ext),replace=true)
 					  // TODO: Make different sizes (thumbnail, small, medium, large, etc.)
 					  // TODO: Notify someone so that the photos get backed-up, added to Solr's index, etc.
 
