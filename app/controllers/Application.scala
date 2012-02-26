@@ -164,7 +164,7 @@ object Application extends Controller {
   }
   
   
-	class BreweryForm(breweryId:BreweryId) extends Form[Brewery](
+	class BreweryForm(breweryId:Option[BreweryId]) extends Form[Brewery](
 		  	mapping(
 				"name" -> nonEmptyText,
 				"address" -> mapping(
@@ -200,14 +200,20 @@ object Application extends Controller {
 	  }
   }
 
-  def showBrewery(breweryId:BreweryId) = Action { implicit request =>
-	  val breweryForm = new BreweryForm(breweryId)
-	  Brewery.fromExisting(breweryId) match {
+  def showBrewery(breweryId:Option[BreweryId]) = Action { implicit request =>
+	  breweryId match {
 		  case None => NotFound
-		  case Some(brewery: Brewery) => matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-			  case AcceptHTMLHeader => Ok(views.html.brewery(brewery,breweryForm.fill(brewery)))
-			  case AcceptXMLHeader  => Ok(views.xml.brewery(brewery))
-			  case AcceptJSONHeader  => Ok(Json.toJson(brewery.asJson))
+		  case Some(id) => Brewery.fromExisting(id) match {
+			  case None => NotFound
+			  case Some(brewery: Brewery) => {
+				  val breweryForm = new BreweryForm(breweryId)
+			  
+				  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
+					  case AcceptHTMLHeader => Ok(views.html.brewery(brewery,breweryForm.fill(brewery)))
+					  case AcceptXMLHeader  => Ok(views.xml.brewery(brewery))
+					  case AcceptJSONHeader  => Ok(Json.toJson(brewery.asJson))
+				  }
+			  }
 		  }
 	  }
   }
@@ -319,13 +325,13 @@ object Application extends Controller {
 	  )
   }
   
-  def newBrewery = editBrewery("")
+  def newBrewery = editBrewery(None)
 
-  def editBrewery(breweryId: BreweryId) = Action { implicit request =>
+  def editBrewery(breweryId: Option[BreweryId]) = Action { implicit request =>
 	  val f=new BreweryForm(breweryId)
 	  f.bindFromRequest.fold(
 		  errors => {
-			  val brewery=Brewery.fromExisting(breweryId)
+			  val brewery: Option[Brewery] = breweryId.map{Brewery.fromExisting(_)}.getOrElse(None)
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
 				  case AcceptHTMLHeader => Ok(views.html.brewery(brewery.get,errors))
 				  case AcceptXMLHeader  => Ok(views.xml.brewery(brewery.get))

@@ -33,7 +33,7 @@ case class BreweryId(breweryId: String) extends Id(Some(breweryId)) {
 }
 object BreweryId {
 	implicit def string2id(s: String): BreweryId = { new BreweryId(s) }
-	// implicit def string2oid(id: String): Option
+	implicit def string2oid(id: String): Option[BreweryId] = Some(new BreweryId(id))
 }
 
 case class BeerId(beerId: String) extends Id(Some(beerId)) {

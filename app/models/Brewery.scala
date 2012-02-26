@@ -6,12 +6,12 @@ import controllers._
 import scalaj.collection.Imports._
 
 case class Brewery(
-	breweryId:	BreweryId,
+	breweryId:	Option[BreweryId],
 	val name: 	String,
 	val address: Address,
 	val phone:	Option[String]
-) extends PersistentObject(Some(breweryId)) with JsonFormat {
-	lazy val pageURL = { "/" + breweryId }
+) extends PersistentObject(breweryId) with JsonFormat {
+	lazy val pageURL = { "/" + breweryId.getOrElse("") }
 	def beerList: Seq[Beer] = {
 		val parameters=new org.apache.solr.client.solrj.SolrQuery()
 		parameters.set("q","doctype:beer AND brewery:" + id)
@@ -56,7 +56,7 @@ object Brewery {
 			val xml=scala.xml.XML.loadFile("/Users/troy/beerdata/brewery/" + id + ".xml")
 			val address=xml \ "address"
 			Some(new Brewery(
-				(xml \ "id").text,
+				(xml \ "id").headOption.map{_.text},
 				(xml \ "name").text,
 				Address.fromXML(xml \ "address"),
 				(xml \ "phone").headOption.map{_.text}
