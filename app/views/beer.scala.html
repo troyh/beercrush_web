@@ -18,10 +18,12 @@
 			<p>IBUs:@beer.ibu</p>
 		</div>
 		
+		@if(beer.beerId.isDefined) {
 			@helper.form(action = routes.Application.addBeerPhoto(beer.beerId.get), 'enctype -> "multipart/form-data") {
 			<input type="file" name="photo" />
 			<input type="submit" value="Upload" />
 			}
+		}
 		}
 	}
 
