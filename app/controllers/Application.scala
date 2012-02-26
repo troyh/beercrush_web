@@ -204,7 +204,7 @@ object Application extends Controller {
 	  val breweryForm = new BreweryForm(breweryId)
 	  Brewery.fromExisting(breweryId) match {
 		  case None => NotFound
-		  case brewery: Brewery => matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
+		  case Some(brewery: Brewery) => matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
 			  case AcceptHTMLHeader => Ok(views.html.brewery(brewery,breweryForm.fill(brewery)))
 			  case AcceptXMLHeader  => Ok(views.xml.brewery(brewery))
 			  case AcceptJSONHeader  => Ok(Json.toJson(brewery.asJson))
@@ -336,9 +336,9 @@ object Application extends Controller {
 			  brewery.save
 
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-				  case AcceptHTMLHeader => Ok(views.html.brewery(Brewery.fromExisting(brewery.breweryId).get,f.fill(brewery)))
-				  case AcceptXMLHeader  => Ok(views.xml.brewery(Brewery.fromExisting(brewery.breweryId).get))
-				  case AcceptJSONHeader  => Ok(Json.toJson(Brewery.fromExisting(brewery.breweryId).get.asJson))
+				  case AcceptHTMLHeader => Ok(views.html.brewery(brewery,f.fill(brewery)))
+				  case AcceptXMLHeader  => Ok(views.xml.brewery(brewery))
+				  case AcceptJSONHeader  => Ok(Json.toJson(brewery.asJson))
 			  }
 		  }
 	  )
