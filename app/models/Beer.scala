@@ -73,28 +73,27 @@ case class Beer(
 }
 
 object Beer {
-	def fromExisting(id:Option[BeerId]): Option[Beer] = {
-		
-		id match {
-			case None => None
-			case Some(beerId) => {
-				val xml=scala.xml.XML.loadFile(PersistentObject.fileLocationFromId(beerId))
-				Some(Beer(
-					beerId = id,
-					name = (xml \ "name").text,
-					description = (xml \ "description").headOption.map{_.text},
-					abv = (xml \ "abv").headOption.map{_.text.toDouble},
-					ibu = (xml \ "ibu").headOption.map{_.text.toInt},
-					ingredients = (xml \ "ingredients").headOption.map{_.text},
-					grains = (xml \ "grains").headOption.map{_.text},
-					hops = (xml \ "hops").headOption.map{_.text},
-					yeast = (xml \ "yeast").headOption.map{_.text},
-					otherings = (xml \ "otherings").headOption.map{_.text},
-					styles = Some((xml \ "styles").map( style => 
-						new BeerStyle((style \ "style" \ "bjcp_style_id").text,(style \ "style" \ "name").text)
-					).toList)
-				))
-			}
+	def fromExisting(beerId:BeerId): Option[Beer] = {
+		try {
+			val xml=scala.xml.XML.loadFile(PersistentObject.fileLocationFromId(beerId))
+			Some(Beer(
+				beerId = Some(beerId),
+				name = (xml \ "name").headOption.map{_.text}.getOrElse(""),
+				description = (xml \ "description").headOption.map{_.text},
+				abv = (xml \ "abv").headOption.map{_.text.toDouble},
+				ibu = (xml \ "ibu").headOption.map{_.text.toInt},
+				ingredients = (xml \ "ingredients").headOption.map{_.text},
+				grains = (xml \ "grains").headOption.map{_.text},
+				hops = (xml \ "hops").headOption.map{_.text},
+				yeast = (xml \ "yeast").headOption.map{_.text},
+				otherings = (xml \ "otherings").headOption.map{_.text},
+				styles = Some((xml \ "styles").map( style => 
+					new BeerStyle((style \ "style" \ "bjcp_style_id").text,(style \ "style" \ "name").text)
+				).toList)
+			))
+		}
+		catch {
+			case _ => None
 		}
 	}
 }

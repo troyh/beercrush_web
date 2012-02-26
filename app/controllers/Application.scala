@@ -186,7 +186,7 @@ object Application extends Controller {
 	}
 	  
   def showBeer(beerId:BeerId) = Action { implicit request => 
-	  Beer.fromExisting(Some(beerId)) match {
+	  Beer.fromExisting(beerId) match {
 		  case None => NotFound
 		  case Some(beer) => {
 			  val beerForm=new BeerForm(beer.beerId)
@@ -310,7 +310,7 @@ object Application extends Controller {
 	  beerForm.bindFromRequest.fold(
 		  // Handle errors
 		  errors => {
-			  Ok(views.html.beer(Beer.fromExisting(beerId),errors))
+			  Ok(views.html.beer(beerId.map{Beer.fromExisting(_)}.getOrElse(None),errors))
 		  },
 	      // Handle successful form submission
 	      beer => {

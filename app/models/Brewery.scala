@@ -17,7 +17,7 @@ case class Brewery(
 		parameters.set("q","doctype:beer AND brewery:" + id)
 		val response=Application.solr.query(parameters)
 		val docs=response.getResults().asScala
-		docs.map(doc => Beer.fromExisting(Some(doc.get("id").toString)).get)
+		docs.map(doc => Beer.fromExisting(doc.get("id").toString).get)
 	}
 
 	def save: Unit = {
