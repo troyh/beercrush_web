@@ -2,7 +2,7 @@ package controllers
 
 import play.api.data._
 import play.api.data.Forms._
-import play.api.data.validation.{Constraint, Valid, Invalid, ValidationError}
+import play.api.data.validation.{Constraint, Constraints, Valid, Invalid, ValidationError}
 import play.api.libs.json._
 import play.api.mvc._
 import play.api.mvc.Security._
@@ -100,40 +100,12 @@ object Application extends Controller {
 	  Nil,
 	  None
   )
-  
+ 
   class BeerForm(beerId: Option[BeerId]) extends Form[Beer](
 	  mapping(
 			"name" -> nonEmptyText,
 			"description" -> optional(text),
-			"abv" -> optional(text).verifying(
-				/**
-				*	The ABV value must be numeric (including real numbers), convertable to a Double
-				*	and between 0 and 100. The string can have a percentage sign (%) that gets ignored.
-				*/
-				Constraint { abv: Option[String] => {
-					abv match {
-						case None => Valid
-						case Some(s) if (s.isEmpty) => Valid
-						case Some(s) => try {
-							val regex="^\\s*([\\d\\.]+)\\s*%?\\s*$".r
-							abv match {
-								case regex(digits) => {
-									val value=digits.toDouble
-									(0 <= value && value <= 25) match {
-										case true => Valid
-										case false => Invalid(ValidationError("Must be between 0 and 25"))
-									}
-								}
-								case _ => Invalid(ValidationError("Must be a percentage"))
-							}
-						}
-						catch {
-							case _ => Invalid(ValidationError("This is not an ABV value that makes sense"))
-						}
-					}
-				}}
-			), 
-			/* Why no float or double types?! */
+			"abv" -> optional(FormConstraints.abv),
 			"ibu" -> optional(number(min=0,max=200)),
 	  		"ingredients" -> optional(text),
 			"grains" -> optional(text),
@@ -143,12 +115,12 @@ object Application extends Controller {
 			"styles" -> optional(list(text))
 	  )
 	  {
-  		  (name:String,description:Option[String],abv:Option[String],ibu:Option[Int],ingredients:Option[String],grains:Option[String],hops:Option[String],yeast:Option[String],otherings:Option[String],styles:Option[List[String]]) => {
+  		  (name:String,description:Option[String],abv:Option[Double],ibu:Option[Int],ingredients:Option[String],grains:Option[String],hops:Option[String],yeast:Option[String],otherings:Option[String],styles:Option[List[String]]) => {
   			  Beer(
 				  beerId = beerId,
 				  name = name,
 				  description = description,
-				  abv = abv.map(_.toString.toDouble),
+				  abv = abv,
 				  ibu = ibu,
 				  ingredients = ingredients,
 				  grains = grains,
@@ -164,7 +136,7 @@ object Application extends Controller {
 			  Some(
 				  beer.name,
 				  beer.description,
-				  beer.abv.map{_.toString},
+				  beer.abv,
 				  beer.ibu,
 				  beer.ingredients,
 				  beer.grains,

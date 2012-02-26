@@ -11,7 +11,7 @@ case class Brewery(
 	val address: Address,
 	val phone:	Option[String]
 ) extends PersistentObject(Some(breweryId)) with JsonFormat {
-	lazy val pageURL = { "/" + id }
+	lazy val pageURL = { "/" + breweryId }
 	def beerList: Seq[Beer] = {
 		val parameters=new org.apache.solr.client.solrj.SolrQuery()
 		parameters.set("q","doctype:beer AND brewery:" + id)

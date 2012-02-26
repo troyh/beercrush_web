@@ -18,7 +18,7 @@
 			<p>IBUs:@beer.ibu</p>
 		</div>
 		
-			@helper.form(action = routes.Application.addBeerPhoto(beer.beerId), 'enctype -> "multipart/form-data") {
+			@helper.form(action = routes.Application.addBeerPhoto(beer.beerId.get), 'enctype -> "multipart/form-data") {
 			<input type="file" name="photo" />
 			<input type="submit" value="Upload" />
 			}
@@ -26,7 +26,7 @@
 	}
 
 		<div id="editForm">
-		@helper.form(action = routes.Application.editBeer(beer.map{ _.id.toString }.getOrElse("+beer")) ) {
+		@helper.form(action = routes.Application.editBeer(request.uri.tail) ) {
 			@helper.inputText(
 				beerForm("name"),
 				'_label -> "Name",

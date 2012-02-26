@@ -1,5 +1,8 @@
 package BeerCrush
 
+import play.api.data._
+import play.api.data.validation.{Constraint, Constraints, Valid, Invalid, ValidationError}
+
 object BeerCrush {
 	val ISO8601DateFormat="yyyy-MM-dd'T'HH:mm:ssZ"
 }
@@ -42,3 +45,51 @@ object BeerId {
 	implicit def string2oid(id: String): Option[BeerId] = Some(new BeerId(id))
 }
 
+object FormConstraints {
+	def minLength(length: Int): Constraint[Option[String]] = Constraint[Option[String]]("constraint.minLength", length) { o =>
+		if (o.size >= length) Valid else Invalid(ValidationError("error.minLength", length))
+	}
+    def minString(minValue: Int): Constraint[String] = Constraint[String]("constraint.min", minValue) { o =>
+		if (o.toInt >= minValue) Valid else Invalid(ValidationError("error.min", minValue))
+    }
+    def min(minValue: Double): Constraint[Double] = Constraint[Double]("constraint.min", minValue) { o =>
+		if (o >= minValue) Valid else Invalid(ValidationError("error.min", minValue))
+    }
+    def max(maxValue: Double): Constraint[Double] = Constraint[Double]("constraint.max", maxValue) { o =>
+		if (o >= maxValue) Valid else Invalid(ValidationError("error.max", maxValue))
+    }
+    def minOptional(minValue: Int): Constraint[Option[String]] = Constraint[Option[String]]("constraint.min", minValue) { o =>
+		o match {
+			case None => Valid
+			case Some(s) => if (s.toInt >= minValue) Valid else Invalid(ValidationError("error.min", minValue))
+		}
+    }
+    def maxString(maxValue: Int): Constraint[String] = Constraint[String]("constraint.max", maxValue) { o =>
+		if (o.toInt <= maxValue) Valid else Invalid(ValidationError("error.max", maxValue))
+    }
+    def maxOptional(maxValue: Int): Constraint[Option[String]] = Constraint[Option[String]]("constraint.max", maxValue) { o =>
+		o match {
+			case None => Valid
+			case Some(s) => if (s.toInt <= maxValue) Valid else Invalid(ValidationError("error.max", maxValue))
+		}
+    }
+    def pattern(regex: scala.util.matching.Regex, name: String = "constraint.pattern", error: String = "error.pattern"): Constraint[String] = Constraint[String](name, regex) { o =>
+		regex.unapplySeq(o).map(_ => Valid).getOrElse(Invalid(ValidationError(error, regex)))
+    }
+    def patternOptional(regex: scala.util.matching.Regex, name: String = "constraint.pattern", error: String = "error.pattern"): Constraint[Option[String]] = Constraint[Option[String]](name, regex) { o =>
+		o match {
+			case None => Valid
+			case Some(s) => regex.unapplySeq(o).map(_ => Valid).getOrElse(Invalid(ValidationError(error, regex)))
+		}
+    }
+
+	val abv: Mapping[Double] = Forms.text.verifying(
+			FormConstraints.pattern("^\\s*\\d+(\\.[\\d]+)?\\s*%?\\s*$".r,"Percentage of alcohol by volume","Invalid ABV value")
+		).transform[Double](
+		{ s => s.replace("%","").toDouble }, /* Strip off any % sign, it's implied */
+		{ i => i.toString }
+		).verifying(
+			FormConstraints.min(0),
+			FormConstraints.max(25)
+		)
+}
