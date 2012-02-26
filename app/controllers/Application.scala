@@ -105,7 +105,16 @@ object Application extends Controller {
 	  mapping(
 			"name" -> nonEmptyText,
 			"description" -> optional(text),
-			"abv" -> optional(FormConstraints.abv),
+			"abv" -> optional(text.verifying(
+					Constraints.pattern("^\\s*\\d+(\\.[\\d]+)?\\s*%?\\s*$".r,"Percentage of alcohol by volume","Invalid ABV value")
+				).transform[Double](
+					/* Strip off any % sign, it's implied, and then convert to Double */
+					{ s => s.replace("%","").toDouble }, 
+					{ i => i.toString }
+				).verifying(
+					FormConstraints.min(0),
+					FormConstraints.max(25)
+			)),
 			"ibu" -> optional(number(min=0,max=200)),
 	  		"ingredients" -> optional(text),
 			"grains" -> optional(text),

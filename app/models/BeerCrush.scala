@@ -82,14 +82,4 @@ object FormConstraints {
 			case Some(s) => regex.unapplySeq(o).map(_ => Valid).getOrElse(Invalid(ValidationError(error, regex)))
 		}
     }
-
-	val abv: Mapping[Double] = Forms.text.verifying(
-			FormConstraints.pattern("^\\s*\\d+(\\.[\\d]+)?\\s*%?\\s*$".r,"Percentage of alcohol by volume","Invalid ABV value")
-		).transform[Double](
-		{ s => s.replace("%","").toDouble }, /* Strip off any % sign, it's implied */
-		{ i => i.toString }
-		).verifying(
-			FormConstraints.min(0),
-			FormConstraints.max(25)
-		)
 }
