@@ -453,7 +453,8 @@ object Application extends Controller {
 			case Some(user) => {
 				acceptFormat match {
 				  case AcceptHTMLHeader => Ok(views.html.user(user))
-				  // case AcceptXMLHeader  => Ok(views.xml.login(loginForm))
+				  case AcceptXMLHeader  => Ok(user.asXML)
+				  case AcceptJSONHeader  => Ok(Json.toJson(user.asJson))
 			  }
 		  }
 		  case None => {
@@ -474,7 +475,7 @@ object Application extends Controller {
 			}
 		}
 	}
-	
+
 	def editAccount() = Authenticated { username =>
 		Action { implicit request =>
 			val acceptFormat=matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse("")))

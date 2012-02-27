@@ -1,6 +1,7 @@
 package models
 
 import BeerCrush._
+import play.api.libs.json._
 
 class UserId(id: String) extends Id(Some(id)) {
 }
@@ -15,7 +16,7 @@ class User(
   val password: String,
   val name: String,
   val aboutme: String
-) extends PersistentObject(Some(userId)) {
+) extends PersistentObject(Some(userId)) with XmlFormat with JsonFormat {
 	lazy val pageURL = "/user/" + id
 	def save = {
 		val dateFormat=new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat)
@@ -30,6 +31,22 @@ class User(
 		</user>
 		
 		scala.xml.XML.save("/Users/troy/beerdata/user/" + this.id + ".xml",userXML,"UTF-8",true)
+	}
+	
+	def asJson: JsObject = JsObject(
+		(
+			"name" -> JsString(name) ::
+			"aboutme" -> JsString(aboutme) ::
+			Nil
+		)
+	)
+	
+	def asXML: xml.NodeSeq = {
+		<user>
+			<ctime>{new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(ctime)}</ctime>
+			<name>{name}</name>
+			<aboutme>{aboutme}</aboutme>
+		</user>
 	}
 }
   
