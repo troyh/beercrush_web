@@ -458,7 +458,7 @@ object Application extends Controller {
 				newUser.save
 					
 				acceptFormat match {
-				  case AcceptHTMLHeader => Redirect(routes.Application.showUser(newUser.id)).withSession(session)
+				  case AcceptHTMLHeader => Redirect(routes.Application.showUser(newUser.id.get)).withSession(session)
 				  // case AcceptXMLHeader  => Ok(views.xml.login(loginForm))
 			  }
 			}
