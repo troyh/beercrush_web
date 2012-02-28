@@ -8,7 +8,7 @@ GET     /login                      controllers.Application.showLoginForm()
 POST    /login                      controllers.Application.login(username ?= "",password ?= "")
 GET     /logout                     controllers.Application.logout
 # User pages
-POST    /user/+              		controllers.Application.createAccount
+POST    /user/+              		controllers.Application.newUser
 GET     /user/:user					controllers.Application.showUser(user)
 POST    /user/:user					controllers.Application.editUser(user)
 # Browsing and Searching

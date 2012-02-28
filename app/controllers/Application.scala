@@ -440,8 +440,8 @@ object Application extends Controller {
 	def logout = Action { implicit request => 
 		Redirect(routes.Application.index).withNewSession
 	}
-	
-	def createAccount = Action { implicit request => 
+
+	def newUser = Action { implicit request => 
 		val acceptFormat=matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse("")))
 		val newUserForm=new NewUserForm()
 		newUserForm.bindFromRequest.fold(
@@ -453,10 +453,10 @@ object Application extends Controller {
 			},
 			newUser => { // Handle successful form submission
 				val session=request.session + ("username" -> newUser.id.get) + ("name" -> newUser.name)
-			  
+				  
 				// Create the account and then display it to the user
 				newUser.save
-				
+					
 				acceptFormat match {
 				  case AcceptHTMLHeader => Redirect(routes.Application.showUser(newUser.id)).withSession(session)
 				  // case AcceptXMLHeader  => Ok(views.xml.login(loginForm))
@@ -470,7 +470,7 @@ object Application extends Controller {
 		User.findUser(userId) match {
 			case Some(user) => {
 				acceptFormat match {
-				  case AcceptHTMLHeader => Ok(views.html.user(user,new UserForm(userId).fill(user)))
+				  case AcceptHTMLHeader => Ok(views.html.user(Some(user),new UserForm(userId).fill(user)))
 				  case AcceptXMLHeader  => Ok(user.asXML match {
 					  case <user>{ e @ _* }</user> => <user>{e.filterNot(_.label.equals("password"))}</user>
 				  })
@@ -526,7 +526,7 @@ object Application extends Controller {
 						userToSave.save
 				
 						acceptFormat match {
-						  case AcceptHTMLHeader => Ok(views.html.user(userToSave,accountForm.fill(userToSave))).withSession(session)
+						  case AcceptHTMLHeader => Ok(views.html.user(Some(userToSave),accountForm.fill(userToSave))).withSession(session)
 						  // case AcceptXMLHeader  => Ok(views.xml.login(loginForm))
 					  }
 				  }
