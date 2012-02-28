@@ -404,7 +404,7 @@ object Application extends Controller {
 					  case "image/jpeg" => Some(".jpg")
 					  case "image/png"  => Some(".png")
 					  case _ => None
-				  }).map( { case Some(ext) => {
+				  }).map( { ext => 
 					  // It's a photo!
 
 					  val format=new java.text.SimpleDateFormat("yyyyMMddhhmmssSSSZ")
@@ -422,8 +422,7 @@ object Application extends Controller {
 						  // case AcceptXMLHeader  => Ok(views.xml.beerPhotoUploaded(brewery))
 						  case AcceptJSONHeader  => Accepted("")
 					  }
-					  }}
-				  ).getOrElse(UnsupportedMediaType("Unsupported image format"))
+				  }).getOrElse(UnsupportedMediaType("Unsupported image format"))
 			}).getOrElse { NotAcceptable("Photo Missing") }
 		  }
 		  case None => { // TODO: Not multipartFormData, try raw
