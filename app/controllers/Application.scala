@@ -287,6 +287,18 @@ object Application extends Controller {
 			docs.map(d => <beer><id>{d.get("id")}</id><name>{d.get("name")}</name></beer>),
 			numFound,
 			response.getResults().getStart()))
+		case AcceptJSONHeader => Ok(Json.toJson(JsObject(
+			"totalBeers" -> JsNumber(numFound) ::
+			"start" -> JsNumber(response.getResults().getStart()) ::
+			"beers" -> JsArray(
+				docs.map(b => JsObject(
+					"id" -> JsString(b.get("id").toString) ::
+					"name" -> JsString(b.get("name").toString) ::
+					Nil
+				)).toList
+			) ::
+			Nil
+			)))
 	  }
   }
   
@@ -318,6 +330,19 @@ object Application extends Controller {
 			numFound,
 			response.getResults().getStart(),
 			docs))
+		case AcceptJSONHeader => Ok(Json.toJson(JsObject(
+			"query" -> JsString(query) ::
+			"totalResults" -> JsNumber(numFound) ::
+			"start" -> JsNumber(response.getResults().getStart()) ::
+			"results" -> JsArray(
+				docs.map(b => JsObject(
+					"id" -> JsString(b.get("id").toString) ::
+					"name" -> JsString(b.get("name").toString) ::
+					Nil
+				)).toList
+			) ::
+			Nil
+		)))
   	  }
   }
   
@@ -395,6 +420,7 @@ object Application extends Controller {
 						  // case AcceptHTMLHeader => Ok(views.html.beerPhotoUploaded(brewery))
 						  case AcceptXMLHeader  => Accepted("")
 						  // case AcceptXMLHeader  => Ok(views.xml.beerPhotoUploaded(brewery))
+						  case AcceptJSONHeader  => Accepted("")
 					  }
 					  }}
 				  ).getOrElse(UnsupportedMediaType("Unsupported image format"))
@@ -424,14 +450,16 @@ object Application extends Controller {
 		  errors => {
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
 				  case AcceptHTMLHeader => Ok(views.html.login(errors))
-				  // case AcceptXMLHeader  => Ok(views.xml.login())
+				  case AcceptXMLHeader  => Unauthorized
+				  case AcceptJSONHeader  => Unauthorized
 			  }
 		  },
 		  user => {
 			  val session=request.session + ("username" -> user.id.get) + ("name" -> user.name)
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
 				  case AcceptHTMLHeader => Redirect(routes.Application.index).withSession(session)
-				  // case AcceptXMLHeader  => Ok(views.xml.login(loginForm))
+				  case AcceptXMLHeader  => Ok.withSession(session)
+				  case AcceptJSONHeader  => Ok.withSession(session)
 			  }
 		  }
 	)
@@ -448,7 +476,8 @@ object Application extends Controller {
 			errors => { // Handle errors
 				acceptFormat match {
 					case AcceptHTMLHeader => Ok(views.html.login(errors))
-					// case AcceptXMLHeader  => Ok(views.xml.login())
+					case AcceptXMLHeader  => BadRequest
+					case AcceptJSONHeader  => BadRequest
 				}
 			},
 			newUser => { // Handle successful form submission
@@ -459,7 +488,8 @@ object Application extends Controller {
 					
 				acceptFormat match {
 				  case AcceptHTMLHeader => Redirect(routes.Application.showUser(newUser.id.get)).withSession(session)
-				  // case AcceptXMLHeader  => Ok(views.xml.login(loginForm))
+				  case AcceptXMLHeader  => Ok.withSession(session)
+				  case AcceptJSONHeader  => Ok.withSession(session)
 			  }
 			}
 		)
@@ -492,7 +522,8 @@ object Application extends Controller {
 		  		  errors => { // Handle errors
 					  acceptFormat match {
 						  case AcceptHTMLHeader => Ok(views.html.userAccount(username,errors))
-						  // case AcceptXMLHeader  => Ok(views.xml.login())
+						  case AcceptXMLHeader  => BadRequest
+						  case AcceptJSONHeader  => BadRequest
 					  }
 		  		  },
 		  	      user => { // Handle successful form submission
@@ -527,7 +558,8 @@ object Application extends Controller {
 				
 						acceptFormat match {
 						  case AcceptHTMLHeader => Ok(views.html.user(userToSave,accountForm.fill(userToSave))).withSession(session)
-						  // case AcceptXMLHeader  => Ok(views.xml.login(loginForm))
+						  case AcceptXMLHeader  => Ok.withSession(session)
+						  case AcceptJSONHeader  => Ok.withSession(session)
 					  }
 				  }
 				)
