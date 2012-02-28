@@ -30,12 +30,30 @@ import HTTPHelpers._
 
 object Application extends Controller {
 
+	case class AuthorizedRequest[A](
+	  val request: Request[A]
+	) extends WrappedRequest(request)
 
-  val solr=new org.apache.solr.client.solrj.impl.CommonsHttpSolrServer("http://localhost:8983/solr")
+	def Authorized[A](p: BodyParser[A])(test: => Boolean)(f: AuthorizedRequest[A] => Result) = {
+		Action(p) { request =>
+			test match {
+				case true => f(AuthorizedRequest(request))
+				case false => Unauthorized
+			}
+		}
+	}
 
-  def index = Action { implicit request => 
-    Ok(views.html.index("Beer Crush"))
-  }
+	// Overloaded method to use the default body parser
+	def Authorized(test: => Boolean)(f: AuthorizedRequest[AnyContent] => Result): Action[AnyContent]  = {
+	  Authorized(parse.anyContent)(test)(f)
+	}
+	
+
+	val solr=new org.apache.solr.client.solrj.impl.CommonsHttpSolrServer("http://localhost:8983/solr")
+
+	def index = Action { implicit request => 
+		Ok(views.html.index("Beer Crush"))
+	}
 
 	sealed abstract class AcceptHeaderType 
 	case object AcceptXMLHeader extends AcceptHeaderType
@@ -440,7 +458,7 @@ object Application extends Controller {
 				newUser.save
 				
 				acceptFormat match {
-				  case AcceptHTMLHeader => Redirect(routes.Application.showAccount).withSession(session)
+				  case AcceptHTMLHeader => Redirect(routes.Application.showUser(newUser.id)).withSession(session)
 				  // case AcceptXMLHeader  => Ok(views.xml.login(loginForm))
 			  }
 			}
@@ -452,77 +470,68 @@ object Application extends Controller {
 		User.findUser(userId) match {
 			case Some(user) => {
 				acceptFormat match {
-				  case AcceptHTMLHeader => Ok(views.html.user(user))
-				  case AcceptXMLHeader  => Ok(user.asXML)
-				  case AcceptJSONHeader  => Ok(Json.toJson(user.asJson))
-			  }
-		  }
-		  case None => {
-			  Ok("")
-		  }
+				  case AcceptHTMLHeader => Ok(views.html.user(user,new UserForm(userId).fill(user)))
+				  case AcceptXMLHeader  => Ok(user.asXML match {
+					  case <user>{ e @ _* }</user> => <user>{e.filterNot(_.label.equals("password"))}</user>
+				  })
+				  case AcceptJSONHeader => Ok(Json.toJson(user.asJson))
+				}
+			}
+			case None => NotFound
 		}
 	}
 	
-	def showAccount() = Authenticated {  username =>
-		Action { implicit request =>
-			val user=User.findUser(username)
-			user match {
-				case Some(u) => {
-					val form=new UserForm(username)
-					Ok(views.html.userAccount(username,form.fill(u)))
-				}
-				case None => Unauthorized
-			}
-		}
-	}
+	def editUser(user: String) = Authenticated { username =>
+		Authorized(username == user) { // The user must be this user, users can only edit their own info
+			Action { implicit request =>
 
-	def editAccount() = Authenticated { username =>
-		Action { implicit request =>
-			val acceptFormat=matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse("")))
-			val accountForm=new UserForm(username)
-			accountForm.bindFromRequest.fold(
-	  		  errors => { // Handle errors
-				  acceptFormat match {
-					  case AcceptHTMLHeader => Ok(views.html.userAccount(username,errors))
-					  // case AcceptXMLHeader  => Ok(views.xml.login())
-				  }
-	  		  },
-	  	      user => { // Handle successful form submission
-	  				val session=request.session + ("username" -> user.id.get) + ("name" -> user.name)
+				val acceptFormat=matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse("")))
+			
+				val accountForm=new UserForm(username)
+				accountForm.bindFromRequest.fold(
+		  		  errors => { // Handle errors
+					  acceptFormat match {
+						  case AcceptHTMLHeader => Ok(views.html.userAccount(username,errors))
+						  // case AcceptXMLHeader  => Ok(views.xml.login())
+					  }
+		  		  },
+		  	      user => { // Handle successful form submission
+		  				val session=request.session + ("username" -> user.id.get) + ("name" -> user.name)
 
-					// Make a new User object as a merging of the submitted form's User and an existing User (if any)
-					val userToSave=User.findUser(username) match {
-						case Some(existingUser) => {
-							new User(
+						// Make a new User object as a merging of the submitted form's User and an existing User (if any)
+						val userToSave=User.findUser(username) match {
+							case Some(existingUser) => {
+								new User(
+									username,
+									existingUser.ctime,
+									user.password match {
+										/* Not changing password; use the existing MD5 password */
+										case s if (s.isEmpty) => existingUser.password
+										/* Changing password; MD5 it, never store it in clear text */
+										case s => java.security.MessageDigest.getInstance("MD5").digest(s.getBytes).map("%02x".format(_)).mkString
+									},
+									user.name,
+									user.aboutme
+								)
+							}
+							case None => new User(
 								username,
-								existingUser.ctime,
-								user.password match {
-									/* Not changing password; use the existing MD5 password */
-									case s if (s.isEmpty) => existingUser.password
-									/* Changing password; MD5 it, never store it in clear text */
-									case s => java.security.MessageDigest.getInstance("MD5").digest(s.getBytes).map("%02x".format(_)).mkString
-								},
+								new java.util.Date(),
+								java.security.MessageDigest.getInstance("MD5").digest(user.password.getBytes).map("%02x".format(_)).mkString,
 								user.name,
 								user.aboutme
 							)
 						}
-						case None => new User(
-							username,
-							new java.util.Date(),
-							java.security.MessageDigest.getInstance("MD5").digest(user.password.getBytes).map("%02x".format(_)).mkString,
-							user.name,
-							user.aboutme
-						)
-					}
 					
-					userToSave.save
+						userToSave.save
 				
-					acceptFormat match {
-					  case AcceptHTMLHeader => Ok(views.html.userAccount(username,accountForm.fill(userToSave))).withSession(session)
-					  // case AcceptXMLHeader  => Ok(views.xml.login(loginForm))
+						acceptFormat match {
+						  case AcceptHTMLHeader => Ok(views.html.user(userToSave,accountForm.fill(userToSave))).withSession(session)
+						  // case AcceptXMLHeader  => Ok(views.xml.login(loginForm))
+					  }
 				  }
-			  }
-			)
+				)
+			}
 		}
 	}
 	

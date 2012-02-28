@@ -6,7 +6,7 @@ import play.api.libs.json._
 class UserId(id: String) extends Id(Some(id)) {
 }
 object UserId {
-implicit def string2id(id: String) = new UserId(id)
+	implicit def string2id(id: String): UserId = new UserId(id)
 }
 
 
@@ -18,20 +18,7 @@ class User(
   val aboutme: String
 ) extends PersistentObject(Some(userId)) with XmlFormat with JsonFormat {
 	lazy val pageURL = "/user/" + id
-	def save = {
-		val dateFormat=new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat)
-		
-		val userXML=
-		<user>
-			<ctime>{dateFormat.format(ctime)}</ctime>
-			<username>{id}</username>
-			<password>{password}</password>
-			<name>{name}</name>
-			<aboutme>{aboutme}</aboutme>
-		</user>
-		
-		scala.xml.XML.save("/Users/troy/beerdata/user/" + this.id + ".xml",userXML,"UTF-8",true)
-	}
+	def save = scala.xml.XML.save("/Users/troy/beerdata/user/" + id.get + ".xml",asXML,"UTF-8",true)
 	
 	def asJson: JsObject = JsObject(
 		(
@@ -41,10 +28,12 @@ class User(
 		)
 	)
 	
-	def asXML: xml.NodeSeq = {
+	def asXML: xml.Node = {
 		<user>
+			<username>{id.getOrElse("")}</username>
 			<ctime>{new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(ctime)}</ctime>
 			<name>{name}</name>
+			<password>{password}</password>
 			<aboutme>{aboutme}</aboutme>
 		</user>
 	}
@@ -64,7 +53,7 @@ object User {
 			}
 			  
 			Some(new User(
-				(xml \ "username").text,
+				new UserId((xml \ "username").headOption.map{s => s.text}.getOrElse(username)),
 				ctime,
 				(xml \ "password").text,
 				(xml \ "name").text,
