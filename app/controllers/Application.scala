@@ -437,6 +437,51 @@ object Application extends Controller {
 		  }
 	  }
   }
+  
+	class BeerReviewForm(val reviewId: ReviewId) extends Form[BeerReview](
+		mapping(
+			"rating" -> number(min=1,max=5),
+			"bitterness" -> optional(number(min=1,max=10)),
+			"sweetness" -> optional(number(min=1,max=10)),
+			"aroma" -> optional(number(min=1,max=10)),
+			"color" -> optional(number(min=1,max=100)),
+			"wouldDrinkAgain" -> optional(boolean),
+			"text" -> optional(text)
+		)
+		{ (rating,bitterness,sweetness,aroma,color,wouldDrinkAgain,text) => BeerReview(None,rating,bitterness,sweetness,aroma,color,wouldDrinkAgain,text)}
+		{ review => Some(review.rating,review.bitterness,review.sweetness,review.aroma,review.color,review.wouldDrinkAgain,review.text) },
+		Map.empty,
+		Nil,
+		None
+	)
+	
+	def newBeerReview(beerId: BeerId) = editBeerReview(ReviewId.fromBeerId(beerId))
+	
+	def editBeerReview(reviewId: ReviewId) = Authenticated { username =>
+		Action { implicit request => 
+			val acceptFormat=matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse("")))
+			
+			val form=new BeerReviewForm(reviewId)
+			form.bindFromRequest.fold(
+				errors => {
+					acceptFormat match {
+						case AcceptHTMLHeader => Ok(views.html.beerReview(BeerReview.fromExisting(reviewId),errors))
+						case AcceptXMLHeader => BadRequest
+						case AcceptJSONHeader => BadRequest
+					}
+				},
+				review => {
+					review.save
+
+					acceptFormat match {
+						case AcceptHTMLHeader => Ok
+						case AcceptXMLHeader => Ok(review.asXML)
+						case AcceptJSONHeader => Ok(Json.toJson(review.asJson))
+					}
+				}
+			)
+		}
+	}
 
   def showLoginForm = Action { implicit request =>
 	  val blankForm=new LoginForm

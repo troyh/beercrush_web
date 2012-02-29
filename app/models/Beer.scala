@@ -51,7 +51,6 @@ case class Beer(
 		  </styles>
 		</beer>
 		
-		scala.xml.XML.loadString(xml.toString)
 		scala.xml.XML.save("/Users/troy/beerdata/editedBeer.xml",xml,"UTF-8",true)
 	}
 	
