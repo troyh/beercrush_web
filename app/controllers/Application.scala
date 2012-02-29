@@ -210,7 +210,7 @@ object Application extends Controller {
 			  val beerForm=new BeerForm(beer.beerId)
 	  
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-				  case AcceptHTMLHeader => Ok(views.html.beer(Some(beer),beerForm.fill(beer)))
+				  case AcceptHTMLHeader => Ok(views.html.beer(Some(beer),beerForm.fill(beer),new BeerReviewForm(None)))
 				  case AcceptXMLHeader  => Ok(views.xml.beer(beer))
 				  case AcceptJSONHeader  => Ok(Json.toJson(beer.asJson))
 			  }
@@ -353,14 +353,14 @@ object Application extends Controller {
 	  beerForm.bindFromRequest.fold(
 		  // Handle errors
 		  errors => {
-			  Ok(views.html.beer(beerId.map{Beer.fromExisting(_)}.getOrElse(None),errors))
+			  Ok(views.html.beer(beerId.map{Beer.fromExisting(_)}.getOrElse(None),errors,new BeerReviewForm(None)))
 		  },
 	      // Handle successful form submission
 	      beer => {
 			  // Save the doc
 			  beer.save
 			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-				  case AcceptHTMLHeader => Ok(views.html.beer(Some(beer),beerForm.fill(beer)))
+				  case AcceptHTMLHeader => Ok(views.html.beer(Some(beer),beerForm.fill(beer),new BeerReviewForm(None)))
 				  case AcceptXMLHeader  => Ok(views.xml.beer(beer))
 				  case AcceptJSONHeader  => Ok(Json.toJson(beer.asJson))
 			  }
@@ -438,7 +438,7 @@ object Application extends Controller {
 	  }
   }
   
-	class BeerReviewForm(val reviewId: ReviewId) extends Form[BeerReview](
+	class BeerReviewForm(val reviewId: Option[ReviewId]) extends Form[BeerReview](
 		mapping(
 			"rating" -> number(min=1,max=5),
 			"bitterness" -> optional(number(min=1,max=10)),
@@ -461,7 +461,7 @@ object Application extends Controller {
 		Action { implicit request => 
 			val acceptFormat=matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse("")))
 			
-			val form=new BeerReviewForm(reviewId)
+			val form=new BeerReviewForm(Some(reviewId))
 			form.bindFromRequest.fold(
 				errors => {
 					acceptFormat match {

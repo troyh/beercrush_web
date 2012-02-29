@@ -1,4 +1,6 @@
-@(beer:Option[Beer], beerForm: Form[Beer])(implicit request: Request[_])
+@(beer:Option[Beer], beerForm: Form[Beer], reviewForm: Form[BeerReview])(implicit request: Request[_])
+
+@import views.html.helper._
 
 @main(beer.map { b => b.name + " by " + b.brewery.map(_.name) }.getOrElse("New beer")) {
 
@@ -19,7 +21,7 @@
 		</div>
 		
 		@if(beer.beerId.isDefined) {
-			@helper.form(action = routes.Application.addBeerPhoto(beer.beerId.get), 'enctype -> "multipart/form-data") {
+			@form(action = routes.Application.addBeerPhoto(beer.beerId.get), 'enctype -> "multipart/form-data") {
 			<input type="file" name="photo" />
 			<input type="submit" value="Upload" />
 			}
@@ -28,48 +30,48 @@
 	}
 
 		<div id="editForm">
-		@helper.form(action = routes.Application.editBeer(request.uri.tail) ) {
-			@helper.inputText(
+		@form(action = routes.Application.editBeer(request.uri.tail) ) {
+			@inputText(
 				beerForm("name"),
 				'_label -> "Name",
                 '_error -> beerForm.error("name")
 			)
-			@helper.textarea(
+			@textarea(
 				beerForm("description"),
 				'_label -> "Description",
                 '_error -> beerForm.error("description")
 			)
-			@helper.inputText(
+			@inputText(
 				beerForm("abv"),
 				'_label -> "ABV",
                 '_error -> beerForm.error("abv")
 			)
-			@helper.inputText(
+			@inputText(
 				beerForm("ibu"),
 				'_label -> "IBUs",
                 '_error -> beerForm.error("ibu")
 			)
-			@helper.inputText(
+			@inputText(
 				beerForm("ingredients"),
 				'_label -> "Ingredients",
                 '_error -> beerForm.error("ingredients")
 			)
-			@helper.inputText(
+			@inputText(
 				beerForm("grains"),
 				'_label -> "Grains",
                 '_error -> beerForm.error("grains")
 			)
-			@helper.inputText(
+			@inputText(
 				beerForm("hops"),
 				'_label -> "Hops",
                 '_error -> beerForm.error("hops")
 			)
-			@helper.inputText(
+			@inputText(
 				beerForm("yeast"),
 				'_label -> "Yeast",
                 '_error -> beerForm.error("yeast")
 			)
-			@helper.inputText(
+			@inputText(
 				beerForm("otherings"),
 				'_label -> "Other ingredients",
                 '_error -> beerForm.error("otherings")
@@ -77,5 +79,54 @@
 			<input type="submit" value="Save" />
 		}
 		</div>
+
+		@if(beer.isDefined && beer.get.beerId.isDefined) {
+		<div id="reviewForm">
+			<h2>Post a Review</h2>
+		@form(action = routes.Application.newBeerReview(beer.get.beerId.get) ) {
+			@inputRadioGroup(
+				reviewForm("rating"),
+				options=((1 to 5).map{ n => n.toString -> n.toString }),
+				'_label -> "Rating",
+                '_error -> reviewForm.error("rating")
+			)
+			@inputRadioGroup(
+				reviewForm("bitterness"),
+				options=((1 to 10).map{ n => n.toString -> n.toString }),
+				'_label -> "Bitterness",
+                '_error -> reviewForm.error("bitterness")
+			)
+			@inputRadioGroup(
+				reviewForm("sweetness"),
+				options=((1 to 10).map{ n => n.toString -> n.toString }),
+				'_label -> "Sweetness",
+                '_error -> reviewForm.error("sweetness")
+			)
+			@select(
+				reviewForm("aroma"),
+				options=(1 to 10).map{ n => n.toString -> n.toString },
+				'_label -> "Aroma",
+                '_error -> reviewForm.error("aroma")
+			)
+			@select(
+				reviewForm("color"),
+				options=(1 to 100).map{ n => n.toString -> n.toString },
+				'_label -> "Color",
+                '_error -> reviewForm.error("color")
+			)
+			@checkbox(
+				reviewForm("wouldDrinkAgain"),
+				'_label -> "I would drink this again"
+			)
+			@textarea(
+				reviewForm("text"),
+				'_label -> "Text review",
+				'rows -> 5,
+				'cols -> 80
+			)
+			<input type="submit" value="Post" />
+		</div>
+		}
+		}
 
 }
