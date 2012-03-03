@@ -1,4 +1,14 @@
 @(review: Option[BeerReview], reviewForm: Form[BeerReview])(implicit request: Request[_])
 
 @main() {
+	<h1>Beer Review</h1>
+	@review.map{ review=>
+		<div>Rating: @review.rating</div>
+		<div>Would drink again: @review.wouldDrinkAgain</div>
+		<div>Bitterness: @review.bitterness</div>
+		<div>Sweetness: @review.sweetness</div>
+		<div>Aroma: @review.aroma</div>
+		<div>Color: @review.color</div>
+		<div>Text: @review.text</div>
+	}
 }

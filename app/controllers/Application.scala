@@ -1,5 +1,6 @@
 package controllers
 
+import play.api._
 import play.api.data._
 import play.api.data.Forms._
 import play.api.data.validation.{Constraint, Constraints, Valid, Invalid, ValidationError}
@@ -471,7 +472,10 @@ object Application extends Controller {
 					}
 				},
 				review => {
-					review.save
+					val saveId=if (reviewId.isComplete) reviewId else reviewId.setUser(username)
+					val reviewToSave=review.copy(id=Some(saveId))
+
+					Storage.save(reviewToSave,Some(saveId))
 
 					acceptFormat match {
 						case AcceptHTMLHeader => Ok
@@ -480,6 +484,17 @@ object Application extends Controller {
 					}
 				}
 			)
+		}
+	}
+	
+	def showBeerReview(reviewId: ReviewId) = Action { implicit request =>
+		val acceptFormat=matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse("")))
+		val review=BeerReview.fromExisting(reviewId)
+		Logger.info("Got review:" + review)
+		acceptFormat match {
+			case AcceptHTMLHeader => Ok(views.html.beerReview(review,new BeerReviewForm(None)))
+			case AcceptXMLHeader => Ok(review.get.asXML)
+			case AcceptJSONHeader => Ok(Json.toJson(review.get.asJson))
 		}
 	}
 

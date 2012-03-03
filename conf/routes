@@ -22,8 +22,10 @@ GET     /$beerid<[a-zA-Z0-9-]+/[a-zA-Z0-9-]+>			controllers.Application.showBeer
 POST    /:brewery/+beer 								controllers.Application.newBeer(brewery)
 POST    /$beerid<[a-zA-Z0-9-]+/[a-zA-Z0-9-]+>			controllers.Application.editBeer(beerid)
 POST    /$beerid<[a-zA-Z0-9-]+/[a-zA-Z0-9-]+>/photo		controllers.Application.addBeerPhoto(beerid)
+# Beer Reviews
 POST    /$beerid<[a-zA-Z0-9-]+/[a-zA-Z0-9-]+>/+review	controllers.Application.newBeerReview(beerid)
 POST    /$reviewid<[a-zA-Z0-9-]+/[a-zA-Z0-9-]+/[a-zA-Z0-9-]+>	controllers.Application.editBeerReview(reviewid)
+GET    /$reviewid<[a-zA-Z0-9-]+/[a-zA-Z0-9-]+/review/[a-zA-Z0-9-]+>	controllers.Application.showBeerReview(reviewid)
 # Brewery pages
 POST    /+brewery                controllers.Application.newBrewery()
 GET     /:brewery					controllers.Application.showBrewery(brewery)
