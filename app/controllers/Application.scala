@@ -448,7 +448,7 @@ object Application extends Controller {
 			"wouldDrinkAgain" -> optional(boolean),
 			"text" -> optional(text)
 		)
-		{ (rating,bitterness,sweetness,aroma,color,wouldDrinkAgain,text) => BeerReview(None,rating,bitterness,sweetness,aroma,color,wouldDrinkAgain,text)}
+		{ (rating,bitterness,sweetness,aroma,color,wouldDrinkAgain,text) => BeerReview(None,None,rating,bitterness,sweetness,aroma,color,wouldDrinkAgain,text)}
 		{ review => Some(review.rating,review.bitterness,review.sweetness,review.aroma,review.color,review.wouldDrinkAgain,review.text) },
 		Map.empty,
 		Nil,

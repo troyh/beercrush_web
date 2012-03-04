@@ -15,7 +15,12 @@ object Storage {
 	def save(review: BeerReview, id: Option[ReviewId] = None) = {
 		val (reviewToSave,saveId) = id match {
 			case None => (review, review.id.get)
-			case Some(theid) => (review.copy(id=id),theid)
+			case Some(theid) => (
+				review.copy(
+					id=id,
+					ctime={if (review.ctime.isEmpty) Some(new java.util.Date()) else review.ctime}
+				),
+				theid)
 		}
 		
 		/* Make the necessary directories to store the review */
@@ -42,6 +47,7 @@ case class ReviewId(reviewid: String) extends Id(Some(reviewid)) {
 object ReviewId {
 	def fromBeerId(beerId: BeerId): ReviewId = new ReviewId(beerId.toString + "/review")
 	def beerIdFromReviewId(reviewId: ReviewId): BeerId = new BeerId(reviewId.id.get.split("/").dropRight(1).mkString("/"))
+	def userIdFromReviewId(reviewId: ReviewId): UserId = new UserId(reviewId.id.get.split("/").last)
 	implicit def string2id(s: String): ReviewId = new ReviewId(s)
 	implicit def id2string(id: ReviewId): String = id.id.get
 }
@@ -51,6 +57,7 @@ abstract class Review {
 
 case class BeerReview(
 	val id:Option[ReviewId],
+	val ctime: Option[java.util.Date],
 	val rating:Int,
 	val bitterness:Option[Int],
 	val sweetness:Option[Int],
@@ -61,9 +68,11 @@ case class BeerReview(
 ) extends Review with XmlFormat with JsonFormat {
 
 	import scala.xml._
+	// { <ctime>{new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(ctime)}</ctime> }
 	
 	def asXML: xml.Node = 
 		<review id={id.get}>
+			{ ctime.map { t => <ctime>{t}</ctime> }.getOrElse() }
 			{ <rating/> % Attribute("","value",rating.toString,Null) }
 			{ bitterness.map { n => <bitterness/> % Attribute("","value",n.toString,Null) }.getOrElse() }
 			{ sweetness.map { n => <sweetness/>  % Attribute("","value",n.toString,Null) }.getOrElse() }
@@ -75,6 +84,7 @@ case class BeerReview(
 		
 	def asJson = JsObject(List(
 		id.map { x => "id" -> JsString(x.id.get) }.get,
+		"ctime" -> JsString(new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(ctime)),
 		"rating" -> JsNumber(rating),
 		bitterness.map{ "bitterness" -> JsNumber(_) }.get,
 		sweetness.map{ "sweetness" -> JsNumber(_) }.get,
@@ -85,6 +95,7 @@ case class BeerReview(
 	))
 	
 	lazy val maybeBeer: Option[Beer] = Beer.fromExisting(ReviewId.beerIdFromReviewId(id.get))
+	lazy val maybeUser: Option[User] = User.findUser(ReviewId.userIdFromReviewId(id.get))
 }
 
 object BeerReview {
@@ -104,6 +115,7 @@ object BeerReview {
 			
 			Some(BeerReview(
 				id = Some(xml \ "@id").headOption.map{s=>Some(ReviewId(s.text))}.get,
+				ctime = (xml \ "ctime").headOption.map{s=>Some(new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).parse(s.text))}.getOrElse(None),
 				rating = (xml \ "rating" \ "@value").headOption.map{_.text.toInt}.getOrElse(0),
 				bitterness = (xml \ "bitterness" \ "@value").headOption.map{s => Some(s.text.toInt)}.getOrElse(None),
 				sweetness = (xml \ "sweetness" \ "@value").headOption.map{s=>Some(s.text.toInt)}.getOrElse(None),
