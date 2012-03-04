@@ -41,6 +41,7 @@ case class ReviewId(reviewid: String) extends Id(Some(reviewid)) {
 
 object ReviewId {
 	def fromBeerId(beerId: BeerId): ReviewId = new ReviewId(beerId.toString + "/review")
+	def beerIdFromReviewId(reviewId: ReviewId): BeerId = new BeerId(reviewId.id.get.split("/").dropRight(1).mkString("/"))
 	implicit def string2id(s: String): ReviewId = new ReviewId(s)
 	implicit def id2string(id: ReviewId): String = id.id.get
 }
@@ -82,6 +83,8 @@ case class BeerReview(
 		wouldDrinkAgain.map{ "wouldDrinkAgain" -> JsBoolean(_) }.get,
 		text.map{ "text" -> JsString(_) }.get
 	))
+	
+	lazy val maybeBeer: Option[Beer] = Beer.fromExisting(ReviewId.beerIdFromReviewId(id.get))
 }
 
 object BeerReview {

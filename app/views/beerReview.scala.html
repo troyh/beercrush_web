@@ -3,6 +3,7 @@
 @main() {
 	<h1>Beer Review</h1>
 	@review.map{ review=>
+		<div>Beer: <a href="/@review.maybeBeer.get.id.get.toString">@review.maybeBeer.get.name</a></div>
 		<div>Rating: @review.rating</div>
 		<div>Would drink again: @review.wouldDrinkAgain</div>
 		<div>Bitterness: @review.bitterness</div>
