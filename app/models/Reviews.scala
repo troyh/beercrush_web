@@ -20,7 +20,6 @@ object Storage {
 		
 		/* Make the necessary directories to store the review */
 		fileLocation(saveId).split("/").drop(datadir_parts.length).foldLeft(datadir){ (path,item) => 
-			Logger.info("mkdir'ing " + path + ", item=" + item)
 			val f=new java.io.File(path)
 			f.mkdir()
 			path + "/" + item
@@ -88,9 +87,7 @@ case class BeerReview(
 object BeerReview {
 	def fromExisting(reviewId: ReviewId): Option[BeerReview] = {
 		try {
-			Logger.info("Review file loc:" + Storage.fileLocation(reviewId))
 			val xml=scala.xml.XML.loadFile(Storage.fileLocation(reviewId))
-			Logger.info("Review XML:" + xml.toString)
 			
 			// xml match {
 			// 	case <review>{ d @ _* }</review> => {
@@ -114,9 +111,7 @@ object BeerReview {
 			))
 		}
 		catch {
-			case _ => {
-			Logger.info("Exception in BeerReview")
-				None}
+			case _ => None
 		}
 	}
 }
