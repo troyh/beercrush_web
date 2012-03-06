@@ -1,0 +1,18 @@
+@(reviews:Seq[BeerReview], beer: Option[Beer],totalReviews: Long, totalPages:Long, thisPage:Long)(implicit request: Request[_])
+
+@import views.html.helper._
+
+@makeReviewItem(review: BeerReview) = {
+	<li>@{"".padTo(review.rating,"*")} by <a href=/user/@{review.maybeUser.get.id}>@{username(review.maybeUser)}</a> (@review.ctime.get)</li>
+}
+
+@main("Beer Reviews") {
+
+	<h1>@totalReviews Review@if(totalReviews != 1) {s} @if(beer.isDefined) { for <a href=/@beer.get.id>@beer.get.name</a> }</h1>
+
+	<ul>
+	@reviews.map(review => makeReviewItem(review))
+	</ul>
+
+	@pageNav(thisPage,totalPages)(None)
+}

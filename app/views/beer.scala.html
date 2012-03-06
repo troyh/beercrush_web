@@ -9,6 +9,8 @@
 		case Some(beer) => {
 		<h1>@beer.name</h1>
 		
+		<div><a href=/@beer.id/reviews>See reviews</a></div>
+		
 		<div>Brewery: <a href=@beer.brewery.map(_.pageURL)>@beer.brewery.map(_.name)</a></div>
 		
 		<p>@beer.description</p>

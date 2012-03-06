@@ -5,6 +5,7 @@ import play.api.data.validation.{Constraint, Constraints, Valid, Invalid, Valida
 
 object BeerCrush {
 	val ISO8601DateFormat="yyyy-MM-dd'T'HH:mm:ssZ"
+	val SolrDateFormat="yyyy-MM-dd'T'HH:mm:ss'Z'"
 }
 
 abstract class PersistentObject(val id: Option[Id]) {

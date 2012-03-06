@@ -1,0 +1,8 @@
+@(user: Option[User])
+
+@if(user.isDefined) {
+	@if(user.get.name.isEmpty) { <i>Unnamed</i> } else { u.name } 
+}
+
+
+

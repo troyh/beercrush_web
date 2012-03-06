@@ -68,11 +68,10 @@ case class BeerReview(
 ) extends Review with XmlFormat with JsonFormat {
 
 	import scala.xml._
-	// { <ctime>{new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(ctime)}</ctime> }
 	
 	def asXML: xml.Node = 
 		<review id={id.get}>
-			{ ctime.map { t => <ctime>{t}</ctime> }.getOrElse() }
+			{ ctime.map { t => <ctime>{new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(t)}</ctime> }.getOrElse() }
 			{ <rating/> % Attribute("","value",rating.toString,Null) }
 			{ bitterness.map { n => <bitterness/> % Attribute("","value",n.toString,Null) }.getOrElse() }
 			{ sweetness.map { n => <sweetness/>  % Attribute("","value",n.toString,Null) }.getOrElse() }

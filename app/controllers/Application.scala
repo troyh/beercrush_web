@@ -12,6 +12,7 @@ import models._
 import java.io._
 import BeerCrush._	
 import HTTPHelpers._
+import scala.actors.Futures._
 
 // object Global extends GlobalSettings {
 // 	val config = new {
@@ -472,9 +473,34 @@ object Application extends Controller {
 				},
 				review => {
 					val saveId=if (reviewId.isComplete) reviewId else reviewId.setUser(username)
-					val reviewToSave=review.copy(id=Some(saveId))
+					val reviewToSave=review.copy(
+						id=Some(saveId),
+						ctime={if (review.ctime.isEmpty) Some(new java.util.Date()) else review.ctime}
+					)
 
 					Storage.save(reviewToSave,Some(saveId))
+
+					// Asynchronously index the review in Solr
+					future {
+						val s=new org.apache.solr.client.solrj.impl.StreamingUpdateSolrServer("http://localhost:8983/solr",1,1)
+						
+						// TODO: convert ctime in review to UTC because Solr wants all dates as UTC
+						val xml=
+						<add>
+							<doc>
+								<field name="doctype">beerreview</field>
+								<field name="id">{reviewToSave.id.get.toString}</field>
+								<field name="rating">{reviewToSave.rating.toString}</field>
+								<field name="user_id">{ReviewId.userIdFromReviewId(reviewToSave.id.get).toString}</field>
+								<field name="beer_id">{ReviewId.beerIdFromReviewId(reviewToSave.id.get).toString.split("/").dropRight(1).mkString("/")}</field>
+								<field name="ctime">{new java.text.SimpleDateFormat(BeerCrush.SolrDateFormat).format(reviewToSave.ctime.get)}</field>
+							</doc>
+						</add>
+						val response=s.request(new org.apache.solr.client.solrj.request.DirectXmlRequest("/update",xml.toString))
+						
+						val commit= <commit waitFlush="false" waitSearcher="false"/>
+						val response2=s.request(new org.apache.solr.client.solrj.request.DirectXmlRequest("/update",commit.toString))
+					}
 
 					acceptFormat match {
 						case AcceptHTMLHeader => Ok
@@ -493,6 +519,43 @@ object Application extends Controller {
 			case AcceptHTMLHeader => Ok(views.html.beerReview(review,new BeerReviewForm(None)))
 			case AcceptXMLHeader => Ok(review.get.asXML)
 			case AcceptJSONHeader => Ok(Json.toJson(review.get.asJson))
+		}
+	}
+	
+	def showBeerReviews(beerId: BeerId, page: Long) = Action { implicit request =>
+		val acceptFormat=matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse("")))
+		
+		val MAX_ROWS=20
+		val parameters=new org.apache.solr.client.solrj.SolrQuery()
+		parameters.set("q","doctype:beerreview AND beer_id:" + beerId.toString);
+		// parameters.set("defType","dismax")
+		// parameters.set("qf","name")
+		parameters.setStart(((page-1) * MAX_ROWS).toInt)
+		parameters.setRows(MAX_ROWS)
+		val response=solr.query(parameters)
+		val numFound=response.getResults().getNumFound()
+		val docs=response.getResults().asScala
+		
+		acceptFormat match {
+			case AcceptHTMLHeader => Ok(views.html.beerReviews(
+				docs.map{ r => new BeerReview(
+					Some(ReviewId(r.get("id").asInstanceOf[String]))
+					,Some(r.get("ctime").asInstanceOf[java.util.Date])
+					,r.get("rating").asInstanceOf[Int]
+					,None
+					,None
+					,None
+					,None
+					,None
+					,None
+				) }
+				,Beer.fromExisting(beerId)
+				,numFound
+				,(numFound + (MAX_ROWS-1)) / MAX_ROWS
+				,page
+			))
+			case AcceptXMLHeader => Ok
+			case AcceptJSONHeader => Ok
 		}
 	}
 
