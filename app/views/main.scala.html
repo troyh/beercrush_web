@@ -11,7 +11,7 @@
     </head>
     <body>
 		<h1><a href="/">Beer Crush</a></h1>
-		@if(request.session.isEmpty) {<a href="/login">Login</a> } else { Hi <a href="/myaccount"> @request.session.get("name").filter(!_.isEmpty).map(_.toString).getOrElse(<i>Unnamed</i>)</a>! <a href="/logout">Logout</a> } 
+		@if(request.session.isEmpty) {<a href="/login">Login</a> } else { Hi <a href=/user/@request.session.get("username")> @request.session.get("name").filter(!_.isEmpty).map(_.toString).getOrElse(<i>Unnamed</i>)</a>! <a href="/logout">Logout</a> } 
 		<form action="/search" method="get"><input type="text" name="q" /><input type="submit" value="Search"></form>
 		<hr />
         @content
