@@ -37,7 +37,7 @@ object Storage {
 case class ReviewId(reviewid: String) extends Id(Some(reviewid)) {
 	def setUser(username: String) = {
 		this.copy(reviewid=id.get.split("/") match {
-			case Array(brewery,beer,review,_*) => brewery + "/" + beer + "/" + review + "/" + username
+			case Array(brewery,beer,_,_*) => brewery + "/" + beer + "/review/" + username
 		}
 		)
 	}
@@ -46,7 +46,7 @@ case class ReviewId(reviewid: String) extends Id(Some(reviewid)) {
 
 object ReviewId {
 	def fromBeerId(beerId: BeerId): ReviewId = new ReviewId(beerId.toString + "/review")
-	def beerIdFromReviewId(reviewId: ReviewId): BeerId = new BeerId(reviewId.id.get.split("/").dropRight(1).mkString("/"))
+	def beerIdFromReviewId(reviewId: ReviewId): BeerId = new BeerId(reviewId.id.get.split("/").dropRight(2).mkString("/"))
 	def userIdFromReviewId(reviewId: ReviewId): UserId = new UserId(reviewId.id.get.split("/").last)
 	implicit def string2id(s: String): ReviewId = new ReviewId(s)
 	implicit def id2string(id: ReviewId): String = id.id.get

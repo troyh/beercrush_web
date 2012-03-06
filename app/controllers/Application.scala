@@ -492,7 +492,7 @@ object Application extends Controller {
 								<field name="id">{reviewToSave.id.get.toString}</field>
 								<field name="rating">{reviewToSave.rating.toString}</field>
 								<field name="user_id">{ReviewId.userIdFromReviewId(reviewToSave.id.get).toString}</field>
-								<field name="beer_id">{ReviewId.beerIdFromReviewId(reviewToSave.id.get).toString.split("/").dropRight(1).mkString("/")}</field>
+								<field name="beer_id">{ReviewId.beerIdFromReviewId(reviewToSave.id.get).toString}</field>
 								<field name="ctime">{new java.text.SimpleDateFormat(BeerCrush.SolrDateFormat).format(reviewToSave.ctime.get)}</field>
 							</doc>
 						</add>
