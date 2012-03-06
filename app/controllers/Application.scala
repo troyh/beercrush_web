@@ -445,11 +445,23 @@ object Application extends Controller {
 			"balance" -> optional(number(min=1,max=10)),
 			"aftertaste" -> optional(number(min=1,max=10)),
 			"flavors" -> optional(list(text)),
+			"drank_when" -> optional(date),
+			"drank_where" -> optional(text),
 			"wouldDrinkAgain" -> optional(boolean),
 			"text" -> optional(text)
 		)
-		{ (rating,balance,aftertaste,flavors,wouldDrinkAgain,text) => BeerReview(None,None,rating,balance,aftertaste,flavors,wouldDrinkAgain,text)}
-		{ review => Some(review.rating,review.balance,review.aftertaste,review.flavors,review.wouldDrinkAgain,review.text) },
+		{ (rating,balance,aftertaste,flavors,drank_when,drank_where,wouldDrinkAgain,text) => BeerReview(
+			None
+			,None
+			,rating
+			,balance
+			,aftertaste
+			,flavors
+			,new BeerReview.DrankDetails(drank_when,drank_where)
+			,wouldDrinkAgain
+			,text
+		)}
+		{ review => Some(review.rating,review.balance,review.aftertaste,review.flavors,review.details.when,review.details.where,review.wouldDrinkAgain,review.text) },
 		Map.empty,
 		Nil,
 		None
@@ -544,6 +556,7 @@ object Application extends Controller {
 					,None
 					,None
 					,None
+					,new BeerReview.DrankDetails(None,None)
 					,None
 					,None
 				) }

@@ -62,10 +62,7 @@ case class BeerReview(
 	val balance: Option[Int],
 	val aftertaste: Option[Int],
 	val flavors: Option[List[String]],
-	// val drank: Option[{
-	// 	val when: Option[java.util.Date],
-	// 	val where: Option[String]
-	// }],
+	val details: BeerReview.DrankDetails,
 	val wouldDrinkAgain: Option[Boolean],
 	val text:Option[String]
 ) extends Review with XmlFormat with JsonFormat {
@@ -78,6 +75,8 @@ case class BeerReview(
 			{ <rating/> % Attribute("","value",rating.toString,Null) }
 			{ balance.map { n => <balance/> % Attribute("","value",n.toString,Null) }.getOrElse() }
 			{ aftertaste.map { n => <aftertaste/>  % Attribute("","value",n.toString,Null) }.getOrElse() }
+			{ details.when.map { n => <when>{new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(n)}</when> }.getOrElse() }
+			{ details.where.map { n => <where>{n.toString}</where> }.getOrElse() }
 			{ wouldDrinkAgain.map { b => <wouldDrinkAgain/> % Attribute("","value",b.toString,Null) }.getOrElse() }
 			{ text.map { s => <text>{s}</text> }.getOrElse() }
 		</review>
@@ -100,6 +99,12 @@ case class BeerReview(
 }
 
 object BeerReview {
+	
+	class DrankDetails(
+		val when: Option[java.util.Date],
+		val where: Option[String]
+	)
+	
 	def fromExisting(reviewId: ReviewId): Option[BeerReview] = {
 		try {
 			val xml=scala.xml.XML.loadFile(Storage.fileLocation(reviewId))
@@ -121,6 +126,10 @@ object BeerReview {
 				balance = (xml \ "balance" \ "@value").headOption.map{s => Some(s.text.toInt)}.getOrElse(None),
 				aftertaste = (xml \ "aftertaste" \ "@value").headOption.map{s=>Some(s.text.toInt)}.getOrElse(None),
 				flavors = (xml \ "flavors" \ "flavor").map{s=>s.text}.toList match {case x if (x.isEmpty) => None; case x => Some(x)},
+				details = new BeerReview.DrankDetails(
+					(xml \ "when").headOption.map{ s => Some(new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).parse(s.text)) }.getOrElse(None)
+					,(xml \ "where").headOption.map{ s => Some(s.text) }.getOrElse(None)
+				),
 				wouldDrinkAgain = (xml \ "wouldDrinkAgain" \ "@value").headOption.map{s=>Some(s.text.toBoolean)}.getOrElse(None),
 				text = (xml \ "text").headOption.map{s=>Some(s.text)}.getOrElse(None)
 			))

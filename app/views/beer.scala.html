@@ -109,11 +109,13 @@
 				'_label -> "Flavors",
                 '_error -> reviewForm.error("flavors")
 			)
-			@select(
-				reviewForm("color"),
-				options=(1 to 100).map{ n => n.toString -> n.toString },
-				'_label -> "Color",
-                '_error -> reviewForm.error("color")
+			@inputDate(
+				reviewForm("drank_when"),
+				'_label -> "When I drank it"
+			)
+			@inputText(
+				reviewForm("drank_where"),
+				'_label -> "Where I drank it"
 			)
 			@checkbox(
 				reviewForm("wouldDrinkAgain"),
