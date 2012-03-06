@@ -3,7 +3,9 @@
 @import views.html.helper._
 
 @makeReviewItem(review: BeerReview) = {
-	<li>@{"".padTo(review.rating,"*")} by <a href=/user/@{review.maybeUser.get.id}>@{username(review.maybeUser)}</a> (@review.ctime.get)</li>
+	<li>@for(_ <- 1 until review.rating) {&#10029;}
+		by <a href=/user/@{review.maybeUser.get.id}>@{username(review.maybeUser)}</a> (@review.ctime.get)
+	</li>
 }
 
 @main("Beer Reviews") {
