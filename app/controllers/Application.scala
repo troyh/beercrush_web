@@ -457,11 +457,12 @@ object Application extends Controller {
 			,balance
 			,aftertaste
 			,flavors
-			,new BeerReview.DrankDetails(drank_when,drank_where)
+			,drank_when
+			,drank_where
 			,wouldDrinkAgain
 			,text
 		)}
-		{ review => Some(review.rating,review.balance,review.aftertaste,review.flavors,review.details.when,review.details.where,review.wouldDrinkAgain,review.text) },
+		{ review => Some(review.rating,review.balance,review.aftertaste,review.flavors,review.when,review.where,review.wouldDrinkAgain,review.text) },
 		Map.empty,
 		Nil,
 		None
@@ -556,7 +557,8 @@ object Application extends Controller {
 					,None
 					,None
 					,None
-					,new BeerReview.DrankDetails(None,None)
+					,None
+					,None
 					,None
 					,None
 				) }
