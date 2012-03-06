@@ -442,15 +442,14 @@ object Application extends Controller {
 	class BeerReviewForm(val reviewId: Option[ReviewId]) extends Form[BeerReview](
 		mapping(
 			"rating" -> number(min=1,max=5),
-			"bitterness" -> optional(number(min=1,max=10)),
-			"sweetness" -> optional(number(min=1,max=10)),
-			"aroma" -> optional(number(min=1,max=10)),
-			"color" -> optional(number(min=1,max=100)),
+			"balance" -> optional(number(min=1,max=10)),
+			"aftertaste" -> optional(number(min=1,max=10)),
+			"flavors" -> optional(list(text)),
 			"wouldDrinkAgain" -> optional(boolean),
 			"text" -> optional(text)
 		)
-		{ (rating,bitterness,sweetness,aroma,color,wouldDrinkAgain,text) => BeerReview(None,None,rating,bitterness,sweetness,aroma,color,wouldDrinkAgain,text)}
-		{ review => Some(review.rating,review.bitterness,review.sweetness,review.aroma,review.color,review.wouldDrinkAgain,review.text) },
+		{ (rating,balance,aftertaste,flavors,wouldDrinkAgain,text) => BeerReview(None,None,rating,balance,aftertaste,flavors,wouldDrinkAgain,text)}
+		{ review => Some(review.rating,review.balance,review.aftertaste,review.flavors,review.wouldDrinkAgain,review.text) },
 		Map.empty,
 		Nil,
 		None
@@ -542,7 +541,6 @@ object Application extends Controller {
 					Some(ReviewId(r.get("id").asInstanceOf[String]))
 					,Some(r.get("ctime").asInstanceOf[java.util.Date])
 					,r.get("rating").asInstanceOf[Int]
-					,None
 					,None
 					,None
 					,None

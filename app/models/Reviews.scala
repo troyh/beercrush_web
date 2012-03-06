@@ -59,10 +59,13 @@ case class BeerReview(
 	val id:Option[ReviewId],
 	val ctime: Option[java.util.Date],
 	val rating:Int,
-	val bitterness:Option[Int],
-	val sweetness:Option[Int],
-	val aroma:Option[Int],
-	val color:Option[Int],
+	val balance: Option[Int],
+	val aftertaste: Option[Int],
+	val flavors: Option[List[String]],
+	// val drank: Option[{
+	// 	val when: Option[java.util.Date],
+	// 	val where: Option[String]
+	// }],
 	val wouldDrinkAgain: Option[Boolean],
 	val text:Option[String]
 ) extends Review with XmlFormat with JsonFormat {
@@ -73,10 +76,8 @@ case class BeerReview(
 		<review id={id.get}>
 			{ ctime.map { t => <ctime>{new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(t)}</ctime> }.getOrElse() }
 			{ <rating/> % Attribute("","value",rating.toString,Null) }
-			{ bitterness.map { n => <bitterness/> % Attribute("","value",n.toString,Null) }.getOrElse() }
-			{ sweetness.map { n => <sweetness/>  % Attribute("","value",n.toString,Null) }.getOrElse() }
-			{ aroma.map { n => <aroma/> % Attribute("","value",n.toString,Null) }.getOrElse() }
-			{ color.map { n => <color/> % Attribute("","value",n.toString,Null) }.getOrElse() }
+			{ balance.map { n => <balance/> % Attribute("","value",n.toString,Null) }.getOrElse() }
+			{ aftertaste.map { n => <aftertaste/>  % Attribute("","value",n.toString,Null) }.getOrElse() }
 			{ wouldDrinkAgain.map { b => <wouldDrinkAgain/> % Attribute("","value",b.toString,Null) }.getOrElse() }
 			{ text.map { s => <text>{s}</text> }.getOrElse() }
 		</review>
@@ -85,10 +86,11 @@ case class BeerReview(
 		id.map { x => "id" -> JsString(x.id.get) }.get,
 		"ctime" -> JsString(new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(ctime)),
 		"rating" -> JsNumber(rating),
-		bitterness.map{ "bitterness" -> JsNumber(_) }.get,
-		sweetness.map{ "sweetness" -> JsNumber(_) }.get,
-		aroma.map{ "aroma" -> JsNumber(_) }.get,
-		color.map{ "color" -> JsNumber(_) }.get,
+		balance.map{ "balance" -> JsNumber(_) }.get,
+		aftertaste.map{ "aftertaste" -> JsNumber(_) }.get,
+		flavors.map{ list => "flavors" -> JsObject(
+			list.map { "flavor" -> JsString(_) }
+		)}.get,
 		wouldDrinkAgain.map{ "wouldDrinkAgain" -> JsBoolean(_) }.get,
 		text.map{ "text" -> JsString(_) }.get
 	))
@@ -116,10 +118,9 @@ object BeerReview {
 				id = Some(xml \ "@id").headOption.map{s=>Some(ReviewId(s.text))}.get,
 				ctime = (xml \ "ctime").headOption.map{s=>Some(new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).parse(s.text))}.getOrElse(None),
 				rating = (xml \ "rating" \ "@value").headOption.map{_.text.toInt}.getOrElse(0),
-				bitterness = (xml \ "bitterness" \ "@value").headOption.map{s => Some(s.text.toInt)}.getOrElse(None),
-				sweetness = (xml \ "sweetness" \ "@value").headOption.map{s=>Some(s.text.toInt)}.getOrElse(None),
-				aroma = (xml \ "aroma" \ "@value").headOption.map{s=>Some(s.text.toInt)}.getOrElse(None),
-				color = (xml \ "color" \ "@value").headOption.map{s=>Some(s.text.toInt)}.getOrElse(None),
+				balance = (xml \ "balance" \ "@value").headOption.map{s => Some(s.text.toInt)}.getOrElse(None),
+				aftertaste = (xml \ "aftertaste" \ "@value").headOption.map{s=>Some(s.text.toInt)}.getOrElse(None),
+				flavors = (xml \ "flavors" \ "flavor").map{s=>s.text}.toList match {case x if (x.isEmpty) => None; case x => Some(x)},
 				wouldDrinkAgain = (xml \ "wouldDrinkAgain" \ "@value").headOption.map{s=>Some(s.text.toBoolean)}.getOrElse(None),
 				text = (xml \ "text").headOption.map{s=>Some(s.text)}.getOrElse(None)
 			))

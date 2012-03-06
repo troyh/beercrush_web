@@ -93,22 +93,21 @@
                 '_error -> reviewForm.error("rating")
 			)
 			@inputRadioGroup(
-				reviewForm("bitterness"),
+				reviewForm("balance"),
 				options=((1 to 10).map{ n => n.toString -> n.toString }),
-				'_label -> "Bitterness",
-                '_error -> reviewForm.error("bitterness")
+				'_label -> "Balance",
+                '_error -> reviewForm.error("balance")
 			)
 			@inputRadioGroup(
-				reviewForm("sweetness"),
+				reviewForm("aftertaste"),
 				options=((1 to 10).map{ n => n.toString -> n.toString }),
-				'_label -> "Sweetness",
-                '_error -> reviewForm.error("sweetness")
+				'_label -> "Aftertaste",
+                '_error -> reviewForm.error("aftertaste")
 			)
-			@select(
-				reviewForm("aroma"),
-				options=(1 to 10).map{ n => n.toString -> n.toString },
-				'_label -> "Aroma",
-                '_error -> reviewForm.error("aroma")
+			@inputText(
+				reviewForm("flavors"),
+				'_label -> "Flavors",
+                '_error -> reviewForm.error("flavors")
 			)
 			@select(
 				reviewForm("color"),
