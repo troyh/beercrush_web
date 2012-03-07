@@ -1,0 +1,4 @@
+@(review: BeerReview)
+
+@for(_ <- 1 to review.rating) {&#10029;}
+by <a href=/user/@{review.maybeUser.get.id}>@{username(review.maybeUser)}</a> (@dateFormat(review.ctime.get))

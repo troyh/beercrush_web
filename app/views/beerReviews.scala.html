@@ -2,18 +2,12 @@
 
 @import views.html.helper._
 
-@makeReviewItem(review: BeerReview) = {
-	<li>@for(_ <- 1 to review.rating) {&#10029;}
-		by <a href=/user/@{review.maybeUser.get.id}>@{username(review.maybeUser)}</a> (@review.ctime.get)
-	</li>
-}
-
-@main("Beer Reviews") {
+@main("Reviews for " + beer.get.name) {
 
 	<h1>@totalReviews Review@if(totalReviews != 1) {s} @if(beer.isDefined) { for <a href=/@beer.get.id>@beer.get.name</a> }</h1>
 
 	<ul>
-	@reviews.map(review => makeReviewItem(review))
+		@for(review <- reviews) { <li>@beerReview(review)</li> }
 	</ul>
 
 	@pageNav(thisPage,totalPages)(None)

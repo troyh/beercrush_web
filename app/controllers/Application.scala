@@ -515,9 +515,9 @@ object Application extends Controller {
 					}
 
 					acceptFormat match {
-						case AcceptHTMLHeader => Ok
-						case AcceptXMLHeader => Ok(review.asXML)
-						case AcceptJSONHeader => Ok(Json.toJson(review.asJson))
+						case AcceptHTMLHeader => Redirect(routes.Application.showBeerReview(reviewToSave.id.get))
+						case AcceptXMLHeader => Ok(reviewToSave.asXML)
+						case AcceptJSONHeader => Ok(Json.toJson(reviewToSave.asJson))
 					}
 				}
 			)
