@@ -1,15 +1,14 @@
 @(review: Option[BeerReview], reviewForm: Form[BeerReview])(implicit request: Request[_])
 
-@displayUsername(user: Option[User]) = { @user.map { u => @if(u.name.isEmpty) { @u.id } else { @u.name } } }
-@displayDate(timestamp: Option[java.util.Date]) = { @timestamp.map { t => @{new java.text.SimpleDateFormat("MMMM dd, yyyy").format(t) }} }
+@import views.html.helper._
 
 @main() {
 	<h1>Beer Review</h1>
 	@review.map{ review=>
 		<div>Beer: <a href="/@review.maybeBeer.get.id.get.toString">@review.maybeBeer.get.name</a></div>
-		<div>Rating: @review.rating</div>
-		<div>Reviewer: <a href="@review.maybeUser.get.name">@displayUsername(review.maybeUser)</a></div>
-		<div>Date: @displayDate(review.ctime)</div>
+		<div>Rating: @ratingStars(review.rating)</div>
+		<div>Reviewer: <a href="@review.maybeUser.get.name">@username(review.maybeUser)</a></div>
+		<div>Date: @dateFormat(review.ctime.get)</div>
 		<div>Would drink again: @review.wouldDrinkAgain</div>
 		<div>Balance: @review.balance</div>
 		<div>Aftertaste: @review.aftertaste</div>

@@ -1,0 +1,6 @@
+@(rating: Double)
+
+@makeFrac(tenths: Int) = { <font size="-2"><sup>@tenths</sup>&frasl;<sub>10</sub></font> }
+
+@for(_ <- 1 to rating.toInt) {&#10029;}
+@{val tenths=((rating-rating.toInt)*10.0).toInt; if (tenths>0) makeFrac(tenths)}
