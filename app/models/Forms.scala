@@ -1,6 +1,4 @@
 package models
-// package BeerCrush
-// package Forms
 
 import play.api.data._
 import play.api.data.Forms._
