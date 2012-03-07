@@ -137,3 +137,33 @@ class BreweryForm(breweryId:Option[BreweryId]) extends Form[Brewery](
 	  )
 {
 }
+
+class BeerReviewForm(val reviewId: Option[ReviewId]) extends Form[BeerReview](
+	mapping(
+		"rating" -> number(min=1,max=5),
+		"balance" -> optional(number(min=1,max=10)),
+		"aftertaste" -> optional(number(min=1,max=10)),
+		"flavors" -> optional(list(text)),
+		"drank_when" -> optional(date),
+		"drank_where" -> optional(text),
+		"wouldDrinkAgain" -> optional(boolean),
+		"text" -> optional(text)
+	)
+	{ (rating,balance,aftertaste,flavors,drank_when,drank_where,wouldDrinkAgain,text) => BeerReview(
+		None
+		,None
+		,rating
+		,balance
+		,aftertaste
+		,flavors
+		,drank_when
+		,drank_where
+		,wouldDrinkAgain
+		,text
+	)}
+	{ review => Some(review.rating,review.balance,review.aftertaste,review.flavors,review.when,review.where,review.wouldDrinkAgain,review.text) },
+	Map.empty,
+	Nil,
+	None
+)
+	

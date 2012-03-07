@@ -15,8 +15,14 @@ case class Beer(
 	val yeast:		Option[String],
 	val otherings:	Option[String],
 	val styles: 	Option[List[BeerStyle]]
-) extends PersistentObject(beerId) with JsonFormat {
-	lazy val pageURL = { "/" + id }
+) extends XmlFormat with JsonFormat with Storage.Saveable {
+	val id=beerId
+	val ctime: Option[java.util.Date] = Some(new java.util.Date())
+	def dupe(id:Id,ctime:java.util.Date) = {
+		this.copy(beerId=Some(BeerId(id))) // TODO: add ctime
+	}
+	
+	lazy val pageURL = { "/" + beerId.get }
 	lazy val brewery = {
 		val bid: Option[BreweryId]=beerId.map(_.breweryId)
 		// val bid: BreweryId = b.breweryId
@@ -26,14 +32,8 @@ case class Beer(
 		}
 	}
 
-	def save = {
-		val theBeerId=beerId match {
-			case None => /* Make up an ID */ "[^a-zA-Z0-9]+".r.replaceAllIn(name.replace("'",""),"-")
-			case Some(id) => id
-		}
-		val xml=
-		<beer>
-		  <id>{theBeerId}</id>
+	def asXML=
+		<beer id={beerId.toString}>
 		  { brewery.map{ b => <brewery_id>{b.breweryId}</brewery_id>}.getOrElse() }
 		  <calories_per_ml></calories_per_ml>
 		  { abv.map{ abv => <abv>{abv}</abv>}.getOrElse() }
@@ -50,9 +50,6 @@ case class Beer(
 		  			  {styles.map(_.map(style => <style><bjcp_style_id>{style.id}</bjcp_style_id><name>{style.name}</name></style>))}
 		  </styles>
 		</beer>
-		
-		scala.xml.XML.save("/Users/troy/beerdata/editedBeer.xml",xml,"UTF-8",true)
-	}
 	
 	def asJson = JsObject(
 		(

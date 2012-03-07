@@ -4,36 +4,6 @@ import BeerCrush._
 import play.api.libs.json._
 import play.api._
 
-object Storage {
-	val datadir="/Users/troy/beerdata"
-	lazy val datadir_parts=datadir.split("/")
-	def fileLocation(reviewId: ReviewId) = {
-		val parts=reviewId.id.get.split("/")
-		datadir + "/beer/" + parts.mkString("/") + ".xml"
-	}
-	
-	def save(review: BeerReview, id: Option[ReviewId] = None) = {
-		val (reviewToSave,saveId) = id match {
-			case None => (review, review.id.get)
-			case Some(theid) => (
-				review.copy(
-					id=id,
-					ctime={if (review.ctime.isEmpty) Some(new java.util.Date()) else review.ctime}
-				),
-				theid)
-		}
-		
-		/* Make the necessary directories to store the review */
-		fileLocation(saveId).split("/").drop(datadir_parts.length).foldLeft(datadir){ (path,item) => 
-			val f=new java.io.File(path)
-			f.mkdir()
-			path + "/" + item
-		}
-		scala.xml.XML.save(fileLocation(saveId),reviewToSave.asXML,"UTF-8",true)
-	}
-	
-}
-
 case class ReviewId(reviewid: String) extends Id(Some(reviewid)) {
 	def setUser(username: String) = {
 		this.copy(reviewid=id.get.split("/") match {
@@ -66,7 +36,11 @@ case class BeerReview(
 	val where: Option[String],
 	val wouldDrinkAgain: Option[Boolean],
 	val text:Option[String]
-) extends Review with XmlFormat with JsonFormat {
+) extends Review with XmlFormat with JsonFormat with Storage.Saveable {
+
+	def dupe(id:Id,ctime:java.util.Date) = {
+		this.copy(id=Some(ReviewId(id)),ctime=Some(ctime))
+	}
 
 	import scala.xml._
 	
@@ -104,16 +78,6 @@ object BeerReview {
 	def fromExisting(reviewId: ReviewId): Option[BeerReview] = {
 		try {
 			val xml=scala.xml.XML.loadFile(Storage.fileLocation(reviewId))
-			
-			// xml match {
-			// 	case <review>{ d @ _* }</review> => {
-			// 		Some(d.foldLeft(BeerReview(None,0,None,None,None,None,None,None)) { (review,item) => item match {
-			// 			case <rating>{r}</rating> => review.copy(rating=r.text.toInt)
-			// 			case <bitterness>{b}</bitterness> => review.copy(bitterness=Some(b.text.toInt))
-			// 		}})
-			// 	}
-			// 	case _ => None
-			// }
 			
 			Some(BeerReview(
 				id = Some(xml \ "@id").headOption.map{s=>Some(ReviewId(s.text))}.get,

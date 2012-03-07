@@ -227,8 +227,14 @@ object Application extends Controller {
 		  },
 	      // Handle successful form submission
 	      beer => {
+			val id: Id=beerId match {
+	  			case None => /* Make up an ID */ BeerId("[^a-zA-Z0-9]+".r.replaceAllIn(beer.name.replace("'",""),"-"))
+	  			case Some(id) => id
+	  		}
+			  
 			  // Save the doc
-			  beer.save
+			  Storage.save(beer,Some(id))
+			  
 			  responseFormat match {
 				  case HTML => Ok(views.html.beer(Some(beer),beerForm.fill(beer),new BeerReviewForm(None)))
 				  case XML  => Ok(views.xml.beer(beer))
@@ -308,35 +314,6 @@ object Application extends Controller {
 	  }
   }
   
-	class BeerReviewForm(val reviewId: Option[ReviewId]) extends Form[BeerReview](
-		mapping(
-			"rating" -> number(min=1,max=5),
-			"balance" -> optional(number(min=1,max=10)),
-			"aftertaste" -> optional(number(min=1,max=10)),
-			"flavors" -> optional(list(text)),
-			"drank_when" -> optional(date),
-			"drank_where" -> optional(text),
-			"wouldDrinkAgain" -> optional(boolean),
-			"text" -> optional(text)
-		)
-		{ (rating,balance,aftertaste,flavors,drank_when,drank_where,wouldDrinkAgain,text) => BeerReview(
-			None
-			,None
-			,rating
-			,balance
-			,aftertaste
-			,flavors
-			,drank_when
-			,drank_where
-			,wouldDrinkAgain
-			,text
-		)}
-		{ review => Some(review.rating,review.balance,review.aftertaste,review.flavors,review.when,review.where,review.wouldDrinkAgain,review.text) },
-		Map.empty,
-		Nil,
-		None
-	)
-	
 	def newBeerReview(beerId: BeerId) = editBeerReview(ReviewId.fromBeerId(beerId))
 	
 	def editBeerReview(reviewId: ReviewId) = Authenticated { username =>
@@ -352,13 +329,13 @@ object Application extends Controller {
 					}
 				},
 				review => {
-					val saveId=if (reviewId.isComplete) reviewId else reviewId.setUser(username)
-					val reviewToSave=review.copy(
-						id=Some(saveId),
-						ctime={if (review.ctime.isEmpty) Some(new java.util.Date()) else review.ctime}
-					)
+					val saveId: ReviewId=if (reviewId.isComplete) reviewId else reviewId.setUser(username)
+					// val reviewToSave: BeerReview=review.copy(
+					// 	id=saveId,
+					// 	ctime={if (review.ctime.isEmpty) new java.util.Date() else review.ctime.get}
+					// )
 
-					Storage.save(reviewToSave,Some(saveId))
+					Storage.save(review,Some(saveId))
 
 					// Asynchronously index the review in Solr
 					future {
@@ -369,11 +346,11 @@ object Application extends Controller {
 						<add>
 							<doc>
 								<field name="doctype">beerreview</field>
-								<field name="id">{reviewToSave.id.get.toString}</field>
-								<field name="rating">{reviewToSave.rating.toString}</field>
-								<field name="user_id">{ReviewId.userIdFromReviewId(reviewToSave.id.get).toString}</field>
-								<field name="beer_id">{ReviewId.beerIdFromReviewId(reviewToSave.id.get).toString}</field>
-								<field name="ctime">{new java.text.SimpleDateFormat(BeerCrush.SolrDateFormat).format(reviewToSave.ctime.get)}</field>
+								<field name="id">{saveId}</field>
+								<field name="rating">{review.rating.toString}</field>
+								<field name="user_id">{ReviewId.userIdFromReviewId(saveId).toString}</field>
+								<field name="beer_id">{ReviewId.beerIdFromReviewId(saveId).toString}</field>
+								<field name="ctime">{new java.text.SimpleDateFormat(BeerCrush.SolrDateFormat).format(review.ctime.get)}</field>
 							</doc>
 						</add>
 						val response=s.request(new org.apache.solr.client.solrj.request.DirectXmlRequest("/update",xml.toString))
@@ -383,9 +360,9 @@ object Application extends Controller {
 					}
 
 					responseFormat match {
-						case HTML => Redirect(routes.Application.showBeerReview(reviewToSave.id.get))
-						case XML => Ok(reviewToSave.asXML)
-						case JSON => Ok(Json.toJson(reviewToSave.asJson))
+						case HTML => Redirect(routes.Application.showBeerReview(review.id.get))
+						case XML => Ok(review.asXML)
+						case JSON => Ok(Json.toJson(review.asJson))
 					}
 				}
 			)
