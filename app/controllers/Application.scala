@@ -57,17 +57,17 @@ object Application extends Controller {
 	}
 
 	sealed abstract class AcceptHeaderType 
-	case object AcceptXMLHeader extends AcceptHeaderType
-	case object AcceptJSONHeader extends AcceptHeaderType
-	case object AcceptHTMLHeader extends AcceptHeaderType
+	case object XML extends AcceptHeaderType
+	case object JSON extends AcceptHeaderType
+	case object HTML extends AcceptHeaderType
 
   def matchAcceptHeader(ahl: List[AcceptHeader]): AcceptHeaderType = {
 	  ahl match {
-		  case AcceptHeader("text","html",_) :: rest => AcceptHTMLHeader
-		  case AcceptHeader("text","xml",_) :: rest => AcceptXMLHeader
-		  case AcceptHeader("application","json",_) :: rest => AcceptJSONHeader
+		  case AcceptHeader("text","html",_) :: rest => HTML
+		  case AcceptHeader("text","xml",_) :: rest => XML
+		  case AcceptHeader("application","json",_) :: rest => JSON
 		  case head :: rest => matchAcceptHeader(rest)
-		  case Nil => AcceptHTMLHeader
+		  case Nil => HTML
 	  }
   }
 
@@ -203,17 +203,19 @@ object Application extends Controller {
 		  )
 	{
 	}
-	  
+
+	def responseFormat(implicit request: play.api.mvc.Request[_]) = matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse("")))
+
   def showBeer(beerId:BeerId) = Action { implicit request => 
 	  Beer.fromExisting(beerId) match {
 		  case None => NotFound
 		  case Some(beer) => {
 			  val beerForm=new BeerForm(beer.beerId)
 	  
-			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-				  case AcceptHTMLHeader => Ok(views.html.beer(Some(beer),beerForm.fill(beer),new BeerReviewForm(None)))
-				  case AcceptXMLHeader  => Ok(views.xml.beer(beer))
-				  case AcceptJSONHeader  => Ok(Json.toJson(beer.asJson))
+			  responseFormat match {
+				  case HTML => Ok(views.html.beer(Some(beer),beerForm.fill(beer),new BeerReviewForm(None)))
+				  case XML  => Ok(views.xml.beer(beer))
+				  case JSON  => Ok(Json.toJson(beer.asJson))
 			  }
 		  }
 	  }
@@ -227,10 +229,10 @@ object Application extends Controller {
 			  case Some(brewery: Brewery) => {
 				  val breweryForm = new BreweryForm(breweryId)
 			  
-				  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-					  case AcceptHTMLHeader => Ok(views.html.brewery(brewery,breweryForm.fill(brewery)))
-					  case AcceptXMLHeader  => Ok(views.xml.brewery(brewery))
-					  case AcceptJSONHeader  => Ok(Json.toJson(brewery.asJson))
+				  responseFormat match {
+					  case HTML => Ok(views.html.brewery(brewery,breweryForm.fill(brewery)))
+					  case XML  => Ok(views.xml.brewery(brewery))
+					  case JSON  => Ok(Json.toJson(brewery.asJson))
 				  }
 			  }
 		  }
@@ -246,16 +248,16 @@ object Application extends Controller {
 	  val response=solr.query(parameters)
 	  val numFound=response.getResults().getNumFound()
 	  val docs=response.getResults().asScala
-  	  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-  		  case AcceptHTMLHeader => Ok(views.html.allBreweries(
+  	  responseFormat match {
+  		  case HTML => Ok(views.html.allBreweries(
 			docs.map(d => <brewery><id>{d.get("id")}</id><name>{d.get("name")}</name></brewery>),
 	  	  	numFound / MAX_ROWS + (if (numFound % MAX_ROWS == 0) 0 else 1),
 	  		page))
-  		  case AcceptXMLHeader  => Ok(views.xml.allBreweries(
+  		  case XML  => Ok(views.xml.allBreweries(
   			docs.map(d => <brewery><id>{d.get("id")}</id><name>{d.get("name")}</name></brewery>),
   	  	  	numFound,
   	  		response.getResults().getStart()))
-		  case AcceptJSONHeader  => Ok(Json.toJson(
+		  case JSON  => Ok(Json.toJson(
 			  JsObject(List(
 				  "meta" -> JsObject(List(
 				   "total" -> JsNumber(numFound),
@@ -279,16 +281,16 @@ object Application extends Controller {
 	  val response=solr.query(parameters)
 	  val numFound=response.getResults().getNumFound()
 	  val docs=response.getResults().asScala
-	  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-		case AcceptHTMLHeader => Ok(views.html.allBeers(
+	  responseFormat match {
+		case HTML => Ok(views.html.allBeers(
 			docs.map(d => <beer><id>{d.get("id")}</id><name>{d.get("name")}</name></beer>),
 			numFound / MAX_ROWS + (if (numFound % MAX_ROWS == 0) 0 else 1),
 			page))
-		case AcceptXMLHeader  => Ok(views.xml.allBeers(
+		case XML  => Ok(views.xml.allBeers(
 			docs.map(d => <beer><id>{d.get("id")}</id><name>{d.get("name")}</name></beer>),
 			numFound,
 			response.getResults().getStart()))
-		case AcceptJSONHeader => Ok(Json.toJson(JsObject(
+		case JSON => Ok(Json.toJson(JsObject(
 			"totalBeers" -> JsNumber(numFound) ::
 			"start" -> JsNumber(response.getResults().getStart()) ::
 			"beers" -> JsArray(
@@ -320,18 +322,18 @@ object Application extends Controller {
 		  page,
 		  docs
 	  	))
-  	  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-  		case AcceptHTMLHeader => Ok(views.html.search(
+  	  responseFormat match {
+  		case HTML => Ok(views.html.search(
 			query,
 			(numFound + (MAX_ROWS-1)) / MAX_ROWS,
 			page,
 			docs))
-  		case AcceptXMLHeader  => Ok(views.xml.search(
+  		case XML  => Ok(views.xml.search(
 			query,
 			numFound,
 			response.getResults().getStart(),
 			docs))
-		case AcceptJSONHeader => Ok(Json.toJson(JsObject(
+		case JSON => Ok(Json.toJson(JsObject(
 			"query" -> JsString(query) ::
 			"totalResults" -> JsNumber(numFound) ::
 			"start" -> JsNumber(response.getResults().getStart()) ::
@@ -360,10 +362,10 @@ object Application extends Controller {
 	      beer => {
 			  // Save the doc
 			  beer.save
-			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-				  case AcceptHTMLHeader => Ok(views.html.beer(Some(beer),beerForm.fill(beer),new BeerReviewForm(None)))
-				  case AcceptXMLHeader  => Ok(views.xml.beer(beer))
-				  case AcceptJSONHeader  => Ok(Json.toJson(beer.asJson))
+			  responseFormat match {
+				  case HTML => Ok(views.html.beer(Some(beer),beerForm.fill(beer),new BeerReviewForm(None)))
+				  case XML  => Ok(views.xml.beer(beer))
+				  case JSON  => Ok(Json.toJson(beer.asJson))
 			  }
 		  }
 	  )
@@ -376,19 +378,19 @@ object Application extends Controller {
 	  f.bindFromRequest.fold(
 		  errors => {
 			  val brewery: Option[Brewery] = breweryId.map{Brewery.fromExisting(_)}.getOrElse(None)
-			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-				  case AcceptHTMLHeader => Ok(views.html.brewery(brewery.get,errors))
-				  case AcceptXMLHeader  => Ok(views.xml.brewery(brewery.get))
-				  case AcceptJSONHeader  => Ok(Json.toJson(brewery.get.asJson))
+			  responseFormat match {
+				  case HTML => Ok(views.html.brewery(brewery.get,errors))
+				  case XML  => Ok(views.xml.brewery(brewery.get))
+				  case JSON  => Ok(Json.toJson(brewery.get.asJson))
 			  }
 		  },
 		  brewery => {
 			  brewery.save
 
-			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-				  case AcceptHTMLHeader => Ok(views.html.brewery(brewery,f.fill(brewery)))
-				  case AcceptXMLHeader  => Ok(views.xml.brewery(brewery))
-				  case AcceptJSONHeader  => Ok(Json.toJson(brewery.asJson))
+			  responseFormat match {
+				  case HTML => Ok(views.html.brewery(brewery,f.fill(brewery)))
+				  case XML  => Ok(views.xml.brewery(brewery))
+				  case JSON  => Ok(Json.toJson(brewery.asJson))
 			  }
 		  }
 	  )
@@ -416,12 +418,12 @@ object Application extends Controller {
 					  // TODO: Make different sizes (thumbnail, small, medium, large, etc.)
 					  // TODO: Notify someone so that the photos get backed-up, added to Solr's index, etc.
 
-					  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-						  case AcceptHTMLHeader => Ok("")
-						  // case AcceptHTMLHeader => Ok(views.html.beerPhotoUploaded(brewery))
-						  case AcceptXMLHeader  => Accepted("")
-						  // case AcceptXMLHeader  => Ok(views.xml.beerPhotoUploaded(brewery))
-						  case AcceptJSONHeader  => Accepted("")
+					  responseFormat(request) match {
+						  case HTML => Ok("")
+						  // case HTML => Ok(views.html.beerPhotoUploaded(brewery))
+						  case XML  => Accepted("")
+						  // case XML  => Ok(views.xml.beerPhotoUploaded(brewery))
+						  case JSON  => Accepted("")
 					  }
 				  }).getOrElse(UnsupportedMediaType("Unsupported image format"))
 			}).getOrElse { NotAcceptable("Photo Missing") }
@@ -472,15 +474,14 @@ object Application extends Controller {
 	
 	def editBeerReview(reviewId: ReviewId) = Authenticated { username =>
 		Action { implicit request => 
-			val acceptFormat=matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse("")))
-			
+
 			val form=new BeerReviewForm(Some(reviewId))
 			form.bindFromRequest.fold(
 				errors => {
-					acceptFormat match {
-						case AcceptHTMLHeader => Ok(views.html.beerReview(BeerReview.fromExisting(reviewId),errors))
-						case AcceptXMLHeader => BadRequest
-						case AcceptJSONHeader => BadRequest
+					responseFormat match {
+						case HTML => Ok(views.html.beerReview(BeerReview.fromExisting(reviewId),errors))
+						case XML => BadRequest
+						case JSON => BadRequest
 					}
 				},
 				review => {
@@ -514,10 +515,10 @@ object Application extends Controller {
 						val response2=s.request(new org.apache.solr.client.solrj.request.DirectXmlRequest("/update",commit.toString))
 					}
 
-					acceptFormat match {
-						case AcceptHTMLHeader => Redirect(routes.Application.showBeerReview(reviewToSave.id.get))
-						case AcceptXMLHeader => Ok(reviewToSave.asXML)
-						case AcceptJSONHeader => Ok(Json.toJson(reviewToSave.asJson))
+					responseFormat match {
+						case HTML => Redirect(routes.Application.showBeerReview(reviewToSave.id.get))
+						case XML => Ok(reviewToSave.asXML)
+						case JSON => Ok(Json.toJson(reviewToSave.asJson))
 					}
 				}
 			)
@@ -525,18 +526,15 @@ object Application extends Controller {
 	}
 	
 	def showBeerReview(reviewId: ReviewId) = Action { implicit request =>
-		val acceptFormat=matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse("")))
 		val review=BeerReview.fromExisting(reviewId)
-		acceptFormat match {
-			case AcceptHTMLHeader => Ok(views.html.beerReview(review,new BeerReviewForm(None)))
-			case AcceptXMLHeader => Ok(review.get.asXML)
-			case AcceptJSONHeader => Ok(Json.toJson(review.get.asJson))
+		responseFormat match {
+			case HTML => Ok(views.html.beerReview(review,new BeerReviewForm(None)))
+			case XML => Ok(review.get.asXML)
+			case JSON => Ok(Json.toJson(review.get.asJson))
 		}
 	}
 	
 	def showBeerReviews(beerId: BeerId, page: Long) = Action { implicit request =>
-		val acceptFormat=matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse("")))
-		
 		val MAX_ROWS=20
 		val parameters=new org.apache.solr.client.solrj.SolrQuery()
 		parameters.set("q","doctype:beerreview AND beer_id:" + beerId.toString);
@@ -548,8 +546,8 @@ object Application extends Controller {
 		val numFound=response.getResults().getNumFound()
 		val docs=response.getResults().asScala
 		
-		acceptFormat match {
-			case AcceptHTMLHeader => Ok(views.html.beerReviews(
+		responseFormat match {
+			case HTML => Ok(views.html.beerReviews(
 				docs.map{ r => new BeerReview(
 					Some(ReviewId(r.get("id").asInstanceOf[String]))
 					,Some(r.get("ctime").asInstanceOf[java.util.Date])
@@ -567,8 +565,8 @@ object Application extends Controller {
 				,(numFound + (MAX_ROWS-1)) / MAX_ROWS
 				,page
 			))
-			case AcceptXMLHeader => Ok
-			case AcceptJSONHeader => Ok
+			case XML => Ok
+			case JSON => Ok
 		}
 	}
 
@@ -581,18 +579,18 @@ object Application extends Controller {
 	  val loginForm=new LoginForm
 	  loginForm.bindFromRequest.fold(
 		  errors => {
-			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-				  case AcceptHTMLHeader => Ok(views.html.login(errors))
-				  case AcceptXMLHeader  => Unauthorized
-				  case AcceptJSONHeader  => Unauthorized
+			  responseFormat match {
+				  case HTML => Ok(views.html.login(errors))
+				  case XML  => Unauthorized
+				  case JSON  => Unauthorized
 			  }
 		  },
 		  user => {
 			  val session=request.session + ("username" -> user.id.get) + ("name" -> user.name)
-			  matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse(""))) match {
-				  case AcceptHTMLHeader => Redirect(routes.Application.index).withSession(session)
-				  case AcceptXMLHeader  => Ok.withSession(session)
-				  case AcceptJSONHeader  => Ok.withSession(session)
+			  responseFormat match {
+				  case HTML => Redirect(routes.Application.index).withSession(session)
+				  case XML  => Ok.withSession(session)
+				  case JSON  => Ok.withSession(session)
 			  }
 		  }
 	)
@@ -603,14 +601,13 @@ object Application extends Controller {
 	}
 
 	def newUser = Action { implicit request => 
-		val acceptFormat=matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse("")))
 		val newUserForm=new NewUserForm()
 		newUserForm.bindFromRequest.fold(
 			errors => { // Handle errors
-				acceptFormat match {
-					case AcceptHTMLHeader => Ok(views.html.login(errors))
-					case AcceptXMLHeader  => BadRequest
-					case AcceptJSONHeader  => BadRequest
+				responseFormat match {
+					case HTML => Ok(views.html.login(errors))
+					case XML  => BadRequest
+					case JSON  => BadRequest
 				}
 			},
 			newUser => { // Handle successful form submission
@@ -619,25 +616,24 @@ object Application extends Controller {
 				// Create the account and then display it to the user
 				newUser.save
 					
-				acceptFormat match {
-				  case AcceptHTMLHeader => Redirect(routes.Application.showUser(newUser.id.get)).withSession(session)
-				  case AcceptXMLHeader  => Ok.withSession(session)
-				  case AcceptJSONHeader  => Ok.withSession(session)
+				responseFormat match {
+				  case HTML => Redirect(routes.Application.showUser(newUser.id.get)).withSession(session)
+				  case XML  => Ok.withSession(session)
+				  case JSON  => Ok.withSession(session)
 			  }
 			}
 		)
 	}
 
 	def showUser(userId: String) = Action { implicit request =>
-		val acceptFormat=matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse("")))
 		User.findUser(userId) match {
 			case Some(user) => {
-				acceptFormat match {
-				  case AcceptHTMLHeader => Ok(views.html.user(user,new UserForm(userId).fill(user)))
-				  case AcceptXMLHeader  => Ok(user.asXML match {
+				responseFormat match {
+				  case HTML => Ok(views.html.user(user,new UserForm(userId).fill(user)))
+				  case XML  => Ok(user.asXML match {
 					  case <user>{ e @ _* }</user> => <user>{e.filterNot(_.label.equals("password"))}</user>
 				  })
-				  case AcceptJSONHeader => Ok(Json.toJson(user.asJson))
+				  case JSON => Ok(Json.toJson(user.asJson))
 				}
 			}
 			case None => NotFound
@@ -648,15 +644,13 @@ object Application extends Controller {
 		Authorized(username == user) { // The user must be this user, users can only edit their own info
 			Action { implicit request =>
 
-				val acceptFormat=matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse("")))
-			
 				val accountForm=new UserForm(username)
 				accountForm.bindFromRequest.fold(
 		  		  errors => { // Handle errors
-					  acceptFormat match {
-						  case AcceptHTMLHeader => Ok(views.html.userAccount(username,errors))
-						  case AcceptXMLHeader  => BadRequest
-						  case AcceptJSONHeader  => BadRequest
+					  responseFormat match {
+						  case HTML => Ok(views.html.userAccount(username,errors))
+						  case XML  => BadRequest
+						  case JSON  => BadRequest
 					  }
 		  		  },
 		  	      user => { // Handle successful form submission
@@ -689,10 +683,10 @@ object Application extends Controller {
 					
 						userToSave.save
 				
-						acceptFormat match {
-						  case AcceptHTMLHeader => Ok(views.html.user(userToSave,accountForm.fill(userToSave))).withSession(session)
-						  case AcceptXMLHeader  => Ok.withSession(session)
-						  case AcceptJSONHeader  => Ok.withSession(session)
+						responseFormat match {
+						  case HTML => Ok(views.html.user(userToSave,accountForm.fill(userToSave))).withSession(session)
+						  case XML  => Ok.withSession(session)
+						  case JSON  => Ok.withSession(session)
 					  }
 				  }
 				)
