@@ -28,7 +28,7 @@ class NewUserForm extends Form[User](
 		  "password2" -> text
 	  ).verifying("Passwords don't match", passwords => passwords._1 == passwords._2)
   )
-  { (username,passwords) => new User(UserId.string2id(username),new java.util.Date(),passwords._1,"","") }
+  { (username,passwords) => new User(UserId.string2id(username),Some(new java.util.Date()),passwords._1,"","") }
   { user => Some(user.id.get,(user.password,user.password))}.verifying(
 	  "This username is already taken",
 	  user => !User.findUser(user.id.get).isDefined
@@ -47,7 +47,7 @@ class UserForm(username: UserId) extends Form[User](
 	  "name" -> text,
 	  "aboutme" -> text
   )
-  { (password,name,aboutme) => new User(username,new java.util.Date(),password._1,name,aboutme) }
+  { (password,name,aboutme) => new User(username,Some(new java.util.Date()),password._1,name,aboutme) }
   { user => Some(("",""),user.name,user.aboutme)},
   Map.empty,
   Nil,

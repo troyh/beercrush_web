@@ -461,7 +461,7 @@ object Application extends Controller {
 				val session=request.session + ("username" -> newUser.id.get) + ("name" -> newUser.name)
 				  
 				// Create the account and then display it to the user
-				newUser.save
+				Storage.save(newUser)
 					
 				responseFormat match {
 				  case HTML => Redirect(routes.Application.showUser(newUser.id.get)).withSession(session)
@@ -477,7 +477,7 @@ object Application extends Controller {
 			case Some(user) => {
 				responseFormat match {
 				  case HTML => Ok(views.html.user(user,new UserForm(userId).fill(user)))
-				  case XML  => Ok(user.asXML match {
+				  case XML  => Ok(user.asXML match { // Remove the password!
 					  case <user>{ e @ _* }</user> => <user>{e.filterNot(_.label.equals("password"))}</user>
 				  })
 				  case JSON => Ok(Json.toJson(user.asJson))
@@ -521,14 +521,14 @@ object Application extends Controller {
 							}
 							case None => new User(
 								username,
-								new java.util.Date(),
+								Some(new java.util.Date()),
 								java.security.MessageDigest.getInstance("MD5").digest(user.password.getBytes).map("%02x".format(_)).mkString,
 								user.name,
 								user.aboutme
 							)
 						}
 					
-						userToSave.save
+						Storage.save(userToSave)
 				
 						responseFormat match {
 						  case HTML => Ok(views.html.user(userToSave,accountForm.fill(userToSave))).withSession(session)

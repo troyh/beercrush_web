@@ -12,9 +12,11 @@ object Storage {
 	
 	val datadir="/Users/troy/beerdata"
 	lazy val datadir_parts=datadir.split("/")
-	def fileLocation(id: Id) = {
-		val parts=id.split("/")
-		datadir + "/beer/" + parts.mkString("/") + ".xml"
+	def fileLocation(id: Id) = id match {
+		case _: BeerId    => datadir + "/beer/" + id.toString + ".xml"
+		case _: BreweryId => datadir + "/brewery/" + id.toString + ".xml"
+		case _: UserId    => datadir + "/user/" + id.toString + ".xml"
+		case _: ReviewId  => datadir + "/beer/" + id.toString + ".xml" // TODO: Handle Beer Reviews separately from generic ReviewIds
 	}
 	
 	def save[T <: Saveable](item: T, id: Option[Id] = None) = {
