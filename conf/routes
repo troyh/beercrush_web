@@ -8,7 +8,7 @@ GET     /login                      controllers.Application.showLoginForm()
 POST    /login                      controllers.Application.login(username ?= "",password ?= "")
 GET     /logout                     controllers.Application.logout
 # User pages
-POST    /user/+              		controllers.Application.newUser
+POST    /user               		controllers.Application.newUser
 GET     /user/:user					controllers.Application.showUser(user)
 POST    /user/:user					controllers.Application.editUser(user)
 # Browsing and Searching
@@ -28,7 +28,7 @@ POST    /$reviewid<[a-zA-Z0-9-]+/[a-zA-Z0-9-]+/[a-zA-Z0-9-]+>	controllers.Applic
 GET    /$reviewid<[a-zA-Z0-9-]+/[a-zA-Z0-9-]+/review/[a-zA-Z0-9-]+>	controllers.Application.showBeerReview(reviewid)
 GET     /$beerid<[a-zA-Z0-9-]+/[a-zA-Z0-9-]+>/reviews			controllers.Application.showBeerReviews(beerid,page:Long ?= 1)
 # Brewery pages
-POST    /+brewery                controllers.Application.newBrewery()
+POST    /+brewery                	controllers.Application.newBrewery()
 GET     /:brewery					controllers.Application.showBrewery(brewery)
 POST    /:brewery					controllers.Application.editBrewery(brewery)
 
