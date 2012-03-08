@@ -258,7 +258,10 @@ object Application extends Controller {
 			  }
 		  },
 		  brewery => {
-			  brewery.save
+			  Storage.save(brewery,brewery.breweryId match {
+				  case None => /* Make up an Id */ Some(BreweryId("[^a-zA-Z0-9]+".r.replaceAllIn("['\"]+".r.replaceAllIn(brewery.name,""),"-"))) 
+				  case Some(id) => None
+			  })
 
 			  responseFormat match {
 				  case HTML => Ok(views.html.brewery(brewery,f.fill(brewery)))

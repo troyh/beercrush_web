@@ -10,7 +10,11 @@ case class Brewery(
 	val name: 	String,
 	val address: Address,
 	val phone:	Option[String]
-) extends PersistentObject(breweryId) with JsonFormat {
+) extends XmlFormat with JsonFormat with Storage.Saveable {
+	def id=breweryId
+	val ctime=None
+	def dupe(id:Id,ctime:java.util.Date) = this.copy(breweryId=Some(BreweryId(id))) // TODO: add ctime
+	
 	lazy val pageURL = { "/" + breweryId.getOrElse("") }
 	def beerList: Seq[Beer] = {
 		val parameters=new org.apache.solr.client.solrj.SolrQuery()
@@ -20,25 +24,14 @@ case class Brewery(
 		docs.map(doc => Beer.fromExisting(doc.get("id").toString).get)
 	}
 
-	def save: Unit = {
-		val thisId=this.id match {
-			case id if (id.isEmpty) => {
-				/* Make up an ID for this */
-				"[^a-zA-Z0-9]+".r.replaceAllIn("['\"]+".r.replaceAllIn(this.name,""),"-") 
-			}
-			case _ => { this.id }
-		}
-		val xml=
+	def asXML =
 		<brewery>
-		  <id>{thisId}</id>
-		  <name>{this.name}‎</name>
+		  <id>{breweryId}</id>
+		  <name>{name}‎</name>
 		  { address.asXML }
 		  { phone.map { s => <phone>{s}</phone>} getOrElse() }
 		</brewery>	
-		
-		// scala.xml.XML.loadString(xml.toString)
-		scala.xml.XML.save("/Users/troy/beerdata/editedBrewery.xml",xml,"UTF-8",true)
-	}
+
 	
 	def asJson = JsObject((
 		Some("id" -> JsString(this.id.toString)) ::

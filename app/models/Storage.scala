@@ -5,8 +5,8 @@ import BeerCrush._
 object Storage {
 	
 	trait Saveable extends XmlFormat {
-		val id: Option[Id]
-		val ctime: Option[java.util.Date]
+		def id: Option[Id]
+		def ctime: Option[java.util.Date]
 		def dupe(id:Id,ctime:java.util.Date): Saveable
 	}
 	

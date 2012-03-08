@@ -16,11 +16,9 @@ case class Beer(
 	val otherings:	Option[String],
 	val styles: 	Option[List[BeerStyle]]
 ) extends XmlFormat with JsonFormat with Storage.Saveable {
-	val id=beerId
-	val ctime: Option[java.util.Date] = Some(new java.util.Date())
-	def dupe(id:Id,ctime:java.util.Date) = {
-		this.copy(beerId=Some(BeerId(id))) // TODO: add ctime
-	}
+	def id=beerId
+	val ctime: Option[java.util.Date] = None
+	def dupe(id:Id,ctime:java.util.Date) = this.copy(beerId=Some(BeerId(id))) // TODO: add ctime
 	
 	lazy val pageURL = { "/" + beerId.get }
 	lazy val brewery = {
