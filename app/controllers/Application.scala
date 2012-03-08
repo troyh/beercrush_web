@@ -273,7 +273,7 @@ object Application extends Controller {
 	  
   }
   
-  def addBeerPhoto(beerId: BeerId) = Action { request =>
+  def addBeerPhoto(beerId: BeerId) = Action { implicit request =>
 	  request.body.asMultipartFormData match {
 		  case Some(mfd) => { // It's multipartFormData
 			  mfd.file("photo").map( uploadedFile => {
@@ -294,7 +294,7 @@ object Application extends Controller {
 					  // TODO: Make different sizes (thumbnail, small, medium, large, etc.)
 					  // TODO: Notify someone so that the photos get backed-up, added to Solr's index, etc.
 
-					  responseFormat(request) match {
+					  responseFormat match {
 						  case HTML => Ok("")
 						  // case HTML => Ok(views.html.beerPhotoUploaded(brewery))
 						  case XML  => Accepted("")
