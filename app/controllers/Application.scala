@@ -230,6 +230,8 @@ object Application extends Controller {
 			  // Save the doc
 			  Storage.save(beer)
 			  
+			  // TODO: Index in Solr
+
 			  responseFormat match {
 				  case HTML => Ok(views.html.beer(Some(beer),beerForm.fill(beer),new BeerReviewForm(None)))
 				  case XML  => Ok(views.xml.beer(beer))
@@ -254,6 +256,8 @@ object Application extends Controller {
 		  },
 		  brewery => {
 			  Storage.save(brewery)
+			  
+			  // TODO: Index in Solr
 
 			  responseFormat match {
 				  case HTML => Ok(views.html.brewery(brewery,f.fill(brewery)))
@@ -448,7 +452,9 @@ object Application extends Controller {
 				  
 				// Create the account and then display it to the user
 				Storage.save(newUser)
-					
+
+				// TODO: Index in Solr
+
 				responseFormat match {
 				  case HTML => Redirect(routes.Application.showUser(newUser.id.get)).withSession(session)
 				  case XML  => Ok.withSession(session)
@@ -515,6 +521,8 @@ object Application extends Controller {
 						}
 					
 						Storage.save(userToSave)
+
+						// TODO: Index in Solr
 				
 						responseFormat match {
 						  case HTML => Ok(views.html.user(userToSave,accountForm.fill(userToSave))).withSession(session)

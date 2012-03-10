@@ -5,7 +5,11 @@
 @main() {
 	<h1>Beer Review</h1>
 	@review.map{ review=>
-		<div>Beer: <a href="/@review.maybeBeer.get.id.get.toString">@review.maybeBeer.get.name</a></div>
+		<div>Beer: <a href="/@review.maybeBeer.get.id.get.toString">@review.maybeBeer.get.name</a>
+			@if(review.maybeBeer.isDefined && review.maybeBeer.get.brewery.isDefined){
+				by <a href=@review.maybeBeer.get.brewery.get.pageURL>@review.maybeBeer.get.brewery.get.name</a>
+			}
+		</div>
 		<div>Rating: @ratingStars(review.rating)</div>
 		<div>Reviewer: <a href="@review.maybeUser.get.name">@username(review.maybeUser)</a></div>
 		<div>Date: @dateFormat(review.ctime.get)</div>
