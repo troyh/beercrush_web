@@ -13,7 +13,7 @@
 		<div>Rating: @ratingStars(review.rating)</div>
 		<div>Reviewer: <a href="@review.maybeUser.get.name">@username(review.maybeUser)</a></div>
 		<div>Date: @dateFormat(review.ctime.get)</div>
-		<div>Would drink again: @review.wouldDrinkAgain</div>
+		<div>Would drink again: @if(review.wouldDrinkAgain){Yes}else{No}</div>
 		<div>Balance: @review.balance</div>
 		<div>Aftertaste: @review.aftertaste</div>
 		<div>Flavors: @review.flavors</div>
