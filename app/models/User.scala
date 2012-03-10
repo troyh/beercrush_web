@@ -19,6 +19,7 @@ case class User(
 ) extends XmlFormat with JsonFormat with Storage.Saveable {
 	lazy val pageURL = "/user/" + id
 	def id=Some(userId)
+	lazy val descriptiveNameForId = name
 	def dupe(id:Id,ctime:java.util.Date) = this.copy(userId=new UserId(id),ctime=Some(ctime))
 	
 	def asJson: JsObject = JsObject(

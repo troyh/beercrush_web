@@ -19,6 +19,7 @@ object ReviewId {
 	def beerIdFromReviewId(reviewId: ReviewId): BeerId = new BeerId(reviewId.id.get.split("/").dropRight(2).mkString("/"))
 	def userIdFromReviewId(reviewId: ReviewId): UserId = new UserId(reviewId.id.get.split("/").last)
 	implicit def string2id(s: String): ReviewId = new ReviewId(s)
+	implicit def string2oid(id: String): Option[ReviewId] = Some(new ReviewId(id))
 	implicit def id2string(id: ReviewId): String = id.id.get
 }
 
@@ -37,6 +38,8 @@ case class BeerReview(
 	val wouldDrinkAgain: Option[Boolean],
 	val text:Option[String]
 ) extends Review with XmlFormat with JsonFormat with Storage.Saveable {
+
+	lazy val descriptiveNameForId = ReviewId.userIdFromReviewId(id.get).toString
 
 	def dupe(id:Id,ctime:java.util.Date) = {
 		this.copy(id=Some(ReviewId(id)),ctime=Some(ctime))

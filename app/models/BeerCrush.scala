@@ -8,17 +8,6 @@ object BeerCrush {
 	val SolrDateFormat="yyyy-MM-dd'T'HH:mm:ss'Z'"
 }
 
-abstract class PersistentObject(val id: Option[Id]) {
-	val pageURL: String
-	def save: Unit
-}
-
-object PersistentObject {
-	def fileLocationFromId(id: Id) = {
-		"/Users/troy/beerdata/beer/" + id.toString + ".xml"
-	}
-}
-	
 class Id(val id: Option[String]) {
 	override def toString = id.getOrElse("")
 }

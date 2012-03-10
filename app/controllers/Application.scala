@@ -215,9 +215,9 @@ object Application extends Controller {
 		)))
   	  }
   }
-  
+
   def newBeer(breweryId:BreweryId) = editBeer(None)
-  
+
   def editBeer(beerId:Option[BeerId]) = Action { implicit request => 
 	  val beerForm=new BeerForm(beerId)
 	  beerForm.bindFromRequest.fold(
@@ -227,13 +227,8 @@ object Application extends Controller {
 		  },
 	      // Handle successful form submission
 	      beer => {
-			val id: Id=beerId match {
-	  			case None => /* Make up an ID */ BeerId("[^a-zA-Z0-9]+".r.replaceAllIn(beer.name.replace("'",""),"-"))
-	  			case Some(id) => id
-	  		}
-			  
 			  // Save the doc
-			  Storage.save(beer,Some(id))
+			  Storage.save(beer)
 			  
 			  responseFormat match {
 				  case HTML => Ok(views.html.beer(Some(beer),beerForm.fill(beer),new BeerReviewForm(None)))
@@ -258,10 +253,7 @@ object Application extends Controller {
 			  }
 		  },
 		  brewery => {
-			  Storage.save(brewery,brewery.breweryId match {
-				  case None => /* Make up an Id */ Some(BreweryId("[^a-zA-Z0-9]+".r.replaceAllIn("['\"]+".r.replaceAllIn(brewery.name,""),"-"))) 
-				  case Some(id) => None
-			  })
+			  Storage.save(brewery)
 
 			  responseFormat match {
 				  case HTML => Ok(views.html.brewery(brewery,f.fill(brewery)))
@@ -317,28 +309,22 @@ object Application extends Controller {
 	  }
   }
   
-	def newBeerReview(beerId: BeerId) = editBeerReview(ReviewId.fromBeerId(beerId))
+	def newBeerReview(beerId: BeerId) = editBeerReview(None)
 	
-	def editBeerReview(reviewId: ReviewId) = Authenticated { username =>
+	def editBeerReview(reviewId: Option[ReviewId]) = Authenticated { username =>
 		Action { implicit request => 
 
-			val form=new BeerReviewForm(Some(reviewId))
+			val form=new BeerReviewForm(reviewId)
 			form.bindFromRequest.fold(
 				errors => {
 					responseFormat match {
-						case HTML => Ok(views.html.beerReview(BeerReview.fromExisting(reviewId),errors))
+						case HTML => Ok(views.html.beerReview(reviewId.map{BeerReview.fromExisting(_)}.getOrElse(None),errors))
 						case XML => BadRequest
 						case JSON => BadRequest
 					}
 				},
 				review => {
-					val saveId: ReviewId=if (reviewId.isComplete) reviewId else reviewId.setUser(username)
-					// val reviewToSave: BeerReview=review.copy(
-					// 	id=saveId,
-					// 	ctime={if (review.ctime.isEmpty) new java.util.Date() else review.ctime.get}
-					// )
-
-					Storage.save(review,Some(saveId))
+					val saveId=Storage.save(review)
 
 					// Asynchronously index the review in Solr
 					future {
@@ -351,8 +337,8 @@ object Application extends Controller {
 								<field name="doctype">beerreview</field>
 								<field name="id">{saveId}</field>
 								<field name="rating">{review.rating.toString}</field>
-								<field name="user_id">{ReviewId.userIdFromReviewId(saveId).toString}</field>
-								<field name="beer_id">{ReviewId.beerIdFromReviewId(saveId).toString}</field>
+								<field name="user_id">{ReviewId.userIdFromReviewId(saveId.asInstanceOf[ReviewId]).toString}</field>
+								<field name="beer_id">{ReviewId.beerIdFromReviewId(saveId.asInstanceOf[ReviewId]).toString}</field>
 								<field name="ctime">{new java.text.SimpleDateFormat(BeerCrush.SolrDateFormat).format(review.ctime.get)}</field>
 							</doc>
 						</add>

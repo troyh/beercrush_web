@@ -18,6 +18,7 @@ case class Beer(
 ) extends XmlFormat with JsonFormat with Storage.Saveable {
 	def id=beerId
 	val ctime: Option[java.util.Date] = None
+	def descriptiveNameForId = name
 	def dupe(id:Id,ctime:java.util.Date) = this.copy(beerId=Some(BeerId(id))) // TODO: add ctime
 	
 	lazy val pageURL = { "/" + beerId.get }
@@ -69,7 +70,7 @@ case class Beer(
 object Beer {
 	def fromExisting(beerId:BeerId): Option[Beer] = {
 		try {
-			val xml=scala.xml.XML.loadFile(PersistentObject.fileLocationFromId(beerId))
+			val xml=scala.xml.XML.loadFile(Storage.fileLocation(beerId))
 			Some(Beer(
 				beerId = Some(beerId),
 				name = (xml \ "name").headOption.map{_.text}.getOrElse(""),
