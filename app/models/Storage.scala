@@ -54,29 +54,20 @@ object Storage {
 			)
 		}
 
-		val saveId: Id = item.id match {
-			case Some(id) => id
-			case None => makeNewId(item).get
-		}
-		
-		val itemToSave=if ((saveId != item.id) || (item.ctime.isEmpty)) {
-			item.dupe(
-				id=saveId,
-				ctime={if (item.ctime.isEmpty) new java.util.Date() else item.ctime.get}
-			)
-		}
-		else
-			item
+		val itemToSave=item.dupe(
+			id=item.id.getOrElse(makeNewId(item).get),
+			ctime=item.ctime.getOrElse(new java.util.Date())
+		)
 
 		/* Make the necessary directories to store the review */
-		fileLocation(saveId).split("/").drop(datadir_parts.length).foldLeft(datadir){ (path,item) => 
+		fileLocation(itemToSave.id.get).split("/").drop(datadir_parts.length).foldLeft(datadir){ (path,item) => 
 			val f=new java.io.File(path)
 			f.mkdir()
 			path + "/" + item
 		}
-		scala.xml.XML.save(fileLocation(saveId),itemToSave.asXML.head,"UTF-8",true)
+		scala.xml.XML.save(fileLocation(itemToSave.id.get),itemToSave.asXML.head,"UTF-8",true)
 		
-		saveId
+		itemToSave.id.get
 	}
 }
 
