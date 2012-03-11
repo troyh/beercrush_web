@@ -14,7 +14,7 @@ case class Address(
 ) extends XmlFormat with JsonFormat {
 	def asXML = {
 		List(street,city,state,zip,country).filter(_.isDefined).size match {
-			case 0 => Seq()
+			case 0 => scala.xml.Text("")
 			case _ => 
 <address>
   { street.map { s => <street>{s}</street> }.getOrElse() }

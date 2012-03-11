@@ -7,6 +7,6 @@ trait JsonFormat {
 }
 
 trait XmlFormat {
-	def asXML: xml.NodeSeq
+	def asXML: xml.Node
 }
 
