@@ -26,12 +26,12 @@ case class Brewery(
 	}
 
 	def asXML =
-		<brewery>
-		  <id>{breweryId}</id>
-		  <name>{name}‎</name>
-		  { address.asXML }
-		  { phone.map { s => <phone>{s}</phone>} getOrElse() }
-		</brewery>	
+<brewery>
+  <id>{breweryId.getOrElse("")}</id>
+  <name>{name}‎</name>
+  { address.asXML }
+  { phone.map { s => <phone>{s}</phone>} getOrElse() }
+</brewery>	
 
 	
 	def asJson = JsObject((

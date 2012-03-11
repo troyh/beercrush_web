@@ -126,10 +126,26 @@ class BreweryForm(breweryId:Option[BreweryId]) extends Form[Brewery](
 				"state" -> optional(text),
 				"zip" -> optional(text),
 				"country" -> optional(text)
-			)(Address.apply)(Address.unapply),
+			){(street,city,state,zip,country) => Address(street,city,state,zip,country,None,None)}
+			{ address => Some(address.street,address.city,address.state,address.zip,address.country) },
 			"phone" -> optional(text)
 			)
-		  { (name,address,phone) => Brewery(breweryId,name,address,phone) }
+		  { (name,address,phone) => 
+			  breweryId match {
+				  case None => Brewery(breweryId,name,address,phone) 
+				  case Some(id) => Brewery.fromExisting(id) match {
+					  case None => Brewery(breweryId,name,address,phone) 
+					  case Some(brewery) => {
+						  // Merge an existing brewery with this one so we don't lose data not present in the form
+						  val newAddress=address.copy(
+							  latitude=brewery.address.latitude,
+							  longitude=brewery.address.longitude
+						  )
+						  Brewery(breweryId,name,newAddress,phone)
+					  }
+				  }
+			  }
+		  }
 		  { brewery => Some(brewery.name,brewery.address,brewery.phone) },
 		  Map.empty,
 		  Nil,

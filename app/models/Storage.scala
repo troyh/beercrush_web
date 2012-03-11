@@ -2,6 +2,8 @@ package models
 
 import BeerCrush._
 import scala.annotation.tailrec
+import scalax.file.Path
+import scalax.io._
 
 object Storage {
 	
@@ -65,7 +67,12 @@ object Storage {
 			f.mkdir()
 			path + "/" + item
 		}
-		scala.xml.XML.save(fileLocation(itemToSave.id.get),itemToSave.asXML.head,"UTF-8",true)
+
+		val pp=new scala.xml.PrettyPrinter(80,2)
+		Path(fileLocation(itemToSave.id.get)).write(
+			"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
+			pp.format(itemToSave.asXML.head) +
+			"\n")(Codec.UTF8)
 		
 		itemToSave.id.get
 	}
