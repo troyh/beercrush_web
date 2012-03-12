@@ -32,21 +32,21 @@ case class Beer(
 	}
 
 	def asXML=
-		<beer id={beerId.toString}>
-		  { brewery.map{ b => <brewery_id>{b.breweryId}</brewery_id>}.getOrElse() }
-		  <calories_per_ml></calories_per_ml>
+		<beer id={beerId.get.toString}>
+		  { brewery.map{ b => <brewery_id>{b.breweryId.getOrElse("")}</brewery_id>}.getOrElse() }
+		  { if (false) <calories_per_ml></calories_per_ml> }
 		  { abv.map{ abv => <abv>{abv}</abv>}.getOrElse() }
 		  { ibu.map{ ibu => <ibu>{ibu}</ibu>}.getOrElse() }
 		  <name>{name}</name>
 		  { description.map{ s => <description>{s}</description>}.getOrElse() }
-		  <availability></availability>
+		  { if (false) <availability></availability> }
 		  { ingredients.map{ s => <ingredients>{s}</ingredients>}.getOrElse() }
 		  { grains.map{ s => <grains>{s}</grains>}.getOrElse() }
 		  { hops.map{ s => <hops>{s}</hops>}.getOrElse() }
 		  { yeast.map{ s => <yeast>{s}</yeast>}.getOrElse() }
 		  { otherings.map{ s => <otherings>{s}</otherings>}.getOrElse() }
 		  <styles>
-		  			  {styles.map(_.map(style => <style><bjcp_style_id>{style.id}</bjcp_style_id><name>{style.name}</name></style>))}
+			{styles.map(_.map(style => <style><bjcp_style_id>{style.id}</bjcp_style_id><name>{style.name}</name></style>))}
 		  </styles>
 		</beer>
 	

@@ -1,5 +1,6 @@
 package controllers
 
+import play.api._
 import play.api.data._
 import play.api.data.Forms._
 import play.api.libs.json._
@@ -29,6 +30,46 @@ import scala.actors.Futures._
 // }
 
 object Application extends Controller {
+
+	def indexDoc(doc: Any, id: Option[Id]) = {
+		val fields: Map[String,Any] = doc match {
+			case review: BeerReview => Map(
+				"doctype" -> "beerreview",
+				"id"      -> id,
+				"rating"  -> review.rating,
+				"user_id" -> ReviewId.userIdFromReviewId(id.asInstanceOf[ReviewId]),
+				"beer_id" -> ReviewId.beerIdFromReviewId(id.asInstanceOf[ReviewId]),
+				"ctime"   -> review.ctime.get
+			)
+			case brewery: Brewery => Map(
+				"doctype" -> "brewery",
+				"id"      -> id,
+				"name"    -> brewery.name
+			)
+			case beer: Beer => Map(
+				"doctype" -> "beer",
+				"id"      -> id,
+				"name"    -> beer.name,
+				"brewery" -> (try { beer.brewery.get.id.get } catch { case _ => "" })
+			)
+			case _ => Map()
+		}
+						
+		// TODO: convert Dates UTC because Solr wants all dates as UTC
+		val xml=
+		<add><doc>{ fields.map { pair => 
+			<field name={pair._1}>{ pair._2 match {
+				case v: String => v
+				case v: java.util.Date => new java.text.SimpleDateFormat(BeerCrush.SolrDateFormat).format(v)
+				case v  => v.toString
+			}}</field>
+		}}</doc></add>
+
+		val s=new org.apache.solr.client.solrj.impl.StreamingUpdateSolrServer("http://localhost:8983/solr",1,1)
+		val response=s.request(new org.apache.solr.client.solrj.request.DirectXmlRequest("/update",xml.toString))
+		val commit= <commit waitFlush="false" waitSearcher="false"/>
+		val response2=s.request(new org.apache.solr.client.solrj.request.DirectXmlRequest("/update",commit.toString))
+	}
 
 	case class AuthorizedRequest[A](
 	  val request: Request[A]
@@ -94,6 +135,7 @@ object Application extends Controller {
 		  case Some(id) => Brewery.fromExisting(id) match {
 			  case None => NotFound
 			  case Some(brewery: Brewery) => {
+				  Logger.info("Show Brewery name:[" + brewery.name + "]")
 				  val breweryForm = new BreweryForm(breweryId)
 			  
 				  responseFormat match {
@@ -228,9 +270,9 @@ object Application extends Controller {
 	      // Handle successful form submission
 	      beer => {
 			  // Save the doc
-			  Storage.save(beer)
-			  
-			  // TODO: Index in Solr
+			  val saveId=Storage.save(beer)
+
+			  future { indexDoc(beer,Some(saveId)) } // Index in Solr
 
 			  responseFormat match {
 				  case HTML => Ok(views.html.beer(Some(beer),beerForm.fill(beer),new BeerReviewForm(None)))
@@ -255,9 +297,10 @@ object Application extends Controller {
 			  }
 		  },
 		  brewery => {
-			  Storage.save(brewery)
-			  
-			  // TODO: Index in Solr
+			  Logger.info("Save Brewery name:[" + brewery.name + "]")
+			  val saveId=Storage.save(brewery)
+
+			  future { indexDoc(brewery,Some(saveId)) } // Index in Solr
 
 			  responseFormat match {
 				  case HTML => Ok(views.html.brewery(brewery,f.fill(brewery)))
@@ -330,27 +373,7 @@ object Application extends Controller {
 				review => {
 					val saveId=Storage.save(review)
 
-					// Asynchronously index the review in Solr
-					future {
-						val s=new org.apache.solr.client.solrj.impl.StreamingUpdateSolrServer("http://localhost:8983/solr",1,1)
-						
-						// TODO: convert ctime in review to UTC because Solr wants all dates as UTC
-						val xml=
-						<add>
-							<doc>
-								<field name="doctype">beerreview</field>
-								<field name="id">{saveId}</field>
-								<field name="rating">{review.rating.toString}</field>
-								<field name="user_id">{ReviewId.userIdFromReviewId(saveId.asInstanceOf[ReviewId]).toString}</field>
-								<field name="beer_id">{ReviewId.beerIdFromReviewId(saveId.asInstanceOf[ReviewId]).toString}</field>
-								<field name="ctime">{new java.text.SimpleDateFormat(BeerCrush.SolrDateFormat).format(review.ctime.get)}</field>
-							</doc>
-						</add>
-						val response=s.request(new org.apache.solr.client.solrj.request.DirectXmlRequest("/update",xml.toString))
-						
-						val commit= <commit waitFlush="false" waitSearcher="false"/>
-						val response2=s.request(new org.apache.solr.client.solrj.request.DirectXmlRequest("/update",commit.toString))
-					}
+					future { indexDoc(review,Some(saveId)) } // Asynchronously index the review in Solr
 
 					responseFormat match {
 						case HTML => Redirect(routes.Application.showBeerReview(review.id.get))
@@ -451,9 +474,9 @@ object Application extends Controller {
 				val session=request.session + ("username" -> newUser.id.get) + ("name" -> newUser.name)
 				  
 				// Create the account and then display it to the user
-				Storage.save(newUser)
+				val saveId=Storage.save(newUser)
 
-				// TODO: Index in Solr
+				future { indexDoc(newUser,Some(saveId)) } // Index in Solr
 
 				responseFormat match {
 				  case HTML => Redirect(routes.Application.showUser(newUser.id.get)).withSession(session)
@@ -520,9 +543,10 @@ object Application extends Controller {
 							)
 						}
 					
-						Storage.save(userToSave)
+						val saveId=Storage.save(userToSave)
 
 						// TODO: Index in Solr
+						future { indexDoc(userToSave,Some(saveId)) } // Index in Solr
 				
 						responseFormat match {
 						  case HTML => Ok(views.html.user(userToSave,accountForm.fill(userToSave))).withSession(session)
