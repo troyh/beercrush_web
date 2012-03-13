@@ -2,6 +2,8 @@ package models
 
 import BeerCrush._
 import play.api.libs.json._
+import scala.xml._
+import scala.annotation._
 
 case class Beer(
 	beerId:			Option[BeerId],
@@ -49,6 +51,45 @@ case class Beer(
 			{styles.map(_.map(style => <style><bjcp_style_id>{style.id}</bjcp_style_id><name>{style.name}</name></style>))}
 		  </styles>
 		</beer>
+
+	def transform(nodes: NodeSeq, xpath: Seq[String] = Seq()): NodeSeq = {
+		(xpath match {
+			case Seq() => {
+				for (node <- nodes ++ Seq("beer").filter(e => !nodes.exists(n => e==n.label)).map { e =>
+						Elem(null,e,Null,xml.TopScope)
+				}) yield node match {
+					case Elem(prefix, label, attribs, scope, children @ _*) => label match {
+						case "beer" => <beer id={beerId.get.toString}>{transform(children,Seq(label))}</beer>
+						case _ => node
+					}
+					case other => other
+				}
+			}
+			case Seq("beer") => {
+				for (node <- nodes ++ Seq("name","description","abv","ibu","ingredients","grains","hops","yeast","otherings","styles").filter(e => !nodes.exists(n => e==n.label)).map { e =>
+						Elem(null,e,Null,xml.TopScope)
+				}) yield node match {
+					case Elem(prefix, label, attribs, scope, children @ _*) => label match {
+						case "name" => <name>{name}</name>
+						case "description" if (description.isDefined) => <description>{description.get}</description>
+						case "abv" if (abv.isDefined) => <abv>{abv.get}</abv>
+						case "ibu" if (ibu.isDefined) => <ibu>{ibu.get}</ibu>
+						case "ingredients" if (ingredients.isDefined) => <ingredients>{ingredients.get}</ingredients>
+						case "grains" if (grains.isDefined) => <grains>{grains.get}</grains>
+						case "hops" if (hops.isDefined) => <hops>{hops.get}</hops>
+						case "yeast" if (yeast.isDefined) => <yeast>{yeast.get}</yeast>
+						case "otherings" if (otherings.isDefined) => <otherings>{otherings.get}</otherings>
+						case "styles" if (styles.isDefined) => 
+							<styles>
+								{styles.map(_.map(style => <style><bjcp_style_id>{style.id}</bjcp_style_id><name>{style.name}</name></style>))}
+							</styles>
+						case _ => node
+					}
+					case other => other
+				}
+			}
+		}).filter(elem => elem.child.length > 0 )
+	}
 	
 	def asJson = JsObject(
 		(
@@ -73,17 +114,17 @@ object Beer {
 			val xml=scala.xml.XML.loadFile(Storage.fileLocation(beerId))
 			Some(Beer(
 				beerId = Some(beerId),
-				name = (xml \ "name").headOption.map{_.text}.getOrElse(""),
-				description = (xml \ "description").headOption.map{_.text},
+				name = (xml \ "name").headOption.map{_.text.trim}.getOrElse(""),
+				description = (xml \ "description").headOption.map{_.text.trim},
 				abv = (xml \ "abv").headOption.map{_.text.toDouble},
-				ibu = (xml \ "ibu").headOption.map{_.text.toInt},
-				ingredients = (xml \ "ingredients").headOption.map{_.text},
-				grains = (xml \ "grains").headOption.map{_.text},
-				hops = (xml \ "hops").headOption.map{_.text},
-				yeast = (xml \ "yeast").headOption.map{_.text},
-				otherings = (xml \ "otherings").headOption.map{_.text},
+				ibu = try { (xml \ "ibu").headOption.map{ _.text.toInt } } catch { case _ => None },
+				ingredients = (xml \ "ingredients").headOption.map{_.text.trim},
+				grains = (xml \ "grains").headOption.map{_.text.trim},
+				hops = (xml \ "hops").headOption.map{_.text.trim},
+				yeast = (xml \ "yeast").headOption.map{_.text.trim},
+				otherings = (xml \ "otherings").headOption.map{_.text.trim},
 				styles = Some((xml \ "styles").map( style => 
-					new BeerStyle((style \ "style" \ "bjcp_style_id").text,(style \ "style" \ "name").text)
+					new BeerStyle((style \ "style" \ "bjcp_style_id").text,(style \ "style" \ "name").text.trim)
 				).toList)
 			))
 		}

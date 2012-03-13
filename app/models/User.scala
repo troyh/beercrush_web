@@ -2,6 +2,7 @@ package models
 
 import BeerCrush._
 import play.api.libs.json._
+import scala.xml._
 
 class UserId(id: String) extends Id(Some(id)) {
 }
@@ -39,6 +40,8 @@ case class User(
 			<aboutme>{aboutme}</aboutme>
 		</user>
 	}
+
+	def transform(nodes: NodeSeq, xpath: Seq[String] = Seq()): NodeSeq = <user/> // TODO: implement this
 }
   
 object User {

@@ -58,6 +58,7 @@ case class BeerReview(
 			{ wouldDrinkAgain.map { b => <wouldDrinkAgain/> % Attribute("","value",b.toString,Null) }.getOrElse() }
 			{ text.map { s => <text>{s}</text> }.getOrElse() }
 		</review>
+	def transform(nodes: NodeSeq, xpath: Seq[String] = Seq()): NodeSeq = <review/> // TODO: implement this
 		
 	def asJson = JsObject(List(
 		id.map { x => "id" -> JsString(x.id.get) }.get,

@@ -4,6 +4,8 @@ import BeerCrush._
 import scala.annotation.tailrec
 import scalax.file.Path
 import scalax.io._
+import scala.xml._
+import play.api._
 
 object Storage {
 	
@@ -12,6 +14,7 @@ object Storage {
 		def ctime: Option[java.util.Date]
 		def descriptiveNameForId: String
 		def dupe(id:Id,ctime:java.util.Date): Saveable
+		def transform(nodes: NodeSeq, xpath: Seq[String] = Seq()): NodeSeq
 	}
 	
 	val datadir="/Users/troy/beerdata"
@@ -67,11 +70,30 @@ object Storage {
 			f.mkdir()
 			path + "/" + item
 		}
+		
+		val oldXML=scala.xml.XML.load(fileLocation(itemToSave.id.get))
+		val newXML=itemToSave.transform(oldXML)
+		// val newXML=itemToSave.asXML
+		// 
+		// // Merge newXML into oldXML
+		// def mergeXML(orig: NodeSeq, changed: NodeSeq): NodeSeq = {
+		// 	for (subnode <- orig) yield subnode match {
+		// 		case Elem(prefix, label, attribs, scope, children @ _*) => {
+		// 			val same=changed.find{ n => n.label == label}
+		// 			same.isDefined match { // Does changed have it?
+		// 				case false => subnode
+		// 				case true => Elem(prefix, label, attribs, scope, mergeXML(children,same.get) : _*)
+		// 			}
+		// 		}
+		// 		case other => other
+		// 	}
+		// }
+		// val mergedXML=mergeXML(mergeXML(oldXML,newXML),oldXML)
 
 		val pp=new scala.xml.PrettyPrinter(80,2)
 		Path(fileLocation(itemToSave.id.get)).write(
 			"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
-			pp.format(itemToSave.asXML.head) +
+			pp.formatNodes(newXML) +
 			"\n")(Codec.UTF8)
 		
 		itemToSave.id.get

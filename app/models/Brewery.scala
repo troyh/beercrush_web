@@ -4,6 +4,7 @@ import BeerCrush._
 import play.api.libs.json._
 import controllers._
 import scalaj.collection.Imports._
+import scala.xml._
 
 case class Brewery(
 	breweryId:	Option[BreweryId],
@@ -33,6 +34,7 @@ case class Brewery(
   { phone.map { s => <phone>{s}</phone>} getOrElse() }
 </brewery>	
 
+	def transform(nodes: NodeSeq, xpath: Seq[String] = Seq()): NodeSeq = <brewery/> // TODO: implement this
 	
 	def asJson = JsObject((
 		Some("id" -> JsString(this.id.toString)) ::
