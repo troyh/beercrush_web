@@ -35,43 +35,36 @@ case class Beer(
 
 	def asXML=transform(<beer/>).head
 	
-	def transform(nodes: NodeSeq, xpath: Seq[String] = Seq()): NodeSeq = {
-		(xpath match {
-			case Seq() => {
-				for (node <- nodes ++ Seq("beer").filter(e => !nodes.exists(n => e==n.label)).map { e =>
-						Elem(null,e,Null,xml.TopScope)
-				}) yield node match {
-					case Elem(prefix, label, attribs, scope, children @ _*) => label match {
-						case "beer" => <beer id={beerId.get.toString}>{transform(children,Seq(label))}</beer>
-						case _ => node
-					}
-					case other => other
-				}
+	def transform(nodes: NodeSeq, xpath: String = ""): NodeSeq = {
+
+		(for (node <- nodes ++ Seq("name","description","abv","ibu","ingredients","grains","hops","yeast","otherings","styles").filter(e => !nodes.exists(n => e==n.label)).map { e =>
+				/* 
+					Add empty elements for all the ones in the list above that don't already exist
+				*/
+				Elem(null,e,Null,xml.TopScope) 
+		}) yield node match { 
+			/*
+				Replace elements with data from this object, keeping elements we don't care about intact
+			*/ 
+			case Elem(prefix, label, attribs, scope, children @ _*) => xpath + "/" + label match {
+				case "/beer"             => <beer id={beerId.getOrElse("").toString}>{transform(children,label)}</beer>
+				case "/beer/name"        => <name>{name}</name>
+				case "/beer/description" => <description>{description.getOrElse("")}</description>
+				case "/beer/abv" 	     => <abv>{abv.getOrElse("")}</abv>
+				case "/beer/ibu" 	     => <ibu>{ibu.getOrElse("")}</ibu>
+				case "/beer/ingredients" => <ingredients>{ingredients.getOrElse("")}</ingredients>
+				case "/beer/grains"      => <grains>{grains.getOrElse("")}</grains>
+				case "/beer/hops"        => <hops>{hops.getOrElse("")}</hops>
+				case "/beer/yeast"       => <yeast>{yeast.getOrElse("")}</yeast>
+				case "/beer/otherings"   => <otherings>{otherings.getOrElse("")}</otherings>
+				case "/beer/styles"      => 
+					<styles>
+						{styles.map(_.map(style => <style><bjcp_style_id>{style.id}</bjcp_style_id><name>{style.name}</name></style>))}
+					</styles>
+				case _ => node
 			}
-			case Seq("beer") => {
-				for (node <- nodes ++ Seq("name","description","abv","ibu","ingredients","grains","hops","yeast","otherings","styles").filter(e => !nodes.exists(n => e==n.label)).map { e =>
-						Elem(null,e,Null,xml.TopScope)
-				}) yield node match {
-					case Elem(prefix, label, attribs, scope, children @ _*) => label match {
-						case "name" => <name>{name}</name>
-						case "description" if (description.isDefined) => <description>{description.get}</description>
-						case "abv" if (abv.isDefined) => <abv>{abv.get}</abv>
-						case "ibu" if (ibu.isDefined) => <ibu>{ibu.get}</ibu>
-						case "ingredients" if (ingredients.isDefined) => <ingredients>{ingredients.get}</ingredients>
-						case "grains" if (grains.isDefined) => <grains>{grains.get}</grains>
-						case "hops" if (hops.isDefined) => <hops>{hops.get}</hops>
-						case "yeast" if (yeast.isDefined) => <yeast>{yeast.get}</yeast>
-						case "otherings" if (otherings.isDefined) => <otherings>{otherings.get}</otherings>
-						case "styles" if (styles.isDefined) => 
-							<styles>
-								{styles.map(_.map(style => <style><bjcp_style_id>{style.id}</bjcp_style_id><name>{style.name}</name></style>))}
-							</styles>
-						case _ => node
-					}
-					case other => other
-				}
-			}
-		}).filter(elem => elem.child.length > 0 )
+			case other => other
+		}).filter(elem => elem.child.length > 0 ) // Strip out any empty elements
 	}
 	
 	def asJson = JsObject(

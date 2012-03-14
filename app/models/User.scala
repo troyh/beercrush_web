@@ -41,7 +41,7 @@ case class User(
 		</user>
 	}
 
-	def transform(nodes: NodeSeq, xpath: Seq[String] = Seq()): NodeSeq = <user/> // TODO: implement this
+	def transform(nodes: NodeSeq, xpath: String =""): NodeSeq = <user/> // TODO: implement this
 }
   
 object User {

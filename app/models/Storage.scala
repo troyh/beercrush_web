@@ -14,7 +14,7 @@ object Storage {
 		def ctime: Option[java.util.Date]
 		def descriptiveNameForId: String
 		def dupe(id:Id,ctime:java.util.Date): Saveable
-		def transform(nodes: NodeSeq, xpath: Seq[String] = Seq()): NodeSeq
+		def transform(nodes: NodeSeq, xpath: String = ""): NodeSeq
 	}
 	
 	val datadir="/Users/troy/beerdata"
