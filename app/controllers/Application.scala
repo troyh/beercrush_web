@@ -122,7 +122,7 @@ object Application extends Controller {
 	  
 			  responseFormat match {
 				  case HTML => Ok(views.html.beer(Some(beer),beerForm.fill(beer),new BeerReviewForm(None)))
-				  case XML  => Ok(views.xml.beer(beer))
+				  case XML  => Ok(beer.asXML)
 				  case JSON  => Ok(Json.toJson(beer.asJson))
 			  }
 		  }

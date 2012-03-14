@@ -34,7 +34,7 @@ case class Brewery(
   { phone.map { s => <phone>{s}</phone>} getOrElse() }
 </brewery>	
 
-	def transform(nodes: NodeSeq, xpath: String = ""): NodeSeq = <brewery/> // TODO: implement this
+	def transform(nodes: NodeSeq, elementNames: Seq[String] = Seq(), xpath: String = ""): NodeSeq = <brewery/> // TODO: implement this
 	
 	def asJson = JsObject((
 		Some("id" -> JsString(this.id.toString)) ::

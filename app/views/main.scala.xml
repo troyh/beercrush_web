@@ -1,2 +1,2 @@
 @(content: Xml)
-<beercrush>@content</beercrush>
+@content

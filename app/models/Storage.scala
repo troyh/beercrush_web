@@ -14,7 +14,26 @@ object Storage {
 		def ctime: Option[java.util.Date]
 		def descriptiveNameForId: String
 		def dupe(id:Id,ctime:java.util.Date): Saveable
-		def transform(nodes: NodeSeq, xpath: String = ""): NodeSeq
+		def transform(nodes: NodeSeq, elementNames: Seq[String] = Seq(), xpath: String = ""): NodeSeq
+
+		/**
+		* Used for subclasses to implement transform() easily
+		*/
+		protected def transform_base(nodes: NodeSeq, elementNames: Seq[String], foo: (Node, NodeSeq) => Node) = {
+			(for (node <- nodes ++ elementNames.filter(e => !nodes.exists(n => e==n.label)).map { e =>
+				/* 
+					Add empty elements for all the ones in the list above that don't already exist
+				*/
+				Elem(null,e,Null,xml.TopScope) 
+			}) yield node match { 
+				/*
+					Replace elements with data from this object, keeping elements we don't care about intact
+				*/ 
+				case Elem(prefix, label, attribs, scope, children @ _*) => foo(node,children)
+				case other => other
+			}).filter(_.child.length > 0) // Strip out any empty elements
+		}
+
 	}
 	
 	val datadir="/Users/troy/beerdata"
@@ -73,22 +92,6 @@ object Storage {
 		
 		val oldXML=scala.xml.XML.load(fileLocation(itemToSave.id.get))
 		val newXML=itemToSave.transform(oldXML)
-		// val newXML=itemToSave.asXML
-		// 
-		// // Merge newXML into oldXML
-		// def mergeXML(orig: NodeSeq, changed: NodeSeq): NodeSeq = {
-		// 	for (subnode <- orig) yield subnode match {
-		// 		case Elem(prefix, label, attribs, scope, children @ _*) => {
-		// 			val same=changed.find{ n => n.label == label}
-		// 			same.isDefined match { // Does changed have it?
-		// 				case false => subnode
-		// 				case true => Elem(prefix, label, attribs, scope, mergeXML(children,same.get) : _*)
-		// 			}
-		// 		}
-		// 		case other => other
-		// 	}
-		// }
-		// val mergedXML=mergeXML(mergeXML(oldXML,newXML),oldXML)
 
 		val pp=new scala.xml.PrettyPrinter(80,2)
 		Path(fileLocation(itemToSave.id.get)).write(
