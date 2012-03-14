@@ -3,6 +3,7 @@ package models
 import BeerCrush._
 import play.api.libs.json._
 import play.api._
+import scala.xml.{NodeSeq, Node, Attribute, Null}
 
 case class ReviewId(reviewid: String) extends Id(Some(reviewid)) {
 	def setUser(username: String) = {
@@ -45,26 +46,8 @@ case class BeerReview(
 		this.copy(id=Some(ReviewId(id)),ctime=Some(ctime))
 	}
 
-	import scala.xml._
-	
-	def asXML: xml.Node = 
-		<review id={id.get}>
-			{ ctime.map { t => <ctime>{new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(t)}</ctime> }.getOrElse() }
-			{ <rating/> % Attribute("","value",rating.toString,Null) }
-			{ balance.map { n => <balance/> % Attribute("","value",n.toString,Null) }.getOrElse() }
-			{ aftertaste.map { n => <aftertaste/>  % Attribute("","value",n.toString,Null) }.getOrElse() }
-			{ when.map { n => <when>{new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(n)}</when> }.getOrElse() }
-			{ where.map { n => <where>{n.toString}</where> }.getOrElse() }
-			{ wouldDrinkAgain.map { b => <wouldDrinkAgain/> % Attribute("","value",b.toString,Null) }.getOrElse() }
-			{ text.map { s => <text>{s}</text> }.getOrElse() }
-		</review>
+	def asXML=transform(<review/>) 
 
-	def doOptionIf(orig: Node, opt: Option[_], elementLabel: String) = {
-		if (opt.isDefined)
-			Elem(null,elementLabel,Null,xml.TopScope, Text(opt.get.toString))
-		else
-			orig
-	}
 	def transform(nodes: NodeSeq): NodeSeq = applyValuesToXML(
 		nodes,
 		Map(
