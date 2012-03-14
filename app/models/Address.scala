@@ -2,6 +2,7 @@ package models
 
 import BeerCrush._
 import play.api.libs.json._
+import scala.xml.NodeSeq
 
 case class Address(
 	val street			: Option[String] = None,
@@ -12,21 +13,27 @@ case class Address(
 	val latitude	    : Option[Double] = None,
 	val longitude	    : Option[Double] = None
 ) extends XmlFormat with JsonFormat {
-	def asXML = {
-		List(street,city,state,zip,country).filter(_.isDefined).size match {
-			case 0 => scala.xml.Text("")
-			case _ => 
-<address>
-  { street.map { s => <street>{s}</street> }.getOrElse() }
-  { city.map { s => <city>{s}</city> }.getOrElse() }
-  { state.map { s => <state>{s}</state> }.getOrElse() }
-  { zip.map { s => <zip>{s}</zip> }.getOrElse() }
-  { latitude.map { lat => <latitude>{lat}</latitude> }.getOrElse() }
-  { longitude.map { lon => <longitude>{lon}</longitude> }.getOrElse() }
-  { country.map { s => <country>{s}</country> }.getOrElse() }
-</address>
-		}
-	}
+	def asXML = transform(<address/>)
+
+	def transform(nodes: NodeSeq): NodeSeq = applyValuesToXML(
+		nodes
+		,Map(
+			("address", { orig => <address>{applyValuesToXML(
+				orig
+				,Map(
+					("street", { orig => <street>{street}</street>})
+					,("city", { orig => <city>{city}</city>})
+					,("state", { orig => <state>{state}</state>})
+					,("zip", { orig => <zip>{zip}</zip>})
+					,("country", { orig => <country>{country}</country>})
+					,("latitude", { orig => <latitude>{latitude}</latitude>})
+					,("longitude", { orig => <longitude>{longitude}</longitude>})
+				)
+				)}</address>}
+			)
+		)
+	)
+	
 	def asJson = JsObject(
 		(
 			street.map("street" -> JsString(_)) ::

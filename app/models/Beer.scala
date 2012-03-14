@@ -35,34 +35,36 @@ case class Beer(
 
 	def asXML= transform(<beer/>)
 
-	def transform(nodes: NodeSeq, elementNames: Seq[String] = Seq(), xpath: String = ""): NodeSeq = transform_base(
+	def transform(nodes: NodeSeq): NodeSeq = applyValuesToXML(
 		nodes
-		,elementNames
-		, { (node,children) => 
-			xpath + "/" + node.label match { 
-				case "/beer"             => 
-					<beer id={beerId.getOrElse("").toString}>{
-						transform(children
-							,Seq("name","description","abv","ibu","ingredients","grains","hops","yeast","otherings","styles")
-							,node.label
+		,Map(
+			("beer", { orig =>
+				<beer id={beerId.getOrElse("").toString}>{ 
+					applyValuesToXML(
+						orig.child
+						,Map(
+							("name"        , { orig => <name>{name}</name> } )
+							,("description", { orig => if (description.isDefined) <description>{description.get}</description> else orig } )
+							,("abv" 	   , { orig => if (abv.isDefined) <abv>{abv.get}</abv> else orig } )
+							,("ibu" 	   , { orig => if (ibu.isDefined) <ibu>{ibu.get}</ibu> else orig } )
+							,("ingredients", { orig => if (ingredients.isDefined) <ingredients>{ingredients.get}</ingredients> else orig } )
+							,("grains"     , { orig => if (grains.isDefined) <grains>{grains.get}</grains> else orig } )
+							,("hops"       , { orig => if (hops.isDefined) <hops>{hops.get}</hops> else orig } )
+							,("yeast"      , { orig => if (yeast.isDefined) <yeast>{yeast.get}</yeast> else orig } )
+							,("otherings"  , { orig => if (otherings.isDefined) <otherings>{otherings.get}</otherings> else orig } )
+							,("styles"     , { orig => 
+								if (styles.isDefined && styles.get.length > 0) {
+									<styles>
+										{styles.map(_.map(style => <style><bjcp_style_id>{style.id}</bjcp_style_id><name>{style.name}</name></style>))}
+									</styles>
+								} else
+									orig
+							})
 						)
-					}</beer>
-				case "/beer/name"        => <name>{name}</name>
-				case "/beer/description" => <description>{description.getOrElse("")}</description>
-				case "/beer/abv" 	     => <abv>{abv.getOrElse("")}</abv>
-				case "/beer/ibu" 	     => <ibu>{ibu.getOrElse("")}</ibu>
-				case "/beer/ingredients" => <ingredients>{ingredients.getOrElse("")}</ingredients>
-				case "/beer/grains"      => <grains>{grains.getOrElse("")}</grains>
-				case "/beer/hops"        => <hops>{hops.getOrElse("")}</hops>
-				case "/beer/yeast"       => <yeast>{yeast.getOrElse("")}</yeast>
-				case "/beer/otherings"   => <otherings>{otherings.getOrElse("")}</otherings>
-				case "/beer/styles"      => 
-					<styles>
-						{styles.map(_.map(style => <style><bjcp_style_id>{style.id}</bjcp_style_id><name>{style.name}</name></style>))}
-					</styles>
-				case _ => node
-			}
-		}
+					)
+				}</beer>
+			})
+		)
 	)
 	
 	def asJson = JsObject(
@@ -90,7 +92,7 @@ object Beer {
 				beerId = Some(beerId),
 				name = (xml \ "name").headOption.map{_.text.trim}.getOrElse(""),
 				description = (xml \ "description").headOption.map{_.text.trim},
-				abv = (xml \ "abv").headOption.map{_.text.toDouble},
+				abv = try { (xml \ "abv").headOption.map{_.text.toDouble} } catch { case _ => None },
 				ibu = try { (xml \ "ibu").headOption.map{ _.text.toInt } } catch { case _ => None },
 				ingredients = (xml \ "ingredients").headOption.map{_.text.trim},
 				grains = (xml \ "grains").headOption.map{_.text.trim},

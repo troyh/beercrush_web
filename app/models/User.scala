@@ -2,7 +2,7 @@ package models
 
 import BeerCrush._
 import play.api.libs.json._
-import scala.xml._
+import scala.xml.{NodeSeq, Node}
 
 class UserId(id: String) extends Id(Some(id)) {
 }
@@ -31,17 +31,20 @@ case class User(
 		)
 	)
 	
-	def asXML: xml.Node = {
-		<user>
-			<username>{id.getOrElse("")}</username>
-			{ctime.map { d => <ctime>{new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(d)}</ctime>}}
-			<name>{name}</name>
-			<password>{password}</password>
-			<aboutme>{aboutme}</aboutme>
-		</user>
-	}
+	def asXML = transform(<user/>)
 
-	def transform(nodes: NodeSeq, elementNames: Seq[String] = Seq(), xpath: String = ""): NodeSeq = <user/> // TODO: implement this
+	def transform(nodes: NodeSeq): NodeSeq = applyValuesToXML(
+		nodes,
+		Map(
+			("user", { orig => <user id={userId}>{applyValuesToXML(orig.child,Map(
+				("username",{ orig => <username>{userId}</username> })
+				,("ctime",{ orig => if (ctime.isDefined) <ctime>{new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(ctime.get)}</ctime> else orig })
+				,("name",{ orig => <name>{name}</name> })
+				,("password",{ orig => <password>{password}</password> })
+				,("aboutme",{ orig => <aboutme>{aboutme}</aboutme> })
+			))}</user>})
+		)
+	)
 }
   
 object User {

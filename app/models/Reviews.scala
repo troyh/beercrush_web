@@ -58,7 +58,32 @@ case class BeerReview(
 			{ wouldDrinkAgain.map { b => <wouldDrinkAgain/> % Attribute("","value",b.toString,Null) }.getOrElse() }
 			{ text.map { s => <text>{s}</text> }.getOrElse() }
 		</review>
-	def transform(nodes: NodeSeq, elementNames: Seq[String] = Seq(), xpath: String = ""): NodeSeq = <review/> // TODO: implement this
+
+	def doOptionIf(orig: Node, opt: Option[_], elementLabel: String) = {
+		if (opt.isDefined)
+			Elem(null,elementLabel,Null,xml.TopScope, Text(opt.get.toString))
+		else
+			orig
+	}
+	def transform(nodes: NodeSeq): NodeSeq = applyValuesToXML(
+		nodes,
+		Map(
+			("review", { orig =>
+				<review>{
+					applyValuesToXML(orig.child,Map(
+						("ctime", { orig => if (ctime.isDefined) <ctime>{new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(ctime.get)}</ctime> else orig } )
+						,("rating", { orig => <rating/> % Attribute("","value",rating.toString,Null) } )
+						,("balance.map", { orig => if (balance.isDefined) <balance/> % Attribute("","value",balance.get.toString,Null) else orig } )
+						,("aftertaste.map", { orig => if (aftertaste.isDefined) <aftertaste/>  % Attribute("","value",aftertaste.get.toString,Null) else orig } )
+						,("when.map", { orig => if (when.isDefined) <when>{new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(when.get)}</when> else orig } )
+						,("where.map", { orig => if (where.isDefined) <where>{where.get.toString}</where> else orig } )
+						,("wouldDrinkAgain.map", { orig => if (wouldDrinkAgain.isDefined) <wouldDrinkAgain/> % Attribute("","value",wouldDrinkAgain.get.toString,Null) else orig } )
+						,("text.map", { orig => if (text.isDefined) <text>{text}</text> else orig } )
+					))
+				}</review>
+			})
+		)
+	)
 		
 	def asJson = JsObject(List(
 		id.map { x => "id" -> JsString(x.id.get) }.get,

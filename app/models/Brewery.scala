@@ -26,15 +26,25 @@ case class Brewery(
 		docs.map(doc => Beer.fromExisting(doc.get("id").toString).get)
 	}
 
-	def asXML =
-<brewery>
-  <id>{breweryId.getOrElse("")}</id>
-  <name>{name}‎</name>
-  { address.asXML }
-  { phone.map { s => <phone>{s}</phone>} getOrElse() }
-</brewery>	
-
-	def transform(nodes: NodeSeq, elementNames: Seq[String] = Seq(), xpath: String = ""): NodeSeq = <brewery/> // TODO: implement this
+	def asXML = transform(<brewery/>)
+	
+	def transform(nodes: NodeSeq): NodeSeq = applyValuesToXML(
+		nodes
+		,Map(
+			("brewery", { orig => <brewery id={breweryId.getOrElse("").toString}>{applyValuesToXML(
+				orig.child
+				,Map(
+					("name", { orig => <name>{name}</name>})
+					,("address", { orig => <address>{ address.transform(orig.child) }</address> })
+					,("phone", { orig => phone match {
+						case Some(phone) => <phone>{phone}</phone>
+						case None => orig 
+					}})
+				)
+				)}</brewery>}
+			)
+		)
+	)
 	
 	def asJson = JsObject((
 		Some("id" -> JsString(this.id.toString)) ::
