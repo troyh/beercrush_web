@@ -34,20 +34,28 @@ case class Beer(
 	}
 
 	def asXML=transform(<beer/>).head
-	
-	def transform(nodes: NodeSeq, xpath: String = ""): NodeSeq = {
 
-		(for (node <- nodes ++ Seq("name","description","abv","ibu","ingredients","grains","hops","yeast","otherings","styles").filter(e => !nodes.exists(n => e==n.label)).map { e =>
-				/* 
-					Add empty elements for all the ones in the list above that don't already exist
-				*/
-				Elem(null,e,Null,xml.TopScope) 
+	private def transform_base(nodes: NodeSeq, elementNames: Seq[String], foo: (Node, NodeSeq) => Node) = {
+		(for (node <- nodes ++ elementNames.filter(e => !nodes.exists(n => e==n.label)).map { e =>
+			/* 
+				Add empty elements for all the ones in the list above that don't already exist
+			*/
+			Elem(null,e,Null,xml.TopScope) 
 		}) yield node match { 
 			/*
 				Replace elements with data from this object, keeping elements we don't care about intact
 			*/ 
-			case Elem(prefix, label, attribs, scope, children @ _*) => xpath + "/" + label match {
-				case "/beer"             => <beer id={beerId.getOrElse("").toString}>{transform(children,label)}</beer>
+			case Elem(prefix, label, attribs, scope, children @ _*) => foo(node,children)
+			case other => other
+		}).filter(_.child.length > 0) // Strip out any empty elements
+	}
+
+	def transform(nodes: NodeSeq, xpath: String = ""): NodeSeq = transform_base(
+		nodes
+		,Seq("name","description","abv","ibu","ingredients","grains","hops","yeast","otherings","styles")
+		, { (node,children) => 
+			xpath + "/" + node.label match { 
+				case "/beer"             => <beer id={beerId.getOrElse("").toString}>{transform(children,node.label)}</beer>
 				case "/beer/name"        => <name>{name}</name>
 				case "/beer/description" => <description>{description.getOrElse("")}</description>
 				case "/beer/abv" 	     => <abv>{abv.getOrElse("")}</abv>
@@ -63,9 +71,8 @@ case class Beer(
 					</styles>
 				case _ => node
 			}
-			case other => other
-		}).filter(elem => elem.child.length > 0 ) // Strip out any empty elements
-	}
+		}
+	)
 	
 	def asJson = JsObject(
 		(
