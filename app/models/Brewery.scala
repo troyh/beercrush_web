@@ -34,9 +34,10 @@ case class Brewery(
 			("brewery", { orig => <brewery id={breweryId.getOrElse("").toString}>{applyValuesToXML(
 				orig.child
 				,Map(
-					("name", { orig => <name>{name}</name>})
-					,("address", { orig => <address>{ address.transform(orig.child) }</address> })
-					,("phone", { orig => phone match {
+					("id"	   , { orig => <id/> } ) // Effectively deletes it
+					,("name"   , { orig => <name>{name}</name>})
+					,("address", { orig => address.transform(orig) })
+					,("phone"  , { orig => phone match {
 						case Some(phone) => <phone>{phone}</phone>
 						case None => orig 
 					}})

@@ -19,15 +19,15 @@ case class Address(
 		nodes
 		,Map(
 			("address", { orig => <address>{applyValuesToXML(
-				orig
+				orig.child
 				,Map(
-					("street", { orig => <street>{street}</street>})
-					,("city", { orig => <city>{city}</city>})
-					,("state", { orig => <state>{state}</state>})
-					,("zip", { orig => <zip>{zip}</zip>})
-					,("country", { orig => <country>{country}</country>})
-					,("latitude", { orig => <latitude>{latitude}</latitude>})
-					,("longitude", { orig => <longitude>{longitude}</longitude>})
+					("street"    , { orig => if (street.isDefined)    <street>{street.get}</street> else orig})
+					,("city"     , { orig => if (city.isDefined)      <city>{city.get}</city> else orig})
+					,("state"    , { orig => if (state.isDefined)     <state>{state.get}</state> else orig})
+					,("zip"      , { orig => if (zip.isDefined)       <zip>{zip.get}</zip> else orig})
+					,("country"  , { orig => if (country.isDefined)   <country>{country.get}</country> else orig})
+					,("latitude" , { orig => if (latitude.isDefined)  <latitude>{latitude.get}</latitude> else orig})
+					,("longitude", { orig => if (longitude.isDefined) <longitude>{longitude.get}</longitude> else orig})
 				)
 				)}</address>}
 			)
