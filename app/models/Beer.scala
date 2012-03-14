@@ -44,6 +44,7 @@ case class Beer(
 						orig.child
 						,Map(
 							("name"        , { orig => <name>{name}</name> } )
+							,("id"		   , { orig => <id/> } ) // Effectively deletes it
 							,("description", { orig => if (description.isDefined) <description>{description.get}</description> else orig } )
 							,("abv" 	   , { orig => if (abv.isDefined) <abv>{abv.get}</abv> else orig } )
 							,("ibu" 	   , { orig => if (ibu.isDefined) <ibu>{ibu.get}</ibu> else orig } )
