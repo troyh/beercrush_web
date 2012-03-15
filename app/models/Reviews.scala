@@ -51,17 +51,17 @@ case class BeerReview(
 	def transform(nodes: NodeSeq): NodeSeq = applyValuesToXML(
 		nodes,
 		Map(
-			("review", { orig =>
+			(BeerReview.xmlTagReview, { orig =>
 				<review>{
 					applyValuesToXML(orig.child,Map(
-						("ctime", { orig => if (ctime.isDefined) <ctime>{new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(ctime.get)}</ctime> else orig } )
-						,("rating", { orig => <rating/> % Attribute("","value",rating.toString,Null) } )
-						,("balance.map", { orig => if (balance.isDefined) <balance/> % Attribute("","value",balance.get.toString,Null) else orig } )
-						,("aftertaste.map", { orig => if (aftertaste.isDefined) <aftertaste/>  % Attribute("","value",aftertaste.get.toString,Null) else orig } )
-						,("when.map", { orig => if (when.isDefined) <when>{new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(when.get)}</when> else orig } )
-						,("where.map", { orig => if (where.isDefined) <where>{where.get.toString}</where> else orig } )
-						,("wouldDrinkAgain.map", { orig => if (wouldDrinkAgain.isDefined) <wouldDrinkAgain/> % Attribute("","value",wouldDrinkAgain.get.toString,Null) else orig } )
-						,("text.map", { orig => if (text.isDefined) <text>{text}</text> else orig } )
+						( BeerReview.xmlTagCtime,      { orig => if (ctime.isDefined) <ctime>{new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(ctime.get)}</ctime> else orig } )
+						,(BeerReview.xmlTagRating,     { orig => <rating/> % Attribute("","value",rating.toString,Null) } )
+						,(BeerReview.xmlTagBalance,    { orig => if (balance.isDefined) <balance/> % Attribute("","value",balance.get.toString,Null) else orig } )
+						,(BeerReview.xmlTagAftertaste, { orig => if (aftertaste.isDefined) <aftertaste/>  % Attribute("","value",aftertaste.get.toString,Null) else orig } )
+						,(BeerReview.xmlTagWhen,       { orig => if (when.isDefined) <when>{new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(when.get)}</when> else orig } )
+						,(BeerReview.xmlTagWhere,      { orig => if (where.isDefined) <where>{where.get.toString}</where> else orig } )
+						,(BeerReview.xmlTagDrinkAgain, { orig => if (wouldDrinkAgain.isDefined) <wouldDrinkAgain/> % Attribute("","value",wouldDrinkAgain.get.toString,Null) else orig } )
+						,(BeerReview.xmlTagText,       { orig => if (text.isDefined) <text>{text}</text> else orig } )
 					))
 				}</review>
 			})
@@ -86,22 +86,38 @@ case class BeerReview(
 }
 
 object BeerReview {
-	
+
+	private final val xmlTagReview	   = "review"
+	private final val xmlTagId		   = "id"
+	private final val xmlAttribId	   = "@" + xmlTagId
+	private final val xmlTagCtime	   = "ctime"
+	private final val xmlTagRating	   = "rating"
+	private final val xmlTagBalance	   = "balance"
+	private final val xmlTagAftertaste = "aftertaste"
+	private final val xmlTagWhen	   = "when"
+	private final val xmlTagWhere	   = "where"
+	private final val xmlTagDrinkAgain = "wouldDrinkAgain"
+	private final val xmlTagText	   = "text"
+	private final val xmlTagFlavors	   = "flavors"
+	private final val xmlTagFlavor	   = "flavor"
+	private final val xmlTagValue	   = "value"
+	private final val xmlAttribValue   = "@" + xmlTagValue
+
 	def fromExisting(reviewId: ReviewId): Option[BeerReview] = {
 		try {
 			val xml=scala.xml.XML.loadFile(Storage.fileLocation(reviewId))
 			
 			Some(BeerReview(
-				id = Some(xml \ "@id").headOption.map{s=>Some(ReviewId(s.text))}.get,
-				ctime = (xml \ "ctime").headOption.map{s=>Some(new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).parse(s.text))}.getOrElse(None),
-				rating = (xml \ "rating" \ "@value").headOption.map{_.text.toInt}.getOrElse(0),
-				balance = (xml \ "balance" \ "@value").headOption.map{s => Some(s.text.toInt)}.getOrElse(None),
-				aftertaste = (xml \ "aftertaste" \ "@value").headOption.map{s=>Some(s.text.toInt)}.getOrElse(None),
-				flavors = (xml \ "flavors" \ "flavor").map{s=>s.text}.toList match {case x if (x.isEmpty) => None; case x => Some(x)},
-				when = (xml \ "when").headOption.map{ s => Some(new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).parse(s.text)) }.getOrElse(None),
-				where= (xml \ "where").headOption.map{ s => Some(s.text) }.getOrElse(None),
-				wouldDrinkAgain = (xml \ "wouldDrinkAgain" \ "@value").headOption.map{s=>Some(s.text.toBoolean)}.getOrElse(None),
-				text = (xml \ "text").headOption.map{s=>Some(s.text)}.getOrElse(None)
+				id = Some(	  xml \ xmlAttribId					     ).headOption.map{s=>Some(ReviewId(s.text))}.get,
+				ctime =  	 (xml \ xmlTagCtime					     ).headOption.map{s=>Some(new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).parse(s.text))}.getOrElse(None),
+				rating = 	 (xml \ xmlTagRating \ xmlAttribValue    ).headOption.map{_.text.toInt}.getOrElse(0),
+				balance = 	 (xml \ xmlTagBalance \ xmlAttribValue   ).headOption.map{s => Some(s.text.toInt)}.getOrElse(None),
+				aftertaste = (xml \ xmlTagAftertaste \ xmlAttribValue).headOption.map{s=>Some(s.text.toInt)}.getOrElse(None),
+				flavors = 	 (xml \ xmlTagFlavors \ xmlTagFlavor     ).map{s=>s.text}.toList match {case x if (x.isEmpty) => None; case x => Some(x)},
+				when = 		 (xml \ xmlTagWhen						 ).headOption.map{ s => Some(new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).parse(s.text)) }.getOrElse(None),
+				where= 		 (xml \ xmlTagWhere						 ).headOption.map{ s => Some(s.text) }.getOrElse(None),
+				wouldDrinkAgain = (xml \ xmlTagDrinkAgain \ xmlAttribValue).headOption.map{s=>Some(s.text.toBoolean)}.getOrElse(None),
+				text = 		 (xml \ xmlTagText                       ).headOption.map{s=>Some(s.text)}.getOrElse(None)
 			))
 		}
 		catch {

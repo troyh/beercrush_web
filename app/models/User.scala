@@ -36,20 +36,28 @@ case class User(
 	def transform(nodes: NodeSeq): NodeSeq = applyValuesToXML(
 		nodes,
 		Map(
-			("user", { orig => <user id={userId}>{applyValuesToXML(orig.child,Map(
-				("username",{ orig => <username>{userId}</username> })
-				,("ctime",{ orig => if (ctime.isDefined) <ctime>{new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(ctime.get)}</ctime> else orig })
-				,("name",{ orig => <name>{name}</name> })
-				,("password",{ orig => <password>{password}</password> })
-				,("aboutme",{ orig => <aboutme>{aboutme}</aboutme> })
+			(User.xmlTagUser, { orig => <user id={userId}>{applyValuesToXML(orig.child,Map(
+				( User.xmlTagUsername, { orig => <username>{userId}</username> })
+				,(User.xmlTagCtime,    { orig => if (ctime.isDefined) <ctime>{new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(ctime.get)}</ctime> else orig })
+				,(User.xmlTagName,     { orig => <name>{name}</name> })
+				,(User.xmlTagPassword, { orig => <password>{password}</password> })
+				,(User.xmlTagAboutme,  { orig => <aboutme>{aboutme}</aboutme> })
 			))}</user>})
 		)
 	)
 }
   
 object User {
+	
+	private final val xmlTagUser 	 = "user"
+	private final val xmlTagUsername = "username"
+	private final val xmlTagCtime 	 = "ctime"
+	private final val xmlTagName 	 = "name"
+	private final val xmlTagPassword = "password"
+	private final val xmlTagAboutme  = "aboutme"
+	
 	def findUser(username:String): Option[User] = {
-		val filename=new java.io.File("/Users/troy/beerdata/user/" + username + ".xml")
+		val filename=new java.io.File("/Users/troy/beerdata/user/" + username + ".xml") // TODO: Use Storage class
 		if (filename.exists()) {
 			val xml=scala.xml.XML.loadFile(filename)
 			val dateFormat=new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat)
@@ -61,11 +69,11 @@ object User {
 			}
 			  
 			Some(new User(
-				new UserId((xml \ "username").headOption.map{s => s.text}.getOrElse(username)),
+				new UserId((xml \ xmlTagUsername).headOption.map{s => s.text}.getOrElse(username)),
 				Some(ctime),
-				(xml \ "password").text,
-				(xml \ "name").text,
-				(xml \ "aboutme").text
+				(xml \ xmlTagPassword).text,
+				(xml \ xmlTagName    ).text,
+				(xml \ xmlTagAboutme ).text
 			))
 		}
 		else

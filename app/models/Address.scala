@@ -21,13 +21,13 @@ case class Address(
 			("address", { orig => <address>{applyValuesToXML(
 				orig.child
 				,Map(
-					("street"    , { orig => if (street.isDefined)    <street>{street.get}</street> else orig})
-					,("city"     , { orig => if (city.isDefined)      <city>{city.get}</city> else orig})
-					,("state"    , { orig => if (state.isDefined)     <state>{state.get}</state> else orig})
-					,("zip"      , { orig => if (zip.isDefined)       <zip>{zip.get}</zip> else orig})
-					,("country"  , { orig => if (country.isDefined)   <country>{country.get}</country> else orig})
-					,("latitude" , { orig => if (latitude.isDefined)  <latitude>{latitude.get}</latitude> else orig})
-					,("longitude", { orig => if (longitude.isDefined) <longitude>{longitude.get}</longitude> else orig})
+					( Address.xmlTagStreet   , { orig => if (street.isDefined)    <street>{street.get}</street> else orig})
+					,(Address.xmlTagCity     , { orig => if (city.isDefined)      <city>{city.get}</city> else orig})
+					,(Address.xmlTagState    , { orig => if (state.isDefined)     <state>{state.get}</state> else orig})
+					,(Address.xmlTagZip      , { orig => if (zip.isDefined)       <zip>{zip.get}</zip> else orig})
+					,(Address.xmlTagCountry  , { orig => if (country.isDefined)   <country>{country.get}</country> else orig})
+					,(Address.xmlTagLatitude , { orig => if (latitude.isDefined)  <latitude>{latitude.get}</latitude> else orig})
+					,(Address.xmlTagLongitude, { orig => if (longitude.isDefined) <longitude>{longitude.get}</longitude> else orig})
 				)
 				)}</address>}
 			)
@@ -47,16 +47,26 @@ case class Address(
 		).filter(_.isDefined).map(_.get)
 	)
 }
+
 object Address {
+	
+	private final val xmlTagStreet	 ="street"
+	private final val xmlTagCity	 ="city"
+	private final val xmlTagState	 ="state"
+	private final val xmlTagZip		 ="zip"
+	private final val xmlTagCountry	 ="country"
+	private final val xmlTagLatitude ="latitude"
+	private final val xmlTagLongitude="longitude"
+	
 	def fromXML(node: xml.NodeSeq) = {
 		new Address(
-			(node \ "street").headOption.map { _.text },
-			(node \ "city").headOption.map { _.text },
-			(node \ "state").headOption.map { _.text },
-			(node \ "zip").headOption.map { _.text },
-			(node \ "country").headOption.map { _.text },
-			(node \ "latitude").headOption.map { _.text.toDouble },
-			(node \ "longitude").headOption.map { _.text.toDouble }
+			(node \ xmlTagStreet   ).headOption.map { _.text },
+			(node \ xmlTagCity     ).headOption.map { _.text },
+			(node \ xmlTagState    ).headOption.map { _.text },
+			(node \ xmlTagZip      ).headOption.map { _.text },
+			(node \ xmlTagCountry  ).headOption.map { _.text },
+			(node \ xmlTagLatitude ).headOption.map { _.text.toDouble },
+			(node \ xmlTagLongitude).headOption.map { _.text.toDouble }
 		)
 	}
 }

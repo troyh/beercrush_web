@@ -31,13 +31,13 @@ case class Brewery(
 	def transform(nodes: NodeSeq): NodeSeq = applyValuesToXML(
 		nodes
 		,Map(
-			("brewery", { orig => <brewery id={breweryId.getOrElse("").toString}>{applyValuesToXML(
+			(Brewery.xmlTagBrewery, { orig => <brewery id={breweryId.getOrElse("").toString}>{applyValuesToXML(
 				orig.child
 				,Map(
-					("id"	   , { orig => <id/> } ) // Effectively deletes it
-					,("name"   , { orig => <name>{name}</name>})
-					,("address", { orig => address.transform(orig) })
-					,("phone"  , { orig => phone match {
+					( Brewery.xmlTagId, { orig => <id/> } ) // Effectively deletes it
+					,(Brewery.xmlTagName   , { orig => <name>{name}</name>})
+					,(Brewery.xmlTagAddress, { orig => address.transform(orig) })
+					,(Brewery.xmlTagPhone  , { orig => phone match {
 						case Some(phone) => <phone>{phone}</phone>
 						case None => orig 
 					}})
@@ -48,25 +48,31 @@ case class Brewery(
 	)
 	
 	def asJson = JsObject((
-		Some("id" -> JsString(this.id.toString)) ::
-		Some("name" -> JsString(this.name)) :: 
-		Some("address" -> this.address.asJson) :: 
-		(phone.map { "phone" -> JsString(_) }) ::
+		Some(Brewery.xmlTagId -> JsString(this.id.toString)) ::
+		Some(Brewery.xmlTagName -> JsString(this.name)) :: 
+		Some(Brewery.xmlTagAddress -> this.address.asJson) :: 
+		(phone.map { Brewery.xmlTagPhone -> JsString(_) }) ::
 		Nil
 	).filter(_.isDefined).map(_.get))
 }
 
 object Brewery {
 	
+	private final val xmlTagBrewery="brewery"
+	private final val xmlTagId="id"
+	private final val xmlTagName="name"
+	private final val xmlTagAddress="address"
+	private final val xmlTagPhone="phone"
+	
 	def fromExisting(id:BreweryId): Option[Brewery] = {
 		try {
 			val xml=scala.xml.XML.loadFile("/Users/troy/beerdata/brewery/" + id + ".xml")
 			val address=xml \ "address"
 			Some(new Brewery(
-				(xml \ "id").headOption.map{_.text},
-				(xml \ "name").text,
-				Address.fromXML(xml \ "address"),
-				(xml \ "phone").headOption.map{_.text}
+				(xml \ Brewery.xmlTagId).headOption.map{_.text},
+				(xml \ Brewery.xmlTagName).text,
+				Address.fromXML(xml \ Brewery.xmlTagAddress),
+				(xml \ Brewery.xmlTagPhone).headOption.map{_.text}
 			))
 		}
 		catch {
