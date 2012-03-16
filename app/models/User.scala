@@ -10,7 +10,15 @@ object UserId {
 	implicit def string2id(id: String): UserId = new UserId(id)
 }
 
-
+/**
+  * Representation of registered users
+  *
+  * @param userId id for the user, e.g., "troyh"
+  * @param ctime Creation time
+  * @param password User's password
+  * @param name Friendly display name for the user
+  * @param aboutme Descriptive text about the user
+  */
 case class User(
   userId: UserId,
   val ctime: Option[java.util.Date],
