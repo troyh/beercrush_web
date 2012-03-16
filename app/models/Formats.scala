@@ -4,11 +4,11 @@ import play.api.libs.json._
 import scala.xml.{Node, NodeSeq, Elem, Null}
 
 trait JsonFormat {
-	def asJson: JsObject
+	def toJSON: JsObject
 }
 
 trait XmlFormat {
-	def asXML: xml.NodeSeq
+	def toXML: xml.NodeSeq
 	/**
 	  * Applies values in this object to an existing XML, merging the two 
 	  * versions. This is useful for saving edited documents -- any XML elements in 

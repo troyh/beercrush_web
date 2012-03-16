@@ -46,7 +46,7 @@ case class BeerReview(
 		this.copy(id=Some(ReviewId(id)),ctime=Some(ctime))
 	}
 
-	def asXML=transform(<review/>) 
+	def toXML=transform(<review/>) 
 
 	def transform(nodes: NodeSeq): NodeSeq = applyValuesToXML(
 		nodes,
@@ -68,7 +68,7 @@ case class BeerReview(
 		)
 	)
 		
-	def asJson = JsObject(List(
+	def toJSON = JsObject(List(
 		id.map { x => "id" -> JsString(x.id.get) }.get,
 		"ctime" -> JsString(new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(ctime)),
 		"rating" -> JsNumber(rating),

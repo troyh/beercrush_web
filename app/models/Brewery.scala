@@ -26,7 +26,7 @@ case class Brewery(
 		docs.map(doc => Beer.fromExisting(doc.get("id").toString).get)
 	}
 
-	def asXML = transform(<brewery/>)
+	def toXML = transform(<brewery/>)
 	
 	def transform(nodes: NodeSeq): NodeSeq = applyValuesToXML(
 		nodes
@@ -48,10 +48,10 @@ case class Brewery(
 		)
 	)
 	
-	def asJson = JsObject((
+	def toJSON = JsObject((
 		Some(Brewery.xmlTagId -> JsString(this.id.toString)) ::
 		Some(Brewery.xmlTagName -> JsString(this.name)) :: 
-		Some(Brewery.xmlTagAddress -> this.address.asJson) :: 
+		Some(Brewery.xmlTagAddress -> this.address.toJSON) :: 
 		(phone.map { Brewery.xmlTagPhone -> JsString(_) }) ::
 		Nil
 	).filter(_.isDefined).map(_.get))

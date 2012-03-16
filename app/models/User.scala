@@ -31,7 +31,7 @@ case class User(
 	lazy val descriptiveNameForId = name
 	def dupe(id:Id,ctime:java.util.Date) = this.copy(userId=new UserId(id),ctime=Some(ctime))
 	
-	def asJson: JsObject = JsObject(
+	def toJSON: JsObject = JsObject(
 		(
 			"name" -> JsString(name) ::
 			"aboutme" -> JsString(aboutme) ::
@@ -39,7 +39,7 @@ case class User(
 		)
 	)
 	
-	def asXML = transform(<user/>)
+	def toXML = transform(<user/>)
 
 	def transform(nodes: NodeSeq): NodeSeq = applyValuesToXML(
 		nodes,

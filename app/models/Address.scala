@@ -48,7 +48,7 @@ case class Address(
     }}}
 
 	*/
-	def asXML = transform(<address/>)
+	def toXML = transform(<address/>)
 
 	def transform(nodes: NodeSeq): NodeSeq = applyValuesToXML(
 		nodes
@@ -75,7 +75,7 @@ case class Address(
 		)
 	)
 	
-	def asJson = JsObject(
+	def toJSON = JsObject(
 		(
 			street.map("street" -> JsString(_)) ::
 			city.map { "city" -> JsString(_) } ::

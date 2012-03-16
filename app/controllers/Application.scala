@@ -122,8 +122,8 @@ object Application extends Controller {
 	  
 			  responseFormat match {
 			  				  case HTML => Ok(views.html.beer(Some(beer),beerForm.fill(beer),new BeerReviewForm(None)))
-			  				  case XML  => Ok(beer.asXML)
-			  				  case JSON  => Ok(Json.toJson(beer.asJson))
+			  				  case XML  => Ok(beer.toXML)
+			  				  case JSON  => Ok(Json.toJson(beer.toJSON))
 			  }
 		  }
 	  }
@@ -139,8 +139,8 @@ object Application extends Controller {
 			  
 				  responseFormat match {
 					  case HTML => Ok(views.html.brewery(brewery,breweryForm.fill(brewery)))
-					  case XML  => Ok(brewery.asXML)
-					  case JSON  => Ok(Json.toJson(brewery.asJson))
+					  case XML  => Ok(brewery.toXML)
+					  case JSON  => Ok(Json.toJson(brewery.toJSON))
 				  }
 			  }
 		  }
@@ -276,7 +276,7 @@ object Application extends Controller {
 			  responseFormat match {
 				  case HTML => Ok(views.html.beer(Some(beer),beerForm.fill(beer),new BeerReviewForm(None)))
 				  case XML  => Ok(views.xml.beer(beer))
-				  case JSON  => Ok(Json.toJson(beer.asJson))
+				  case JSON  => Ok(Json.toJson(beer.toJSON))
 			  }
 		  }
 	  )
@@ -292,7 +292,7 @@ object Application extends Controller {
 			  responseFormat match {
 				  case HTML => Ok(views.html.brewery(brewery.get,errors))
 				  case XML  => Ok(views.xml.brewery(brewery.get))
-				  case JSON  => Ok(Json.toJson(brewery.get.asJson))
+				  case JSON  => Ok(Json.toJson(brewery.get.toJSON))
 			  }
 		  },
 		  brewery => {
@@ -304,7 +304,7 @@ object Application extends Controller {
 			  responseFormat match {
 				  case HTML => Ok(views.html.brewery(brewery,f.fill(brewery)))
 				  case XML  => Ok(views.xml.brewery(brewery))
-				  case JSON  => Ok(Json.toJson(brewery.asJson))
+				  case JSON  => Ok(Json.toJson(brewery.toJSON))
 			  }
 		  }
 	  )
@@ -376,8 +376,8 @@ object Application extends Controller {
 
 					responseFormat match {
 						case HTML => Redirect(routes.Application.showBeerReview(review.id.get))
-						case XML => Ok(review.asXML)
-						case JSON => Ok(Json.toJson(review.asJson))
+						case XML => Ok(review.toXML)
+						case JSON => Ok(Json.toJson(review.toJSON))
 					}
 				}
 			)
@@ -388,8 +388,8 @@ object Application extends Controller {
 		val review=BeerReview.fromExisting(reviewId)
 		responseFormat match {
 			case HTML => Ok(views.html.beerReview(review,new BeerReviewForm(None)))
-			case XML => Ok(review.get.asXML)
-			case JSON => Ok(Json.toJson(review.get.asJson))
+			case XML => Ok(review.get.toXML)
+			case JSON => Ok(Json.toJson(review.get.toJSON))
 		}
 	}
 	
@@ -491,10 +491,10 @@ object Application extends Controller {
 			case Some(user) => {
 				responseFormat match {
 				  case HTML => Ok(views.html.user(user,new UserForm(userId).fill(user)))
-				  case XML  => Ok(user.asXML match { // Remove the password!
+				  case XML  => Ok(user.toXML match { // Remove the password!
 					  case <user>{ e @ _* }</user> => <user>{e.filterNot(_.label.equals("password"))}</user>
 				  })
-				  case JSON => Ok(Json.toJson(user.asJson))
+				  case JSON => Ok(Json.toJson(user.toJSON))
 				}
 			}
 			case None => NotFound

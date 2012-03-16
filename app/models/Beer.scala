@@ -53,7 +53,7 @@ case class Beer(
 		}
 	}
 
-	def asXML= transform(<beer/>)
+	def toXML= transform(<beer/>)
 
 	def transform(nodes: NodeSeq): NodeSeq = applyValuesToXML(
 		nodes
@@ -90,7 +90,7 @@ case class Beer(
 		)
 	)
 	
-	def asJson = JsObject(
+	def toJSON = JsObject(
 		(
 		  beerId.map{"id" -> JsString(_)} ::
 		  brewery.map{b => "brewery" -> JsString(b.breweryId)} ::
