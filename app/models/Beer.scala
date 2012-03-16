@@ -5,6 +5,22 @@ import play.api.libs.json._
 import scala.xml._
 import scala.annotation._
 
+/**
+  * A representation for a beer. Beers are things that [[models.Brewery]]s make 
+  * and what Places serve. Most properties are optional.
+  * 
+  * @param beerId The unique ID of the beer, i.e., "Alaskan-Brewing-Co/Esb"
+  * @param name The name of the beer, i.e., "Alaskan ESB"
+  * @param description A description of the beer, usually from the brewer
+  * @param abv Alcohol By Volume, a percentage of alcohol in the beer
+  * @param ibu International Bittering Units (IBUs) of the beer
+  * @param ingredients Any text describing the ingredients used to make the beer
+  * @param grains Any text describing the specific grains used to make the beer
+  * @param hops Any text describing the hops used to make the beer
+  * @param yeast Any text describing the yeast used to make the beer
+  * @param otherings Any text describing the ingredients used to make the beer that don't fit into the above categories
+  * @param styles Style(s) of the beer
+  */
 case class Beer(
 	beerId:			Option[BeerId],
 	val name: 		String,
@@ -24,6 +40,10 @@ case class Beer(
 	def dupe(id:Id,ctime:java.util.Date) = this.copy(beerId=Some(BeerId(id))) // TODO: add ctime
 	
 	lazy val pageURL = { "/" + beerId.get }
+
+	/**
+	  * The Brewery object for the brewer of this beer
+	  */
 	lazy val brewery = {
 		val bid: Option[BreweryId]=beerId.map(_.breweryId)
 		// val bid: BreweryId = b.breweryId
@@ -43,11 +63,11 @@ case class Beer(
 					applyValuesToXML(
 						orig.child
 						,Map(
-							( Beer.xmlTagName        , { orig => <name>{name}</name> } )
-							,(Beer.xmlTagId		 , { orig => <id/> } ) // Effectively deletes it
+							( Beer.xmlTagName       , { orig => <name>{name}</name> } )
+							,(Beer.xmlTagId		    , { orig => <id/> } ) // Effectively deletes it
 							,(Beer.xmlTagDescription, { orig => if (description.isDefined) <description>{description.get}</description> else orig } )
-							,(Beer.xmlTagAbv 	     , { orig => if (abv.isDefined) <abv>{abv.get}</abv> else orig } )
-							,(Beer.xmlTagIbu 	     , { orig => if (ibu.isDefined) <ibu>{ibu.get}</ibu> else orig } )
+							,(Beer.xmlTagAbv 	    , { orig => if (abv.isDefined) <abv>{abv.get}</abv> else orig } )
+							,(Beer.xmlTagIbu 	    , { orig => if (ibu.isDefined) <ibu>{ibu.get}</ibu> else orig } )
 							,(Beer.xmlTagIngredients, { orig => if (ingredients.isDefined) <ingredients>{ingredients.get}</ingredients> else orig } )
 							,(Beer.xmlTagGrains     , { orig => if (grains.isDefined) <grains>{grains.get}</grains> else orig } )
 							,(Beer.xmlTagHops       , { orig => if (hops.isDefined) <hops>{hops.get}</hops> else orig } )
@@ -56,7 +76,9 @@ case class Beer(
 							,(Beer.xmlTagStyles     , { orig => 
 								if (styles.isDefined && styles.get.length > 0) {
 									<styles>
-										{styles.map(_.map(style => <style><bjcp_style_id>{style.id}</bjcp_style_id><name>{style.name}</name></style>))}
+										{styles.get.map(style => 
+											<style><bjcp_style_id>{style.id}</bjcp_style_id><name>{style.name}</name></style>
+										)}
 									</styles>
 								} else
 									orig

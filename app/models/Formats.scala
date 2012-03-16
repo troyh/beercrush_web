@@ -9,6 +9,17 @@ trait JsonFormat {
 
 trait XmlFormat {
 	def asXML: xml.NodeSeq
+	/**
+	  * Applies values in this object to an existing XML, merging the two 
+	  * versions. This is useful for saving edited documents -- any XML elements in 
+	  * the original XML doc are left intact and only values from this object are 
+	  * added/changed.
+	  *
+	  * Note: Empty elements are removed from the resulting XML.
+      *
+      * @param nodes The XML to be transformed with this object's data
+      * @return The new XML document
+	  */
 	def transform(nodes: NodeSeq): NodeSeq 
 
 	/**

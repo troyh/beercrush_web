@@ -64,6 +64,11 @@ object User {
 	private final val xmlTagPassword = "password"
 	private final val xmlTagAboutme  = "aboutme"
 	
+	/**
+	  * Finds an existing user
+	  *
+	  * @param username The user's username (id)
+	  */
 	def findUser(username:String): Option[User] = {
 		val filename=new java.io.File("/Users/troy/beerdata/user/" + username + ".xml") // TODO: Use Storage class
 		if (filename.exists()) {
