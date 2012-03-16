@@ -5,7 +5,7 @@ import play.api.libs.json._
 import scala.xml.NodeSeq
 
 /**
-  * Represents a postal address. The XML format is a subset of ([[http://en.wikipedia.org/wiki/VCard xCard]]).
+  * Represents a postal address. 
   *
   * @param street	Street address
   * @param city	    City/Municipality
@@ -26,6 +26,28 @@ case class Address(
 	val longitude	    : Option[Double] = None
 ) extends XmlFormat with JsonFormat {
 	
+	/**
+    The XML format is a subset of [[http://en.wikipedia.org/wiki/VCard xCard]]. Sample XML:
+
+    {{{
+    <brewery id="Alaskan-Brewing-Co">
+      <vcard>
+        <adr>
+          <code>99801-9540</code>
+          <latitude>58.356871</latitude>
+          <street>5429 Shaune Dr</street>
+          <region>AK</region>
+          <locality>Juneau</locality>
+          <longitude>-134.489903</longitude>
+          <country>US</country>
+        </adr>
+      </vcard>
+      <phone>(907) 780-5866</phone>
+      <name>Alaskan Brewing Co&#x200E;</name>
+    </brewery>
+    }}}
+
+	*/
 	def asXML = transform(<address/>)
 
 	def transform(nodes: NodeSeq): NodeSeq = applyValuesToXML(
@@ -83,9 +105,9 @@ object Address {
 	def fromXML(node: xml.NodeSeq) = {
 		Address(
 			(node \ xmlTagStreet   ).headOption.map { _.text },
-			(node \ xmlTagLocality ).headOption.map { _.text }.orElse { (node \ "city"         ).headOption.map { _.text } }, 
-			(node \ xmlTagRegion   ).headOption.map { _.text }.orElse { (node \ "state"        ).headOption.map { _.text } },
-			(node \ xmlTagPostCode ).headOption.map { _.text }.orElse { (node \ "zip"          ).headOption.map { _.text } },
+			(node \ xmlTagLocality ).headOption.map { _.text }.orElse { (node \ "city" ).headOption.map { _.text } }, 
+			(node \ xmlTagRegion   ).headOption.map { _.text }.orElse { (node \ "state").headOption.map { _.text } },
+			(node \ xmlTagPostCode ).headOption.map { _.text }.orElse { (node \ "zip"  ).headOption.map { _.text } },
 			(node \ xmlTagCountry  ).headOption.map { _.text },
 			(node \ xmlTagLatitude ).headOption.map { _.text.toDouble },
 			(node \ xmlTagLongitude).headOption.map { _.text.toDouble }
