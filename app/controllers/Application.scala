@@ -135,12 +135,11 @@ object Application extends Controller {
 		  case Some(id) => Brewery.fromExisting(id) match {
 			  case None => NotFound
 			  case Some(brewery: Brewery) => {
-				  Logger.info("Show Brewery name:[" + brewery.name + "]")
 				  val breweryForm = new BreweryForm(breweryId)
 			  
 				  responseFormat match {
 					  case HTML => Ok(views.html.brewery(brewery,breweryForm.fill(brewery)))
-					  case XML  => Ok(views.xml.brewery(brewery))
+					  case XML  => Ok(brewery.asXML)
 					  case JSON  => Ok(Json.toJson(brewery.asJson))
 				  }
 			  }

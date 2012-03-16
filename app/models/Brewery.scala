@@ -60,6 +60,7 @@ object Brewery {
 	
 	private final val xmlTagBrewery="brewery"
 	private final val xmlTagId="id"
+	private final val xmlAttributeId="@" + xmlTagId
 	private final val xmlTagName="name"
 	private final val xmlTagAddress="address"
 	private final val xmlTagPhone="phone"
@@ -69,7 +70,7 @@ object Brewery {
 			val xml=scala.xml.XML.loadFile("/Users/troy/beerdata/brewery/" + id + ".xml")
 			val address=xml \ "address"
 			Some(new Brewery(
-				(xml \ Brewery.xmlTagId).headOption.map{_.text},
+				(xml \ Brewery.xmlAttributeId).headOption.map{_.text},
 				(xml \ Brewery.xmlTagName).text,
 				Address.fromXML(xml \ Brewery.xmlTagAddress),
 				(xml \ Brewery.xmlTagPhone).headOption.map{_.text}
