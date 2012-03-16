@@ -28,7 +28,7 @@ object BreweryId {
 
 case class BeerId(beerId: String) extends Id(Some(beerId)) {
 	// TODO: verify the id looks like a beer id
-	def breweryId: BreweryId = beerId.split('/').first
+	def breweryId: BreweryId = beerId.split('/').head
 }
 object BeerId {
 	implicit def string2id(s: String): BeerId = { new BeerId(s) }
