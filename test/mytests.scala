@@ -16,9 +16,9 @@ class MySpec extends Specification {
 	
 	"Beer XML page" in {
 		val headers=FakeHeaders(Map(
-			"Accept:" -> List("text/xml")
+			ACCEPT -> List("text/xml")
 		))
-		val Some(result)=routeAndCall(FakeRequest(GET, "http://localhost:9000/Alaskan-Brewing-Co/Barleywine", headers,null))
+		val Some(result)=routeAndCall(FakeRequest(GET, "/Alaskan-Brewing-Co/Barleywine", headers,null))
 
 		println(headers.data.toString)
 		status(result) must equalTo(OK)

@@ -112,7 +112,7 @@ object Application extends Controller {
   }
 
 
-	def responseFormat(implicit request: play.api.mvc.Request[_]) = matchAcceptHeader(AcceptHeaderParser.parse(request.headers.get("accept").getOrElse("")))
+  def responseFormat(implicit request: play.api.mvc.Request[_]) = matchAcceptHeader(AcceptHeaderParser.parse(request.headers(ACCEPT)))
 
   def showBeer(beerId:BeerId) = Action { implicit request => 
 	  Beer.fromExisting(beerId) match {
@@ -121,9 +121,9 @@ object Application extends Controller {
 			  val beerForm=new BeerForm(beer.beerId)
 	  
 			  responseFormat match {
-				  case HTML => Ok(views.html.beer(Some(beer),beerForm.fill(beer),new BeerReviewForm(None)))
-				  case XML  => Ok(beer.asXML).withHeaders((CONTENT_TYPE -> "text/xml"))
-				  case JSON  => Ok(Json.toJson(beer.asJson))
+			  				  case HTML => Ok(views.html.beer(Some(beer),beerForm.fill(beer),new BeerReviewForm(None)))
+			  				  case XML  => Ok(beer.asXML)
+			  				  case JSON  => Ok(Json.toJson(beer.asJson))
 			  }
 		  }
 	  }
