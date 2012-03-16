@@ -34,10 +34,11 @@ case class Brewery(
 			(Brewery.xmlTagBrewery, { orig => <brewery id={breweryId.getOrElse("").toString}>{applyValuesToXML(
 				orig.child
 				,Map(
-					( Brewery.xmlTagId, { orig => <id/> } ) // Effectively deletes it
-					,(Brewery.xmlTagName   , { orig => <name>{name}</name>})
-					,(Brewery.xmlTagAddress, { orig => address.transform(orig) })
-					,(Brewery.xmlTagPhone  , { orig => phone match {
+					( Brewery.xmlTagId   , { orig => <id/> } ) // Effectively deletes it
+					,(Brewery.xmlTagName , { orig => <name>{name}</name>})
+					,(Brewery.xmlTagAddress, { orig => <address/> }) // Effectively deletes it
+					,(Brewery.xmlTagVcard, { orig => address.transform(orig) })
+					,(Brewery.xmlTagPhone, { orig => phone match {
 						case Some(phone) => <phone>{phone}</phone>
 						case None => orig 
 					}})
@@ -62,17 +63,21 @@ object Brewery {
 	private final val xmlTagId="id"
 	private final val xmlAttributeId="@" + xmlTagId
 	private final val xmlTagName="name"
-	private final val xmlTagAddress="address"
+	private final val xmlTagAddress="address" // @deprecated
+	private final val xmlTagVcard="vcard"
 	private final val xmlTagPhone="phone"
 	
 	def fromExisting(id:BreweryId): Option[Brewery] = {
 		try {
 			val xml=scala.xml.XML.loadFile("/Users/troy/beerdata/brewery/" + id + ".xml")
-			val address=xml \ "address"
-			Some(new Brewery(
+			val address=(xml \ xmlTagVcard \ "adr") match {
+				case vcard:NodeSeq if (vcard.length > 0)=> vcard.head
+				case _ => (xml \ xmlTagAddress).head
+			}
+			Some(Brewery(
 				(xml \ Brewery.xmlAttributeId).headOption.map{_.text},
 				(xml \ Brewery.xmlTagName).text,
-				Address.fromXML(xml \ Brewery.xmlTagAddress),
+				Address.fromXML(address),
 				(xml \ Brewery.xmlTagPhone).headOption.map{_.text}
 			))
 		}
