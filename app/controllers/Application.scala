@@ -495,7 +495,7 @@ object Application extends Controller {
 					  case e @ scala.xml.Elem(prefix,"user",attribs,scope,children @ _*) => <user>{ children.map { _ match {
   						  case <password>{_*}</password> => scala.xml.Text("") // Remove the password!
   						  case other => other
-					  }}}</user>
+					  }}}</user> % attribs
 					  case other => other
 				  }})
 				  case JSON => Ok(Json.toJson(user.toJSON))
