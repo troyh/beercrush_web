@@ -491,9 +491,13 @@ object Application extends Controller {
 			case Some(user) => {
 				responseFormat match {
 				  case HTML => Ok(views.html.user(user,new UserForm(userId).fill(user)))
-				  case XML  => Ok(user.toXML match { // Remove the password!
-					  case <user>{ e @ _* }</user> => <user>{e.filterNot(_.label.equals("password"))}</user>
-				  })
+				  case XML  => Ok(user.toXML.map { _ match { 
+					  case e @ scala.xml.Elem(prefix,"user",attribs,scope,children @ _*) => <user>{ children.map { _ match {
+  						  case <password>{_*}</password> => scala.xml.Text("") // Remove the password!
+  						  case other => other
+					  }}}</user>
+					  case other => other
+				  }})
 				  case JSON => Ok(Json.toJson(user.toJSON))
 				}
 			}

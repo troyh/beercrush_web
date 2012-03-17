@@ -1,10 +1,12 @@
 @(query: String, totalResults: Long, start: Long, results: Seq[org.apache.solr.common.SolrDocument])
 
 @main {
+<searchResults>
 	<meta totalResults="@totalResults" start="@start">
 		<query>@query</query>
 	</meta>
 	<results>
 		@results.map(d => <result><id>{d.get("id")}</id><name>{d.get("name")}</name></result>)
 	</results>
+</searchResults>
 }
