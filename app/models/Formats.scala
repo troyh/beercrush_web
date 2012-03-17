@@ -42,7 +42,7 @@ trait XmlFormat {
 					node
 			}
 			case other => other
-		}).flatten.filter(_.child.length > 0) // Strip out any empty elements
+		}).flatten.filter(e => e.attributes.length > 0 || e.child.length > 0) // Strip out any empty elements
 	}
 }
 

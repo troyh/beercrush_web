@@ -52,7 +52,7 @@ case class BeerReview(
 		nodes,
 		Map(
 			(BeerReview.xmlTagReview, { orig =>
-				<review>{
+				<review id={id.getOrElse("").toString}>{
 					applyValuesToXML(orig.child,Map(
 						( BeerReview.xmlTagCtime,      { orig => if (ctime.isDefined) <ctime>{new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(ctime.get)}</ctime> else orig } )
 						,(BeerReview.xmlTagRating,     { orig => <rating/> % Attribute("","value",rating.toString,Null) } )
