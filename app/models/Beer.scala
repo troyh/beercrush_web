@@ -61,13 +61,13 @@ case class Beer(
 
 	def transform(nodes: NodeSeq): NodeSeq = {
 		for (n <- nodes) yield n match {
-			case b @ <beer>{kids @ _*}</beer> => b.asInstanceOf[Elem] % Attribute("",Beer.xmlTagId,beerId.getOrElse("").toString,Null) % Attribute("","breweryid",brewery.get.breweryId.getOrElse("").toString,Null) copy(
+			case b @ <beer>{kids @ _*}</beer> => b.asInstanceOf[Elem] % Attribute("","id",beerId.getOrElse("").toString,Null) % Attribute("","breweryid",brewery.get.breweryId.getOrElse("").toString,Null) copy(
 				child=for (k <- kids) yield k match {
 					case <name>{_*}</name>                  => k.asInstanceOf[Elem].copy(child=Text(name))
 					case <id>{_*}</id>                      => <id/>         // Deletes it
 					case <brewery_id>{_*}</brewery_id>      => <brewery_id/> // Deletes it
-					case <abv>{_*}</abv> if (abv.isDefined) => k.asInstanceOf[Elem] % Attribute("",Beer.xmlTagValue,abv.get.toString,Null)
-					case <ibu>{_*}</ibu> if (ibu.isDefined) => k.asInstanceOf[Elem] % Attribute("",Beer.xmlTagValue,ibu.get.toString,Null)
+					case <abv>{_*}</abv> if (abv.isDefined) => k.asInstanceOf[Elem] % Attribute("","value",abv.get.toString,Null)
+					case <ibu>{_*}</ibu> if (ibu.isDefined) => k.asInstanceOf[Elem] % Attribute("","value",ibu.get.toString,Null)
 					case <description>{_*}</description>    if (description.isDefined) => k.asInstanceOf[Elem].copy(child=Text(description.get)) 
 					case <ingredients>{_*}</ingredients>    if (ingredients.isDefined) => replaceChildTextElem(k.asInstanceOf[Elem],ingredients.get)
 					case <grains>{_*}</grains>              if (grains.isDefined)      => replaceChildTextElem(k.asInstanceOf[Elem],grains.get)
@@ -100,40 +100,22 @@ case class Beer(
 
 object Beer {
 	
-	private final val xmlTagName= "name"
-	private final val xmlTagId="id"
-	private final val xmlTagDescription="description"
-	private final val xmlTagAbv="abv"
-	private final val xmlTagValue="value"
-	private final val xmlAttribValue="@" + xmlTagValue
-	private final val xmlTagIbu="ibu"
-	private final val xmlTagIngredients="ingredients"
-	private final val xmlTagGrains="grains"
-	private final val xmlTagHops="hops"
-	private final val xmlTagYeast="yeast"
-	private final val xmlTagOtherings="otherings"
-	private final val xmlTagStyles="styles"
-	private final val xmlTagStyle="style"
-	private final val xmlTagStyleName="name"
-	private final val xmlTagBJCPStyleId="bjcp_style_id"
-	private final val xmlTagText="text"
-	
 	def fromExisting(beerId:BeerId): Option[Beer] = {
 		val xml=scala.xml.XML.loadFile(Storage.fileLocation(beerId))
 		try {
 			Some(Beer(
-				beerId = Some(beerId),
-				name =        (xml \ xmlTagName       ).headOption.map{_.text.trim}.getOrElse(""),
-				description = (xml \ xmlTagDescription).headOption.map{_.text.trim},
-				abv =         (xml \ xmlTagAbv).flatMap(e => e.attribute(xmlTagValue).map(v=>v.text) ++ Seq(e.text)).map(x => try {x.toDouble} catch { case _ => 0.0}).filter(_ > 0.0).headOption,
-				ibu =         (xml \ xmlTagIbu).flatMap(e => e.attribute(xmlTagValue).map(v=>v.text) ++ Seq(e.text)).map(x => try {x.toDouble} catch { case _ => 0.0}).map(_.toInt).filter(_ > 0).headOption,
-				ingredients = (xml \ xmlTagIngredients).flatMap(e => Seq((e \ xmlTagText).text.trim) ++ Seq(e.text.trim)).filter(_.length > 0).headOption,
-				grains      = (xml \ xmlTagGrains     ).flatMap(e => Seq((e \ xmlTagText).text.trim) ++ Seq(e.text.trim)).filter(_.length > 0).headOption,
-				hops        = (xml \ xmlTagHops       ).flatMap(e => Seq((e \ xmlTagText).text.trim) ++ Seq(e.text.trim)).filter(_.length > 0).headOption,
-				yeast       = (xml \ xmlTagYeast      ).flatMap(e => Seq((e \ xmlTagText).text.trim) ++ Seq(e.text.trim)).filter(_.length > 0).headOption,
-				otherings   = (xml \ xmlTagOtherings  ).flatMap(e => Seq((e \ xmlTagText).text.trim) ++ Seq(e.text.trim)).filter(_.length > 0).headOption,
-				styles = Some((xml \ xmlTagStyles     ).map( style => 
-					new BeerStyle((style \ xmlTagStyle \ xmlTagBJCPStyleId).text,(style \ xmlTagStyle \ xmlTagStyleName).text.trim)
+				beerId      = Some(beerId),
+				name        = (xml \ "name"       ).headOption.map{_.text.trim}.getOrElse(""),
+				description = (xml \ "description").headOption.map{_.text.trim},
+				abv         = (xml \ "abv"        ).flatMap(e => e.attribute("value").map(v=>v.text) ++ Seq(e.text)).map(x => try {x.toDouble} catch { case _ => 0.0}).filter(_ > 0.0).headOption,
+				ibu         = (xml \ "ibu"        ).flatMap(e => e.attribute("value").map(v=>v.text) ++ Seq(e.text)).map(x => try {x.toDouble} catch { case _ => 0.0}).map(_.toInt).filter(_ > 0).headOption,
+				ingredients = (xml \ "ingredients").flatMap(e => Seq((e \ "text").text.trim) ++ Seq(e.text.trim)).filter(_.length > 0).headOption,
+				grains      = (xml \ "grains"     ).flatMap(e => Seq((e \ "text").text.trim) ++ Seq(e.text.trim)).filter(_.length > 0).headOption,
+				hops        = (xml \ "hops"       ).flatMap(e => Seq((e \ "text").text.trim) ++ Seq(e.text.trim)).filter(_.length > 0).headOption,
+				yeast       = (xml \ "yeast"      ).flatMap(e => Seq((e \ "text").text.trim) ++ Seq(e.text.trim)).filter(_.length > 0).headOption,
+				otherings   = (xml \ "otherings"  ).flatMap(e => Seq((e \ "text").text.trim) ++ Seq(e.text.trim)).filter(_.length > 0).headOption,
+				styles = Some((xml \ "styles"     ).map( style => 
+					new BeerStyle((style \ "style" \ "bjcp_style_id").text,(style \ "style" \ "name").text.trim)
 				).toList)
 			))
 		}
