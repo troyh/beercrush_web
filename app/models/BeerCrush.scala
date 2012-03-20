@@ -6,6 +6,7 @@ import play.api.data.validation.{Constraint, Constraints, Valid, Invalid, Valida
 object BeerCrush {
 	val ISO8601DateFormat="yyyy-MM-dd'T'HH:mm:ssZ"
 	val SolrDateFormat="yyyy-MM-dd'T'HH:mm:ss'Z'"
+	final val xmlNamespace="beercrush"
 }
 
 class Id(val id: Option[String]) {

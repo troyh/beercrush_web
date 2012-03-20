@@ -46,7 +46,6 @@ case class Beer(
 	  */
 	lazy val brewery = {
 		val bid: Option[BreweryId]=beerId.map(_.breweryId)
-		// val bid: BreweryId = b.breweryId
 		bid match {
 			case None => None
 			case Some(id) => Brewery.fromExisting(id)
@@ -66,13 +65,13 @@ case class Beer(
 							( Beer.xmlTagName       , { orig => <name>{name}</name> } )
 							,(Beer.xmlTagId		    , { orig => <id/> } ) // Effectively deletes it
 							,(Beer.xmlTagDescription, { orig => if (description.isDefined) <description>{description.get}</description> else orig } )
-							,(Beer.xmlTagAbv 	    , { orig => if (abv.isDefined) <abv>{abv.get}</abv> else orig } )
-							,(Beer.xmlTagIbu 	    , { orig => if (ibu.isDefined) <ibu>{ibu.get}</ibu> else orig } )
-							,(Beer.xmlTagIngredients, { orig => if (ingredients.isDefined) <ingredients>{ingredients.get}</ingredients> else orig } )
+							,(Beer.xmlTagAbv 	    , { orig => if (abv.isDefined) <abv/> % Attribute(BeerCrush.xmlNamespace,Beer.xmlTagValue,abv.get.toString,Null) else orig } )
+							,(Beer.xmlTagIbu 	    , { orig => if (ibu.isDefined) <ibu/> % Attribute(BeerCrush.xmlNamespace,Beer.xmlTagValue,ibu.get.toString,Null) else orig } )
+							,(Beer.xmlTagIngredients, { orig => if (ingredients.isDefined) <ingredients><text>{ingredients.get}</text></ingredients> else orig } )
 							,(Beer.xmlTagGrains     , { orig => if (grains.isDefined) <grains>{grains.get}</grains> else orig } )
-							,(Beer.xmlTagHops       , { orig => if (hops.isDefined) <hops>{hops.get}</hops> else orig } )
-							,(Beer.xmlTagYeast      , { orig => if (yeast.isDefined) <yeast>{yeast.get}</yeast> else orig } )
-							,(Beer.xmlTagOtherings  , { orig => if (otherings.isDefined) <otherings>{otherings.get}</otherings> else orig } )
+							,(Beer.xmlTagHops       , { orig => if (hops.isDefined) <hops><text>{hops.get}</text></hops> else orig } )
+							,(Beer.xmlTagYeast      , { orig => if (yeast.isDefined) <yeast><text>{yeast.get}</text></yeast> else orig } )
+							,(Beer.xmlTagOtherings  , { orig => if (otherings.isDefined) <otherings><text>{otherings.get}</text></otherings> else orig } )
 							,(Beer.xmlTagStyles     , { orig => 
 								if (styles.isDefined && styles.get.length > 0) {
 									<styles>
@@ -113,6 +112,8 @@ object Beer {
 	private final val xmlTagId="id"
 	private final val xmlTagDescription="description"
 	private final val xmlTagAbv="abv"
+	private final val xmlTagValue="value"
+	private final val xmlAttribValue="@" + xmlTagValue
 	private final val xmlTagIbu="ibu"
 	private final val xmlTagIngredients="ingredients"
 	private final val xmlTagGrains="grains"
@@ -123,21 +124,22 @@ object Beer {
 	private final val xmlTagStyle="style"
 	private final val xmlTagStyleName="name"
 	private final val xmlTagBJCPStyleId="bjcp_style_id"
+	private final val xmlTagText="text"
 	
 	def fromExisting(beerId:BeerId): Option[Beer] = {
+		val xml=scala.xml.XML.loadFile(Storage.fileLocation(beerId))
 		try {
-			val xml=scala.xml.XML.loadFile(Storage.fileLocation(beerId))
 			Some(Beer(
 				beerId = Some(beerId),
 				name =        (xml \ xmlTagName       ).headOption.map{_.text.trim}.getOrElse(""),
 				description = (xml \ xmlTagDescription).headOption.map{_.text.trim},
-				abv = try {   (xml \ xmlTagAbv        ).headOption.map{_.text.toDouble} } catch { case _ => None },
-				ibu = try {   (xml \ xmlTagIbu		  ).headOption.map{ _.text.toInt } } catch { case _ => None },
-				ingredients = (xml \ xmlTagIngredients).headOption.map{_.text.trim},
-				grains =      (xml \ xmlTagGrains	  ).headOption.map{_.text.trim},
-				hops =        (xml \ xmlTagHops	      ).headOption.map{_.text.trim},
-				yeast = 	  (xml \ xmlTagYeast	  ).headOption.map{_.text.trim},
-				otherings =   (xml \ xmlTagOtherings  ).headOption.map{_.text.trim},
+				abv =         (xml \ xmlTagAbv).flatMap(e => e.attribute(xmlTagValue).map(v=>v.text) ++ Seq(e.text)).map(x => try {x.toDouble} catch { case _ => 0.0}).filter(_ > 0.0).headOption,
+				ibu =         (xml \ xmlTagIbu).flatMap(e => e.attribute(xmlTagValue).map(v=>v.text) ++ Seq(e.text)).map(x => try {x.toDouble} catch { case _ => 0.0}).map(_.toInt).filter(_ > 0).headOption,
+				ingredients = (xml \ xmlTagIngredients).flatMap(e => Seq((e \ xmlTagText).text.trim) ++ Seq(e.text.trim)).filter(_.length > 0).headOption,
+				grains      = (xml \ xmlTagGrains     ).flatMap(e => Seq((e \ xmlTagText).text.trim) ++ Seq(e.text.trim)).filter(_.length > 0).headOption,
+				hops        = (xml \ xmlTagHops       ).flatMap(e => Seq((e \ xmlTagText).text.trim) ++ Seq(e.text.trim)).filter(_.length > 0).headOption,
+				yeast       = (xml \ xmlTagYeast      ).flatMap(e => Seq((e \ xmlTagText).text.trim) ++ Seq(e.text.trim)).filter(_.length > 0).headOption,
+				otherings   = (xml \ xmlTagOtherings  ).flatMap(e => Seq((e \ xmlTagText).text.trim) ++ Seq(e.text.trim)).filter(_.length > 0).headOption,
 				styles = Some((xml \ xmlTagStyles     ).map( style => 
 					new BeerStyle((style \ xmlTagStyle \ xmlTagBJCPStyleId).text,(style \ xmlTagStyle \ xmlTagStyleName).text.trim)
 				).toList)
