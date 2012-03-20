@@ -58,20 +58,68 @@ case class Beer(
 		nodes
 		,Map(
 			("beer", { orig =>
-				<beer id={beerId.getOrElse("").toString}>{ 
+				<beer id={beerId.getOrElse("").toString} breweryid={brewery.get.breweryId.getOrElse("").toString}>{ 
 					applyValuesToXML(
 						orig.child
 						,Map(
 							( Beer.xmlTagName       , { orig => <name>{name}</name> } )
 							,(Beer.xmlTagId		    , { orig => <id/> } ) // Effectively deletes it
+							,("brewery_id"		    , { orig => <brewery_id/> } ) // Effectively deletes it
 							,(Beer.xmlTagDescription, { orig => if (description.isDefined) <description>{description.get}</description> else orig } )
-							,(Beer.xmlTagAbv 	    , { orig => if (abv.isDefined) <abv/> % Attribute(BeerCrush.xmlNamespace,Beer.xmlTagValue,abv.get.toString,Null) else orig } )
-							,(Beer.xmlTagIbu 	    , { orig => if (ibu.isDefined) <ibu/> % Attribute(BeerCrush.xmlNamespace,Beer.xmlTagValue,ibu.get.toString,Null) else orig } )
-							,(Beer.xmlTagIngredients, { orig => if (ingredients.isDefined) <ingredients><text>{ingredients.get}</text></ingredients> else orig } )
-							,(Beer.xmlTagGrains     , { orig => if (grains.isDefined) <grains>{grains.get}</grains> else orig } )
-							,(Beer.xmlTagHops       , { orig => if (hops.isDefined) <hops><text>{hops.get}</text></hops> else orig } )
-							,(Beer.xmlTagYeast      , { orig => if (yeast.isDefined) <yeast><text>{yeast.get}</text></yeast> else orig } )
-							,(Beer.xmlTagOtherings  , { orig => if (otherings.isDefined) <otherings><text>{otherings.get}</text></otherings> else orig } )
+							,(Beer.xmlTagAbv 	    , { orig => if (abv.isDefined) <abv/> % Attribute("",Beer.xmlTagValue,abv.get.toString,Null) else orig } )
+							,(Beer.xmlTagIbu 	    , { orig => if (ibu.isDefined) <ibu/> % Attribute("",Beer.xmlTagValue,ibu.get.toString,Null) else orig } )
+							,(Beer.xmlTagIngredients, { orig => 
+								<ingredients>{ 
+									applyValuesToXML(
+										orig.child
+										,Map(
+											(Beer.xmlTagText, orig => if (ingredients.isDefined) <text>{ingredients.get}</text> else orig)
+										)
+									)
+								}</ingredients>
+							} )
+							,(Beer.xmlTagGrains     , { orig => 
+								<grains>{ 
+									applyValuesToXML(
+										orig.child
+										,Map(
+											(Beer.xmlTagText, orig => if (grains.isDefined) <text>{grains.get}</text> else orig)
+										)
+									)
+								}</grains>
+							} )
+							,(Beer.xmlTagHops       , { orig => 
+								if (hops.isDefined) <hops><text>{hops.get}</text></hops> else orig 
+								<hops>{ 
+									applyValuesToXML(
+										orig.child
+										,Map(
+											(Beer.xmlTagText, orig => if (hops.isDefined) <text>{hops.get}</text> else orig)
+										)
+									)
+								}</hops>
+							} )
+							,(Beer.xmlTagYeast      , { orig => 
+								<yeast>{ 
+									applyValuesToXML(
+										orig.child
+										,Map(
+											(Beer.xmlTagText, orig => if (yeast.isDefined) <text>{yeast.get}</text> else orig)
+										)
+									)
+								}</yeast>
+							} )
+							,(Beer.xmlTagOtherings  , { orig => 
+								if (otherings.isDefined) <otherings><text>{otherings.get}</text></otherings> else orig 
+								<otherings>{ 
+									applyValuesToXML(
+										orig.child
+										,Map(
+											(Beer.xmlTagText, orig => if (otherings.isDefined) <text>{otherings.get}</text> else orig)
+										)
+									)
+								}</otherings>
+							} )
 							,(Beer.xmlTagStyles     , { orig => 
 								if (styles.isDefined && styles.get.length > 0) {
 									<styles>
