@@ -47,7 +47,7 @@ object FormConstraints {
 		if (o >= minValue) Valid else Invalid(ValidationError("error.min", minValue))
     }
     def max(maxValue: Double): Constraint[Double] = Constraint[Double]("constraint.max", maxValue) { o =>
-		if (o >= maxValue) Valid else Invalid(ValidationError("error.max", maxValue))
+		if (o <= maxValue) Valid else Invalid(ValidationError("error.max", maxValue))
     }
     def minOptional(minValue: Int): Constraint[Option[String]] = Constraint[Option[String]]("constraint.min", minValue) { o =>
 		o match {
