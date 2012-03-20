@@ -53,90 +53,34 @@ case class Beer(
 	}
 
 	def toXML= transform(<beer/>)
-
-	def transform(nodes: NodeSeq): NodeSeq = applyValuesToXML(
-		nodes
-		,Map(
-			("beer", { orig =>
-				<beer id={beerId.getOrElse("").toString} breweryid={brewery.get.breweryId.getOrElse("").toString}>{ 
-					applyValuesToXML(
-						orig.child
-						,Map(
-							( Beer.xmlTagName       , { orig => <name>{name}</name> } )
-							,(Beer.xmlTagId		    , { orig => <id/> } ) // Effectively deletes it
-							,("brewery_id"		    , { orig => <brewery_id/> } ) // Effectively deletes it
-							,(Beer.xmlTagDescription, { orig => if (description.isDefined) <description>{description.get}</description> else orig } )
-							,(Beer.xmlTagAbv 	    , { orig => if (abv.isDefined) <abv/> % Attribute("",Beer.xmlTagValue,abv.get.toString,Null) else orig } )
-							,(Beer.xmlTagIbu 	    , { orig => if (ibu.isDefined) <ibu/> % Attribute("",Beer.xmlTagValue,ibu.get.toString,Null) else orig } )
-							,(Beer.xmlTagIngredients, { orig => 
-								<ingredients>{ 
-									applyValuesToXML(
-										orig.child
-										,Map(
-											(Beer.xmlTagText, orig => if (ingredients.isDefined) <text>{ingredients.get}</text> else orig)
-										)
-									)
-								}</ingredients>
-							} )
-							,(Beer.xmlTagGrains     , { orig => 
-								<grains>{ 
-									applyValuesToXML(
-										orig.child
-										,Map(
-											(Beer.xmlTagText, orig => if (grains.isDefined) <text>{grains.get}</text> else orig)
-										)
-									)
-								}</grains>
-							} )
-							,(Beer.xmlTagHops       , { orig => 
-								if (hops.isDefined) <hops><text>{hops.get}</text></hops> else orig 
-								<hops>{ 
-									applyValuesToXML(
-										orig.child
-										,Map(
-											(Beer.xmlTagText, orig => if (hops.isDefined) <text>{hops.get}</text> else orig)
-										)
-									)
-								}</hops>
-							} )
-							,(Beer.xmlTagYeast      , { orig => 
-								<yeast>{ 
-									applyValuesToXML(
-										orig.child
-										,Map(
-											(Beer.xmlTagText, orig => if (yeast.isDefined) <text>{yeast.get}</text> else orig)
-										)
-									)
-								}</yeast>
-							} )
-							,(Beer.xmlTagOtherings  , { orig => 
-								if (otherings.isDefined) <otherings><text>{otherings.get}</text></otherings> else orig 
-								<otherings>{ 
-									applyValuesToXML(
-										orig.child
-										,Map(
-											(Beer.xmlTagText, orig => if (otherings.isDefined) <text>{otherings.get}</text> else orig)
-										)
-									)
-								}</otherings>
-							} )
-							,(Beer.xmlTagStyles     , { orig => 
-								if (styles.isDefined && styles.get.length > 0) {
-									<styles>
-										{styles.get.map(style => 
-											<style><bjcp_style_id>{style.id}</bjcp_style_id><name>{style.name}</name></style>
-										)}
-									</styles>
-								} else
-									orig
-							})
-						)
-					)
-				}</beer>
-			})
-		)
-	)
 	
+	private def replaceChildTextElem(elem: Elem, s: String) = elem.copy(child=for (e <- elem.child) yield e match {
+			case t @ <text>{_*}</text> => t.asInstanceOf[Elem].copy(child=Text(s))
+			case other => other
+	})
+
+	def transform(nodes: NodeSeq): NodeSeq = {
+		for (n <- nodes) yield n match {
+			case b @ <beer>{kids @ _*}</beer> => b.asInstanceOf[Elem] % Attribute("",Beer.xmlTagId,beerId.getOrElse("").toString,Null) % Attribute("","breweryid",brewery.get.breweryId.getOrElse("").toString,Null) copy(
+				child=for (k <- kids) yield k match {
+					case <name>{_*}</name>                  => k.asInstanceOf[Elem].copy(child=Text(name))
+					case <id>{_*}</id>                      => <id/>         // Deletes it
+					case <brewery_id>{_*}</brewery_id>      => <brewery_id/> // Deletes it
+					case <abv>{_*}</abv> if (abv.isDefined) => k.asInstanceOf[Elem] % Attribute("",Beer.xmlTagValue,abv.get.toString,Null)
+					case <ibu>{_*}</ibu> if (ibu.isDefined) => k.asInstanceOf[Elem] % Attribute("",Beer.xmlTagValue,ibu.get.toString,Null)
+					case <description>{_*}</description>    if (description.isDefined) => k.asInstanceOf[Elem].copy(child=Text(description.get)) 
+					case <ingredients>{_*}</ingredients>    if (ingredients.isDefined) => replaceChildTextElem(k.asInstanceOf[Elem],ingredients.get)
+					case <grains>{_*}</grains>              if (grains.isDefined)      => replaceChildTextElem(k.asInstanceOf[Elem],grains.get)
+					case <hops>{_*}</hops>                  if (hops.isDefined)        => replaceChildTextElem(k.asInstanceOf[Elem],hops.get)
+					case <yeast>{_*}</yeast>                if (yeast.isDefined)       => replaceChildTextElem(k.asInstanceOf[Elem],yeast.get)
+					case <otherings>{_*}</otherings>        if (otherings.isDefined)   => replaceChildTextElem(k.asInstanceOf[Elem],otherings.get)
+					case other => other
+				}
+			)
+			case other => other
+		}
+	}
+
 	def toJSON = JsObject(
 		(
 		  beerId.map{"id" -> JsString(_)} ::
