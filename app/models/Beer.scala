@@ -54,32 +54,41 @@ case class Beer(
 
 	def toXML= transform(<beer/>)
 	
-	private def replaceChildTextElem(elem: Elem, s: String) = elem.copy(child=for (e <- elem.child) yield e match {
+	def missingChildElements(node: Node, labels: Seq[String]): Seq[Elem] = {
+		val existingNodeLabels = node.child.filter(_.isInstanceOf[Elem]).map(_.label)
+		labels.filterNot(existingNodeLabels.contains(_)).map(addlabel => Elem(null,addlabel,Null,xml.TopScope))
+	}
+	
+	private def replaceChildTextElem(elem: Elem, s: String) = elem.copy(child=
+		for (e <- elem.child ++ missingChildElements(elem,Seq("text"))) yield e match {
 			case t @ <text>{_*}</text> => t.asInstanceOf[Elem].copy(child=Text(s))
 			case other => other
-	})
-
-	def transform(nodes: NodeSeq): NodeSeq = {
-		for (n <- nodes) yield n match {
-			case b @ <beer>{kids @ _*}</beer> => b.asInstanceOf[Elem] % Attribute("","id",beerId.getOrElse("").toString,Null) % Attribute("","breweryid",brewery.get.breweryId.getOrElse("").toString,Null) copy(
-				child=for (k <- kids) yield k match {
-					case <name>{_*}</name>                  => k.asInstanceOf[Elem].copy(child=Text(name))
-					case <id>{_*}</id>                      => <id/>         // Deletes it
-					case <brewery_id>{_*}</brewery_id>      => <brewery_id/> // Deletes it
-					case <abv>{_*}</abv> if (abv.isDefined) => k.asInstanceOf[Elem] % Attribute("","value",abv.get.toString,Null)
-					case <ibu>{_*}</ibu> if (ibu.isDefined) => k.asInstanceOf[Elem] % Attribute("","value",ibu.get.toString,Null)
-					case <description>{_*}</description>    if (description.isDefined) => k.asInstanceOf[Elem].copy(child=Text(description.get)) 
-					case <ingredients>{_*}</ingredients>    if (ingredients.isDefined) => replaceChildTextElem(k.asInstanceOf[Elem],ingredients.get)
-					case <grains>{_*}</grains>              if (grains.isDefined)      => replaceChildTextElem(k.asInstanceOf[Elem],grains.get)
-					case <hops>{_*}</hops>                  if (hops.isDefined)        => replaceChildTextElem(k.asInstanceOf[Elem],hops.get)
-					case <yeast>{_*}</yeast>                if (yeast.isDefined)       => replaceChildTextElem(k.asInstanceOf[Elem],yeast.get)
-					case <otherings>{_*}</otherings>        if (otherings.isDefined)   => replaceChildTextElem(k.asInstanceOf[Elem],otherings.get)
-					case other => other
-				}
-			)
-			case other => other
 		}
-	}
+	)
+
+	def transform(nodes: NodeSeq): NodeSeq = (for (n <- nodes) yield n match {
+		case b @ <beer>{kids @ _*}</beer> => 
+			b.asInstanceOf[Elem] % 
+				Attribute("","id",beerId.getOrElse("").toString,Null) % 
+				Attribute("","breweryid",brewery.get.breweryId.getOrElse("").toString,Null) copy(
+			child=(for (k <- kids ++ missingChildElements(b,Seq("abv","ibu","description","ingredients","grains","hops","yeast","otherings"))) yield k match {
+				case <name>{_*}</name>                  => k.asInstanceOf[Elem].copy(child=Text(name))
+				case <id>{_*}</id>                      => <id/>         // Deletes it
+				case <brewery_id>{_*}</brewery_id>      => <brewery_id/> // Deletes it
+				case <abv>{_*}</abv> if (abv.isDefined) => k.asInstanceOf[Elem] % Attribute("","value",abv.get.toString,Null)
+				case <ibu>{_*}</ibu> if (ibu.isDefined) => k.asInstanceOf[Elem] % Attribute("","value",ibu.get.toString,Null)
+				case <description>{_*}</description>    if (description.isDefined) => k.asInstanceOf[Elem].copy(child=Text(description.get)) 
+				case <ingredients>{_*}</ingredients>    if (ingredients.isDefined) => replaceChildTextElem(k.asInstanceOf[Elem],ingredients.get)
+				case <grains>{_*}</grains>              if (grains.isDefined)      => replaceChildTextElem(k.asInstanceOf[Elem],grains.get)
+				case <hops>{_*}</hops>                  if (hops.isDefined)        => replaceChildTextElem(k.asInstanceOf[Elem],hops.get)
+				case <yeast>{_*}</yeast>                if (yeast.isDefined)       => replaceChildTextElem(k.asInstanceOf[Elem],yeast.get)
+				case <otherings>{_*}</otherings>        if (otherings.isDefined)   => replaceChildTextElem(k.asInstanceOf[Elem],otherings.get)
+				case other => other
+			}).filter(e => e.attributes.length > 0 || e.child.length > 0) // Strip out any empty elements
+			)
+		case other => other
+	}).filter(e => e.attributes.length > 0 || e.child.length > 0) // Strip out any empty elements
+
 
 	def toJSON = JsObject(
 		(
