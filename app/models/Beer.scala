@@ -53,25 +53,14 @@ case class Beer(
 	}
 
 	def toXML= transform(<beer/>)
-	
-	def missingChildElements(node: Node, labels: Seq[String]): Seq[Elem] = {
-		val existingNodeLabels = node.child.filter(_.isInstanceOf[Elem]).map(_.label)
-		labels.filterNot(existingNodeLabels.contains(_)).map(addlabel => Elem(null,addlabel,Null,xml.TopScope))
-	}
-	
-	private def replaceChildTextElem(elem: Elem, s: String) = elem.copy(child=
-		for (e <- elem.child ++ missingChildElements(elem,Seq("text"))) yield e match {
-			case t @ <text>{_*}</text> => t.asInstanceOf[Elem].copy(child=Text(s))
-			case other => other
-		}
-	)
 
+	import SuperNode._
 	def transform(nodes: NodeSeq): NodeSeq = (for (n <- nodes) yield n match {
 		case b @ <beer>{kids @ _*}</beer> => 
 			b.asInstanceOf[Elem] % 
 				Attribute("","id",beerId.getOrElse("").toString,Null) % 
 				Attribute("","breweryid",brewery.get.breweryId.getOrElse("").toString,Null) copy(
-			child=(for (k <- kids ++ missingChildElements(b,Seq("abv","ibu","description","ingredients","grains","hops","yeast","otherings"))) yield k match {
+			child=(for (k <- b.withMissingChildElements(Seq("abv","ibu","description","ingredients","grains","hops","yeast","otherings")).child) yield k match {
 				case <name>{_*}</name>                  => k.asInstanceOf[Elem].copy(child=Text(name))
 				case <id>{_*}</id>                      => <id/>         // Deletes it
 				case <brewery_id>{_*}</brewery_id>      => <brewery_id/> // Deletes it
