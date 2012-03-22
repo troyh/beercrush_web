@@ -47,12 +47,12 @@ case class BeerReview(
 	}
 
 	def toXML=transform(<review/>) 
-
+	
 	import SuperNode._
 	def transform(nodes: NodeSeq): NodeSeq = for (node <- nodes) yield node match {
 		case r @ <review>{_*}</review> => r.asInstanceOf[Elem] % 
 				Attribute("","id",id.getOrElse("").toString,Null) %
-				Attribute("","ctime",new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(ctime.getOrElse(new java.util.Date())),Null) copy(child=for (k <- r.withMissingChildElements(Seq("rating","balance","aftertaste","flavors","when","where","wouldDrinkAgain","text")).child) yield k match {
+				Attribute("","ctime",Utility.formatDateISO8601(ctime),Null) copy(child=for (k <- r.withMissingChildElements(Seq("rating","balance","aftertaste","flavors","when","where","wouldDrinkAgain","text")).child) yield k match {
 			case <ctime>{_*}</ctime> => <ctime/> // Deletes it on Storage.save()
 			case <rating>{_*}</rating> => k.asInstanceOf[Elem] % Attribute("","value",rating.toString,Null)
 			case <balance>{_*}</balance> => 
@@ -72,7 +72,7 @@ case class BeerReview(
 					k.asInstanceOf[Elem].copy(child=Text(""))
 			case <when>{_*}</when> => 
 				if (when.isDefined)
-					k.asInstanceOf[Elem].copy(child=Text(new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(when.get)))
+					k.asInstanceOf[Elem].copy(child=Text(Utility.formatDateISO8601(when)))
 				else
 					k.asInstanceOf[Elem].copy(child=Text(""))
 			case <where>{_*}</where> => k.asInstanceOf[Elem].copy(child=Text(where.get))
@@ -89,7 +89,7 @@ case class BeerReview(
 	
 	def toJSON = JsObject(List(
 		id.map { x => "id" -> JsString(x.id.get) }.get,
-		"ctime" -> JsString(new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(ctime)),
+		"ctime" -> JsString(Utility.formatDateISO8601(ctime)),
 		"rating" -> JsNumber(rating),
 		balance.map{ "balance" -> JsNumber(_) }.get,
 		aftertaste.map{ "aftertaste" -> JsNumber(_) }.get,

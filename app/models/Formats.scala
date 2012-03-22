@@ -51,3 +51,8 @@ trait XmlFormat {
 
 }
 
+object Utility {
+	def formatDateISO8601(date: Option[java.util.Date]): String = 
+		new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(date.getOrElse(new java.util.Date()))
+}
+
