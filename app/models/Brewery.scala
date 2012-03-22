@@ -27,58 +27,42 @@ case class Brewery(
 	}
 
 	def toXML = transform(<brewery/>)
-	
-	def transform(nodes: NodeSeq): NodeSeq = applyValuesToXML(
-		nodes
-		,Map(
-			(Brewery.xmlTagBrewery, { orig => <brewery id={breweryId.getOrElse("").toString}>{applyValuesToXML(
-				orig.child
-				,Map(
-					( Brewery.xmlTagId   , { orig => <id/> } ) // Effectively deletes it
-					,(Brewery.xmlTagName , { orig => <name>{name}</name>})
-					,(Brewery.xmlTagAddress, { orig => <address/> }) // Effectively deletes it
-					,(Brewery.xmlTagVcard, { orig => address.transform(orig) })
-					,(Brewery.xmlTagPhone, { orig => phone match {
-						case Some(phone) => <phone>{phone}</phone>
-						case None => orig 
-					}})
-				)
-				)}</brewery>}
-			)
-		)
-	)
+
+	import SuperNode._
+	def transform(nodes: NodeSeq): NodeSeq = for (node <- nodes) yield node match {
+		case b @ <brewery>{_*}</brewery> => b.asInstanceOf[Elem] % Attribute("","id",breweryId.get.toString,Null) copy(child=for (k <- b.withMissingChildElements(Seq("name","vcard","phone")).child) yield k match {
+			case <id>{_*}</id>           => <id/> // Deletes it on Storage.save()
+			case <name>{_*}</name> 	     => k.asInstanceOf[Elem].copy(child=Text(name))
+			case <address>{_*}</address> => <address/> // Deletes it on Storage.save()
+			case <vcard>{_*}</vcard> 	 => address.transform(k).head
+			case <phone>{_*}</phone> 	 => k.asInstanceOf[Elem].copy(child=Text(phone.get))
+			case other => other
+		})
+		case other => other
+	}
 	
 	def toJSON = JsObject((
-		Some(Brewery.xmlTagId -> JsString(this.id.toString)) ::
-		Some(Brewery.xmlTagName -> JsString(this.name)) :: 
-		Some(Brewery.xmlTagAddress -> this.address.toJSON) :: 
-		(phone.map { Brewery.xmlTagPhone -> JsString(_) }) ::
+		Some("id" -> JsString(this.id.toString)) ::
+		Some("name" -> JsString(this.name)) :: 
+		Some("vcard" -> this.address.toJSON) :: 
+		(phone.map { "phone" -> JsString(_) }) ::
 		Nil
 	).filter(_.isDefined).map(_.get))
 }
 
 object Brewery {
-	
-	private final val xmlTagBrewery="brewery"
-	private final val xmlTagId="id"
-	private final val xmlAttributeId="@" + xmlTagId
-	private final val xmlTagName="name"
-	private final val xmlTagAddress="address" // @deprecated
-	private final val xmlTagVcard="vcard"
-	private final val xmlTagPhone="phone"
-	
 	def fromExisting(id:BreweryId): Option[Brewery] = {
 		try {
 			val xml=scala.xml.XML.loadFile("/Users/troy/beerdata/brewery/" + id + ".xml")
-			val address=(xml \ xmlTagVcard \ "adr") match {
+			val address=(xml \ "vcard" \ "adr") match {
 				case vcard:NodeSeq if (vcard.length > 0)=> vcard.head
-				case _ => (xml \ xmlTagAddress).head
+				case _ => (xml \ "address").head
 			}
 			Some(Brewery(
-				(xml \ Brewery.xmlAttributeId).headOption.map{_.text},
-				(xml \ Brewery.xmlTagName).text,
+				(xml \ "@id").headOption.map{_.text},
+				(xml \ "name").text,
 				Address.fromXML(address),
-				(xml \ Brewery.xmlTagPhone).headOption.map{_.text}
+				(xml \ "phone").headOption.map{_.text}
 			))
 		}
 		catch {

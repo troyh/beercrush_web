@@ -54,13 +54,14 @@ case class Address(
 	def transform(nodes: NodeSeq): NodeSeq = for (n <- nodes) yield n match {
 		case v @ <vcard>{kids @ _*}</vcard> => v.asInstanceOf[Elem].copy(child=for (k <- kids) yield k match {
 			case a @ <adr>{_*}</adr> => a.asInstanceOf[Elem].copy(child=for (k <- a.withMissingChildElements(Seq("code","latitude","longitude","street","region","locality","country")).child) yield k match {
+				case <street>{_*}</street> 	     if (street.isDefined)    => k.asInstanceOf[Elem].copy(child=Text(street.get))
+				case <locality>{_*}</locality>   if (city.isDefined)      => k.asInstanceOf[Elem].copy(child=Text(city.get))
 				case <code>{_*}</code>           if (zip.isDefined)       => k.asInstanceOf[Elem].copy(child=Text(zip.get))
+				case <region>{_*}</region>       if (city.isDefined)      => k.asInstanceOf[Elem].copy(child=Text(state.get))
+				case <country>{_*}</country>     if (country.isDefined)   => k.asInstanceOf[Elem].copy(child=Text(country.get))
 				case <latitude>{_*}</latitude>   if (latitude.isDefined)  => k.asInstanceOf[Elem].copy(child=Text(latitude.get.toString))
 				case <longitude>{_*}</longitude> if (longitude.isDefined) => k.asInstanceOf[Elem].copy(child=Text(longitude.get.toString))
-				case <street>{_*}</street> 	     if (street.isDefined)    => k.asInstanceOf[Elem].copy(child=Text(street.get))
-				case <region>{_*}</region>       if (city.isDefined)      => k.asInstanceOf[Elem].copy(child=Text(state.get))
-				case <locality>{_*}</locality>   if (city.isDefined)      => k.asInstanceOf[Elem].copy(child=Text(city.get))
-				case <country>{_*}</country>     if (country.isDefined)   => k.asInstanceOf[Elem].copy(child=Text(country.get))
+				case other => other
 			})
 		})
 	}
