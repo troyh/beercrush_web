@@ -2,7 +2,7 @@ package models
 
 import BeerCrush._
 import play.api.libs.json._
-import scala.xml.NodeSeq
+import scala.xml.{NodeSeq, Elem, Text}
 
 /**
   * Represents a postal address. 
@@ -50,31 +50,21 @@ case class Address(
 	*/
 	def toXML = transform(<address/>)
 
-	def transform(nodes: NodeSeq): NodeSeq = applyValuesToXML(
-		nodes
-		,Map(
-			// ( "address", { orig => <address></address> } ) // Effectively deletes it
-			(Address.xmlTagVcard, { orig => <vcard>{applyValuesToXML(
-				orig.child
-				,Map(
-					(Address.xmlTagAdr, { orig => <adr>{applyValuesToXML(
-						orig.child
-						,Map(
-							( Address.xmlTagStreet   , { orig => if (street.isDefined)    <street>{street.get}</street> else orig})
-							,(Address.xmlTagLocality , { orig => if (city.isDefined)      <locality>{city.get}</locality> else orig})
-							,(Address.xmlTagRegion   , { orig => if (state.isDefined)     <region>{state.get}</region> else orig})
-							,(Address.xmlTagPostCode , { orig => if (zip.isDefined)       <code>{zip.get}</code> else orig})
-							,(Address.xmlTagCountry  , { orig => if (country.isDefined)   <country>{country.get}</country> else orig})
-							,(Address.xmlTagLatitude , { orig => if (latitude.isDefined)  <latitude>{latitude.get}</latitude> else orig})
-							,(Address.xmlTagLongitude, { orig => if (longitude.isDefined) <longitude>{longitude.get}</longitude> else orig})
-						)
-					)}</adr>})
-				)
-				)}</vcard>}
-			)
-		)
-	)
-	
+	import SuperNode._
+	def transform(nodes: NodeSeq): NodeSeq = for (n <- nodes) yield n match {
+		case v @ <vcard>{kids @ _*}</vcard> => v.asInstanceOf[Elem].copy(child=for (k <- kids) yield k match {
+			case a @ <adr>{_*}</adr> => a.asInstanceOf[Elem].copy(child=for (k <- a.withMissingChildElements(Seq("code","latitude","longitude","street","region","locality","country")).child) yield k match {
+				case <code>{_*}</code>           if (zip.isDefined)       => k.asInstanceOf[Elem].copy(child=Text(zip.get))
+				case <latitude>{_*}</latitude>   if (latitude.isDefined)  => k.asInstanceOf[Elem].copy(child=Text(latitude.get.toString))
+				case <longitude>{_*}</longitude> if (longitude.isDefined) => k.asInstanceOf[Elem].copy(child=Text(longitude.get.toString))
+				case <street>{_*}</street> 	     if (street.isDefined)    => k.asInstanceOf[Elem].copy(child=Text(street.get))
+				case <region>{_*}</region>       if (city.isDefined)      => k.asInstanceOf[Elem].copy(child=Text(state.get))
+				case <locality>{_*}</locality>   if (city.isDefined)      => k.asInstanceOf[Elem].copy(child=Text(city.get))
+				case <country>{_*}</country>     if (country.isDefined)   => k.asInstanceOf[Elem].copy(child=Text(country.get))
+			})
+		})
+	}
+
 	def toJSON = JsObject(
 		(
 			street.map("street" -> JsString(_)) ::
