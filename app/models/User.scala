@@ -2,7 +2,7 @@ package models
 
 import BeerCrush._
 import play.api.libs.json._
-import scala.xml.{NodeSeq, Node}
+import scala.xml._
 
 class UserId(id: String) extends Id(Some(id)) {
 }
@@ -41,18 +41,22 @@ case class User(
 	
 	def toXML = transform(<user/>)
 
-	def transform(nodes: NodeSeq): NodeSeq = applyValuesToXML(
-		nodes,
-		Map(
-			(User.xmlTagUser, { orig => <user id={userId}>{applyValuesToXML(orig.child,Map(
-				( User.xmlTagUsername, { orig => <username>{userId}</username> })
-				,(User.xmlTagCtime,    { orig => if (ctime.isDefined) <ctime>{new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(ctime.get)}</ctime> else orig })
-				,(User.xmlTagName,     { orig => <name>{name}</name> })
-				,(User.xmlTagPassword, { orig => <password>{password}</password> })
-				,(User.xmlTagAboutme,  { orig => <aboutme>{aboutme}</aboutme> })
-			))}</user>})
-		)
-	)
+	import SuperNode._
+	def transform(nodes: NodeSeq): NodeSeq = for (n <- nodes) yield n match {
+		case u @ <user>{_*}</user> => 
+			u.asInstanceOf[Elem] % 
+				Attribute("","id",userId.toString,Null) % 
+				Attribute("","ctime",new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(ctime.getOrElse(new java.util.Date)),Null) copy(
+			child=(for (k <- u.withMissingChildElements(Seq("name","password","aboutme")).child) yield k match {
+				case <name>{_*}</name> => <name>{name}</name>
+				case <password>{_*}</password> => <password>{password}</password>
+				case <aboutme>{_*}</aboutme> => <aboutme>{aboutme}</aboutme>
+				case <ctime>{_*}</ctime> => <ctime/>
+				case <username>{_*}</username> => <username/>
+				case other => other
+			}))
+		case other => other
+	}
 }
   
 object User {

@@ -72,7 +72,14 @@ object Storage {
 
 		// TODO: original file may not exist, handle that.
 		val oldXML=scala.xml.XML.load(fileLocation(itemToSave.id.get))
-		val newXML=itemToSave.transform(oldXML)
+
+		def removeEmptyElements(ns: NodeSeq):NodeSeq = for (n <- ns) yield n match {
+			case e: Elem if (e.attributes.length == 0 && e.child.length == 0) => Text("") /* Output nothing */
+			case e: Elem => e.copy(child=removeEmptyElements(e.child))
+			case other => other
+		}
+		
+		val newXML=removeEmptyElements(itemToSave.transform(oldXML))
 
 		val pp=new scala.xml.PrettyPrinter(80,2)
 		Path(fileLocation(itemToSave.id.get)).write(

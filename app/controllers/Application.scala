@@ -61,6 +61,8 @@ object Application extends Controller {
 			<field name={pair._1}>{ pair._2 match {
 				case v: String => v
 				case v: java.util.Date => new java.text.SimpleDateFormat(BeerCrush.SolrDateFormat).format(v)
+				case None => ""
+				case Some(v) => v.toString
 				case v  => v.toString
 			}}</field>
 		}}</doc></add>

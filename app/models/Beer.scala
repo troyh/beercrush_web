@@ -55,12 +55,12 @@ case class Beer(
 	def toXML= transform(<beer/>)
 
 	import SuperNode._
-	def transform(nodes: NodeSeq): NodeSeq = (for (n <- nodes) yield n match {
+	def transform(nodes: NodeSeq): NodeSeq = for (n <- nodes) yield n match {
 		case b @ <beer>{kids @ _*}</beer> => 
 			b.asInstanceOf[Elem] % 
 				Attribute("","id",beerId.getOrElse("").toString,Null) % 
 				Attribute("","breweryid",brewery.get.breweryId.getOrElse("").toString,Null) copy(
-			child=(for (k <- b.withMissingChildElements(Seq("abv","ibu","description","ingredients","grains","hops","yeast","otherings")).child) yield k match {
+			child=for (k <- b.withMissingChildElements(Seq("abv","ibu","description","ingredients","grains","hops","yeast","otherings")).child) yield k match {
 				case <name>{_*}</name>                  => k.asInstanceOf[Elem].copy(child=Text(name))
 				case <id>{_*}</id>                      => <id/>         // Deletes it
 				case <brewery_id>{_*}</brewery_id>      => <brewery_id/> // Deletes it
@@ -73,11 +73,9 @@ case class Beer(
 				case <yeast>{_*}</yeast>                if (yeast.isDefined)       => replaceChildTextElem(k.asInstanceOf[Elem],yeast.get)
 				case <otherings>{_*}</otherings>        if (otherings.isDefined)   => replaceChildTextElem(k.asInstanceOf[Elem],otherings.get)
 				case other => other
-			}).filter(e => e.attributes.length > 0 || e.child.length > 0) // Strip out any empty elements
-			)
+			})
 		case other => other
-	}).filter(e => e.attributes.length > 0 || e.child.length > 0) // Strip out any empty elements
-
+	}
 
 	def toJSON = JsObject(
 		(
