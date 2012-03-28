@@ -564,4 +564,15 @@ object Application extends Controller {
 		}
 	}
 	
+	def showStyle(styleId: StyleId) = Action { implicit request => 
+		Storage.load(styleId) match {
+			case Some(style: BeerStyle) => responseFormat match {
+				case HTML => Ok(views.html.beerstyle(style))
+				// case XML =>
+				// case JSON =>
+			}
+			case None => NotFound
+		}
+	}
+	
 }

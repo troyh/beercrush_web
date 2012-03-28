@@ -17,6 +17,8 @@ GET     /beers/:letter				controllers.Application.allBeers(letter,page:Long ?= 1
 GET     /breweries					controllers.Application.allBreweries(letter="",page:Long ?= 1)
 GET     /breweries/:letter			controllers.Application.allBreweries(letter,page:Long ?= 1)
 GET		/search						controllers.Application.search(q,page: Long ?= 1)
+# Style pages
+GET     /style/:styleid									controllers.Application.showStyle(styleid)
 # Beer pages
 GET     /$beerid<[a-zA-Z0-9-]+/[a-zA-Z0-9-]+>			controllers.Application.showBeer(beerid)
 POST    /:brewery/+beer 								controllers.Application.newBeer(brewery)

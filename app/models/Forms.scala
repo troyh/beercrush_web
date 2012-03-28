@@ -89,7 +89,7 @@ class BeerForm(beerId: Option[BeerId]) extends Form[Beer](
 			  hops = hops,
 			  yeast = yeast,
 			  otherings = otherings,
-			  styles = styles.map{_.map(s => new BeerStyle(s,s))}
+			  styles = styles.map{_.map(s => StyleId(Some(s)))}
 		  )
 	  }
   }
@@ -105,7 +105,7 @@ class BeerForm(beerId: Option[BeerId]) extends Form[Beer](
 			  beer.hops,
 			  beer.yeast,
 			  beer.otherings,
-			  beer.styles.map(_.map(s => s.id))
+			  beer.styles.map(_.map(s => s.id.toString))
 		  )
 	  }
   },

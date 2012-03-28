@@ -4,7 +4,7 @@
 		<name>@beer.name</name>
 		<brewery>@beer.brewery.map(_.name)</brewery>
 		<desc>@beer.description</desc>
-		@beer.styles.map(s => <styles>@{s.map( style => <style>{style.name}</style>)}</styles>)
+		<styles>@beer.beerStyles.map(s => <style>{s.name}</style>)</styles>
 		<abv>@beer.abv</abv>
 		<ibu>@beer.ibu</ibu>
 	</beer>

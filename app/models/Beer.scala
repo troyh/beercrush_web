@@ -32,7 +32,7 @@ case class Beer(
 	val hops:		Option[String],
 	val yeast:		Option[String],
 	val otherings:	Option[String],
-	val styles: 	Option[List[BeerStyle]]
+	val styles: 	Option[List[StyleId]]
 ) extends XmlFormat with JsonFormat with Storage.Saveable {
 	def id=beerId
 	val ctime: Option[java.util.Date] = None
@@ -40,7 +40,8 @@ case class Beer(
 	def dupe(id:Id,ctime:java.util.Date) = this.copy(beerId=Some(BeerId(id))) // TODO: add ctime
 	
 	lazy val pageURL = { "/" + beerId.get }
-
+	lazy val beerStyles = BeerStyle.getObjects(styles.getOrElse(List()))
+	
 	/**
 	  * The Brewery object for the brewer of this beer
 	  */
@@ -60,18 +61,19 @@ case class Beer(
 			b.asInstanceOf[Elem] % 
 				Attribute("","id",beerId.getOrElse("").toString,Null) % 
 				Attribute("","breweryid",brewery.get.breweryId.getOrElse("").toString,Null) copy(
-			child=for (k <- b.withMissingChildElements(Seq("abv","ibu","description","ingredients","grains","hops","yeast","otherings")).child) yield k match {
+			child=for (k <- b.withMissingChildElements(Seq("abv","ibu","description","ingredients","grains","hops","yeast","otherings","styles")).child) yield k match {
 				case <name>{_*}</name>                  => k.asInstanceOf[Elem].copy(child=Text(name))
 				case <id>{_*}</id>                      => <id/>         // Deletes it
 				case <brewery_id>{_*}</brewery_id>      => <brewery_id/> // Deletes it
 				case <abv>{_*}</abv> if (abv.isDefined) => k.asInstanceOf[Elem] % Attribute("","value",abv.get.toString,Null)
 				case <ibu>{_*}</ibu> if (ibu.isDefined) => k.asInstanceOf[Elem] % Attribute("","value",ibu.get.toString,Null)
-				case <description>{_*}</description>    if (description.isDefined) => k.asInstanceOf[Elem].copy(child=Text(description.get)) 
-				case <ingredients>{_*}</ingredients>    if (ingredients.isDefined) => replaceChildTextElem(k.asInstanceOf[Elem],ingredients.get)
-				case <grains>{_*}</grains>              if (grains.isDefined)      => replaceChildTextElem(k.asInstanceOf[Elem],grains.get)
-				case <hops>{_*}</hops>                  if (hops.isDefined)        => replaceChildTextElem(k.asInstanceOf[Elem],hops.get)
-				case <yeast>{_*}</yeast>                if (yeast.isDefined)       => replaceChildTextElem(k.asInstanceOf[Elem],yeast.get)
-				case <otherings>{_*}</otherings>        if (otherings.isDefined)   => replaceChildTextElem(k.asInstanceOf[Elem],otherings.get)
+				case <description>{_*}</description>    => k.asInstanceOf[Elem].copy(child=Text(description.getOrElse(""))) 
+				case <ingredients>{_*}</ingredients>    => replaceChildTextElem(k.asInstanceOf[Elem],ingredients.getOrElse(""))
+				case <grains>{_*}</grains>              => replaceChildTextElem(k.asInstanceOf[Elem],grains.getOrElse(""))
+				case <hops>{_*}</hops>                  => replaceChildTextElem(k.asInstanceOf[Elem],hops.getOrElse(""))
+				case <yeast>{_*}</yeast>                => replaceChildTextElem(k.asInstanceOf[Elem],yeast.getOrElse(""))
+				case <otherings>{_*}</otherings>        => replaceChildTextElem(k.asInstanceOf[Elem],otherings.getOrElse(""))
+				case <styles>{_*}</styles>              => styles.map(_.map(id => <style id="{id}"/>)).head.head
 				case other => other
 			})
 		case other => other
@@ -83,9 +85,8 @@ case class Beer(
 		  brewery.map{b => "brewery" -> JsString(b.breweryId)} ::
 		  Some("name" -> JsString(name)) ::
 		  description.map{"description" -> JsString(_)} ::
-		  styles.map{ss => "styles" -> JsArray(ss.map(s => JsObject(List(
-			  "id" -> JsString(s.id),
-			  "name" -> JsString(s.name)
+		  styles.map{ss => "styles" -> JsArray(ss.map(id => JsObject(List(
+			  "id" -> JsString(id)
 		  ))))} ::
 		  abv.map{"abv" -> JsNumber(_)} ::
 		  ibu.map{"ibu" -> JsNumber(_)} ::
@@ -111,7 +112,7 @@ object Beer {
 				yeast       = (xml \ "yeast"      ).flatMap(e => Seq((e \ "text").text.trim) ++ Seq(e.text.trim)).filter(_.length > 0).headOption,
 				otherings   = (xml \ "otherings"  ).flatMap(e => Seq((e \ "text").text.trim) ++ Seq(e.text.trim)).filter(_.length > 0).headOption,
 				styles = Some((xml \ "styles"     ).map( style => 
-					new BeerStyle((style \ "style" \ "bjcp_style_id").text,(style \ "style" \ "name").text.trim)
+					new StyleId(Some(style \ "style" \ "bjcp_style_id" text))
 				).toList)
 			))
 		}

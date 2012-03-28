@@ -1,11 +1,14 @@
 package models
 
 import BeerCrush._
+import SuperNode._
 import scala.annotation.tailrec
 import scalax.file.Path
 import scalax.io._
 import scala.xml._
 import play.api._
+import scala.collection.immutable._
+import scala.collection.immutable.Range._
 
 object Storage {
 	
@@ -24,6 +27,73 @@ object Storage {
 		case _: BreweryId => datadir + "/brewery/" + id.toString + ".xml"
 		case _: UserId    => datadir + "/user/" + id.toString + ".xml"
 		case _: ReviewId  => datadir + "/beer/" + id.toString + ".xml" // TODO: Handle Beer Reviews separately from generic ReviewIds
+		case _: StyleId   => datadir + "/beerstyles.xml"
+	}
+	
+	// import XmlFormat.SuperNode._
+	def transform(item: Saveable, nodes: NodeSeq): NodeSeq = item match {
+		case style: BeerStyle => for (node <- nodes) yield node match {
+			case s @ <style>{_*}</style> => s.asInstanceOf[Elem] % 
+				Attribute("","id",    style.id.toString,Null) %
+				Attribute("","name",  style.name,Null) %
+				Attribute("","ABVlo", style.abv.get.start.toString,Null) %
+				Attribute("","ABVhi", style.abv.get.end.toString,Null) %
+				Attribute("","IBUlo", style.ibu.get.start.toString,Null) %
+				Attribute("","IBUhi", style.ibu.get.end.toString,Null) %
+				Attribute("","OGlo",  style.og.get.start.toString,Null) %
+				Attribute("","OGhi",  style.og.get.end.toString,Null) %
+				Attribute("","FGlo",  style.fg.get.start.toString,Null) %
+				Attribute("","FGhi",  style.fg.get.end.toString,Null) %
+				Attribute("","SRMlo", style.srm.get.start.toString,Null) %
+				Attribute("","SRMhi", style.srm.get.end.toString,Null) %
+				Attribute("","origin",style.origin.get.toString,Null)
+			case other => other
+		}
+	}
+
+	lazy private val beerStylesXML=scala.xml.XML.loadFile(fileLocation(StyleId(Some(""))))
+
+	/**
+	  * Retrieves a Saveable object from storage.
+	  *
+	  * @param id The Id of the object
+	  */
+	def load(id: Id): Option[Saveable] = id match {
+		case styleId: StyleId => {
+			beerStylesXML \\ "style" find { _.attribute("id").getOrElse("") .toString == id.toString } match { 
+				case None => None
+				case Some(node) => node.attribute("id") match {
+					case None => None
+					case Some(id) => Some(BeerStyle(
+						styleId=id.text
+						,name=node.attribute("name").get.text
+						,abv= (node.attribute("ABVlo"), node.attribute("ABVhi")) match {
+							case (Some(lo),Some(hi)) => Some(Range.Double.inclusive(lo.head.text.toDouble, hi.head.text.toDouble, 0.01))
+							case _ => None
+						}
+						,ibu=(node.attribute("IBUlo"), node.attribute("IBUhi")) match {
+							case (Some(lo),Some(hi)) => Some(Range.Int.inclusive(lo.head.text.toInt,hi.head.text.toInt,1))
+							case _ => None
+						}
+						,og= (node.attribute("OGlo"),  node.attribute("OGhi")) match {
+							case (Some(lo),Some(hi)) => Some(Range.Double.inclusive(lo.head.text.toDouble,hi.head.text.toDouble, 0.001))
+							case _ => None
+						}
+						,fg= (node.attribute("FGlo"),  node.attribute("FGhi")) match {
+							case (Some(lo),Some(hi)) => Some(Range.Double.inclusive(lo.head.text.toDouble, hi.head.text.toDouble, 0.001))
+							case _ => None
+						}
+						,srm= (node.attribute("SRMlo"), node.attribute("SRMhi")) match {
+							case (Some(lo),Some(hi)) => Some(Range.Int.inclusive(lo.head.text.toInt, hi.head.text.toInt, 1))
+							case _ => None
+						}
+						,origin=node.attribute("origin").map(_.text)
+						,superstyles=node.getAncestors(beerStylesXML).map(_.attribute("id").map(n => StyleId(Some(n.text))))
+						,substyles  =node.child.map(_.attribute("id").map(n => StyleId(Some(n.text))))
+					))
+				}
+			}
+		}
 	}
 	
 	def save[T <: Saveable](item: T): Id = {

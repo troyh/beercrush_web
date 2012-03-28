@@ -15,7 +15,7 @@
 		
 		<p>@beer.description</p>
 		
-		<div>Style:<ul>@beer.styles.map(styles => styles.map( style => <li><a href={style.pageURL}>{style.name}</a></li>))</ul></div>
+		<div>Style:<ul>@beer.beerStyles.map(s => <li><a href={s.pageURL}>{s.name}</a></li>)</ul></div>
 		
 		<div>
 			<p>ABV:@beer.abv%</p>
