@@ -1,11 +1,20 @@
 @(style:BeerStyle)(implicit request: Request[_])
-
+@import scala.xml._
 @main(style.name) {
 
 	@style.superstyles.filter(_.isDefined).dropRight(1).map(id => Storage.load(id.get)).map({
-		case Some(s: BeerStyle) =>  <b> / </b><a href={s.pageURL}>{s.name}</a>
-		case None =>
-	})
+		case Some(s: BeerStyle) =>  <a href={s.pageURL}>{s.name}</a>
+		case None => Text("")
+	}).foldLeft(NodeSeq.Empty)((r,i) => r ++ Text(if(r.isEmpty) "" else " / ") ++ i)
+
+	<h1>@style.name</h1>
+	
+	<div>Origin: @style.origin.getOrElse("Unknown")</div>
+	@if(style.abv.isDefined) {<div>ABV range: @style.abv.get.start to @style.abv.get.end</div>}
+	@if(style.ibu.isDefined) {<div>IBU range: @style.ibu.get.start to @style.ibu.get.end</div>}
+	@if(style.og.isDefined) {<div>OG range: @style.og.get.start to @style.og.get.end</div>}
+	@if(style.fg.isDefined) {<div>FG range: @style.fg.get.start to @style.fg.get.end</div>}
+	@if(style.srm.isDefined) {<div>SRM range: @style.srm.get.start to @style.srm.get.end</div>}
 
 	@if(style.substyles.length > 0) {
 	<div>Substyles:
@@ -18,14 +27,5 @@
 	</div>
 	}
 	
-	<h1>@style.name</h1>
-	
-	<div>Origin: @style.origin.getOrElse("Unknown")</div>
-	@if(style.abv.isDefined) {<div>ABV range: @style.abv.get.start to @style.abv.get.end</div>}
-	@if(style.ibu.isDefined) {<div>IBU range: @style.ibu.get.start to @style.ibu.get.end</div>}
-	@if(style.og.isDefined) {<div>OG range: @style.og.get.start to @style.og.get.end</div>}
-	@if(style.fg.isDefined) {<div>FG range: @style.fg.get.start to @style.fg.get.end</div>}
-	@if(style.srm.isDefined) {<div>SRM range: @style.srm.get.start to @style.srm.get.end</div>}
-
 }
 

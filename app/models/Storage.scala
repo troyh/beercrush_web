@@ -30,23 +30,24 @@ object Storage {
 		case _: StyleId   => datadir + "/beerstyles.xml"
 	}
 	
-	// import XmlFormat.SuperNode._
 	def transform(item: Saveable, nodes: NodeSeq): NodeSeq = item match {
 		case style: BeerStyle => for (node <- nodes) yield node match {
-			case s @ <style>{_*}</style> => s.asInstanceOf[Elem] % 
-				Attribute("","id",    style.id.toString,Null) %
-				Attribute("","name",  style.name,Null) %
-				Attribute("","ABVlo", style.abv.get.start.toString,Null) %
-				Attribute("","ABVhi", style.abv.get.end.toString,Null) %
-				Attribute("","IBUlo", style.ibu.get.start.toString,Null) %
-				Attribute("","IBUhi", style.ibu.get.end.toString,Null) %
-				Attribute("","OGlo",  style.og.get.start.toString,Null) %
-				Attribute("","OGhi",  style.og.get.end.toString,Null) %
-				Attribute("","FGlo",  style.fg.get.start.toString,Null) %
-				Attribute("","FGhi",  style.fg.get.end.toString,Null) %
-				Attribute("","SRMlo", style.srm.get.start.toString,Null) %
-				Attribute("","SRMhi", style.srm.get.end.toString,Null) %
-				Attribute("","origin",style.origin.get.toString,Null)
+			case s @ <style>{_*}</style> => { 
+				val updates=Attribute("","id",style.id.get.toString, Null) ++
+					Attribute("","name",  style.name, Null)
+				val rangeUpdates=(
+					(style.abv,"ABV") ::
+					(style.ibu,"IBU") :: 
+					(style.og,"OG") :: 
+					(style.fg,"FG") :: 
+					(style.srm,"SRM") :: 
+				 Nil).foldLeft(updates) { (r, pair) => r ++ (pair._1 match {
+						case Some(v) => Attribute("",pair._2+"lo", v.start.toString, Attribute("",pair._2+"hi", v.end.toString,Null))
+						case None => Null
+				})}
+
+				rangeUpdates.foldLeft(s.asInstanceOf[Elem])( _ % _ )
+			}
 			case other => other
 		}
 	}
@@ -59,6 +60,11 @@ object Storage {
 	  * @param id The Id of the object
 	  */
 	def load(id: Id): Option[Saveable] = id match {
+		case styleId: StyleId if (styleId.styleId.get.isEmpty) => Some(BeerStyle(
+			styleId=""
+			,name="Beer"
+			,substyles  =beerStylesXML.child.map(_.attribute("id").map(n => StyleId(Some(n.text))))
+		))
 		case styleId: StyleId => {
 			beerStylesXML \\ "style" find { _.attribute("id").getOrElse("") .toString == id.toString } match { 
 				case None => None
