@@ -96,7 +96,7 @@ case class Beer(
 }
 
 object Beer {
-	def fromExisting(id: BeerId): Option[Beer] = {
+	def apply(id: BeerId): Option[Beer] = {
 		val xml=scala.xml.XML.loadFile(BeerCrush.fileLocation(id))
 		try {
 			Some(Beer(

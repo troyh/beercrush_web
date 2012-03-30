@@ -117,7 +117,7 @@ object Application extends Controller {
   def responseFormat(implicit request: play.api.mvc.Request[_]) = matchAcceptHeader(AcceptHeaderParser.parse(request.headers(ACCEPT)))
 
   def showBeer(beerId:BeerId) = Action { implicit request => 
-	  Beer.fromExisting(beerId) match {
+	  Beer(beerId) match {
 		  case None => NotFound
 		  case Some(beer) => {
 			  val beerForm=new BeerForm(beer.beerId)
@@ -266,7 +266,7 @@ object Application extends Controller {
 	  beerForm.bindFromRequest.fold(
 		  // Handle errors
 		  errors => {
-			  Ok(views.html.beer(beerId.map{Beer.fromExisting(_)}.getOrElse(None),errors,new BeerReviewForm(None)))
+			  Ok(views.html.beer(beerId.map{Beer(_)}.getOrElse(None),errors,new BeerReviewForm(None)))
 		  },
 	      // Handle successful form submission
 	      beer => {
@@ -421,7 +421,7 @@ object Application extends Controller {
 					,None
 					,None
 				) }
-				,Beer.fromExisting(beerId)
+				,Beer(beerId)
 				,numFound
 				,(numFound + (MAX_ROWS-1)) / MAX_ROWS
 				,page

@@ -19,28 +19,6 @@ object Storage {
 		def dupe(id:Id,ctime:java.util.Date): Saveable
 	}
 	
-	def transform(item: Saveable, nodes: NodeSeq): NodeSeq = item match {
-		case style: BeerStyle => for (node <- nodes) yield node match {
-			case s @ <style>{_*}</style> => { 
-				val updates=Attribute("","id",style.id.get.toString, Null) ++
-					Attribute("","name",  style.name, Null)
-				val rangeUpdates=(
-					(style.abv,"ABV") ::
-					(style.ibu,"IBU") :: 
-					(style.og,"OG") :: 
-					(style.fg,"FG") :: 
-					(style.srm,"SRM") :: 
-				 Nil).foldLeft(updates) { (r, pair) => r ++ (pair._1 match {
-						case Some(v) => Attribute("",pair._2+"lo", v.start.toString, Attribute("",pair._2+"hi", v.end.toString,Null))
-						case None => Null
-				})}
-
-				rangeUpdates.foldLeft(s.asInstanceOf[Elem])( _ % _ )
-			}
-			case other => other
-		}
-	}
-
 	def save[T <: Saveable](item: T): Id = {
 		
 		def makeNewId(item: Saveable): Option[String] = {
@@ -78,12 +56,8 @@ object Storage {
 			ctime=item.ctime.getOrElse(new java.util.Date())
 		)
 
-		/* Make the necessary directories to store the review */
-		BeerCrush.fileLocation(itemToSave.id.get).split("/").drop(BeerCrush.datadir_parts.length).foldLeft(BeerCrush.datadir){ (path,item) => 
-			val f=new java.io.File(path)
-			f.mkdir()
-			path + "/" + item
-		}
+		/* Make the necessary directories to store the document */
+		BeerCrush.mkpath(BeerCrush.fileLocation(itemToSave.id.get))
 
 		// TODO: original file may not exist, handle that.
 		val oldXML=scala.xml.XML.load(BeerCrush.fileLocation(itemToSave.id.get))

@@ -100,7 +100,7 @@ case class BeerReview(
 		text.map{ "text" -> JsString(_) }.get
 	))
 	
-	lazy val maybeBeer: Option[Beer] = Beer.fromExisting(ReviewId.beerIdFromReviewId(id.get))
+	lazy val maybeBeer: Option[Beer] = Beer(ReviewId.beerIdFromReviewId(id.get))
 	lazy val maybeUser: Option[User] = User.findUser(ReviewId.userIdFromReviewId(id.get))
 }
 

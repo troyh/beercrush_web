@@ -5,6 +5,7 @@ import Storage._
 import scala.collection.immutable.{Range, NumericRange}
 import scala.annotation._
 import play.api.libs.json._
+import scala.xml.{Attribute, Null, Elem}
 
 case class StyleId(styleId: Option[String]) extends Id(styleId) {
 }
@@ -33,8 +34,28 @@ case class BeerStyle(
 		copy(styleId=StyleId(Some(id)))
 	}
 	
-	def toXML = Storage.transform(this, <style/> )
-	def transform(nodes: scala.xml.NodeSeq): scala.xml.NodeSeq = Storage.transform(this, nodes)
+	def toXML = transform(<style/> )
+	
+	def transform(nodes: scala.xml.NodeSeq): scala.xml.NodeSeq = for (node <- nodes) yield node match {
+		case s @ <style>{_*}</style> => { 
+			val updates=Attribute("","id",id.get.toString, Null) ++
+				Attribute("","name",  name, Null)
+			val rangeUpdates=(
+				(abv,"ABV") ::
+				(ibu,"IBU") :: 
+				(og,"OG") :: 
+				(fg,"FG") :: 
+				(srm,"SRM") :: 
+			 Nil).foldLeft(updates) { (r, pair) => r ++ (pair._1 match {
+					case Some(v) => Attribute("",pair._2+"lo", v.start.toString, Attribute("",pair._2+"hi", v.end.toString,Null))
+					case None => Null
+			})}
+
+			rangeUpdates.foldLeft(s.asInstanceOf[Elem])( _ % _ )
+		}
+		case other => other
+	}
+
 	def toJSON = JsObject((
 		"id" -> JsString(styleId) ::
 		"name" -> JsString(name) ::

@@ -9,8 +9,14 @@ object BeerCrush {
 	val SolrDateFormat="yyyy-MM-dd'T'HH:mm:ss'Z'"
 	final val xmlNamespace=new scala.xml.NamespaceBinding("bc","http://beercrush.org",null)
 
-	val datadir="/Users/troy/beerdata/"
-	lazy val datadir_parts=datadir.split("/")
+	private val datadir="/Users/troy/beerdata/"
+	private lazy val datadir_parts=datadir.split("/")
+
+	def mkpath(path: String) = path.split("/").drop(BeerCrush.datadir_parts.length).foldLeft(BeerCrush.datadir){ (path,item) => 
+		val f=new java.io.File(path)
+		f.mkdir()
+		path + "/" + item
+	}
 	
 	def fileLocation(id: Id) = id match {
 		case _: BeerId    => BeerCrush.datadir + "/beer/" + id.toString + ".xml"
