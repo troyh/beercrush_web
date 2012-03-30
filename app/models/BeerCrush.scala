@@ -2,11 +2,24 @@ package BeerCrush
 
 import play.api.data._
 import play.api.data.validation.{Constraint, Constraints, Valid, Invalid, ValidationError}
+import models._
 
 object BeerCrush {
 	val ISO8601DateFormat="yyyy-MM-dd'T'HH:mm:ssZ"
 	val SolrDateFormat="yyyy-MM-dd'T'HH:mm:ss'Z'"
 	final val xmlNamespace=new scala.xml.NamespaceBinding("bc","http://beercrush.org",null)
+
+	val datadir="/Users/troy/beerdata/"
+	lazy val datadir_parts=datadir.split("/")
+	
+	def fileLocation(id: Id) = id match {
+		case _: BeerId    => BeerCrush.datadir + "/beer/" + id.toString + ".xml"
+		case _: BreweryId => BeerCrush.datadir + "/brewery/" + id.toString + ".xml"
+		case _: UserId    => BeerCrush.datadir + "/user/" + id.toString + ".xml"
+		case _: ReviewId  => BeerCrush.datadir + "/beer/" + id.toString + ".xml" // TODO: Handle Beer Reviews separately from generic ReviewIds
+		case _: StyleId   => BeerCrush.datadir + "/beerstyles.xml"
+	}
+	
 }
 
 class Id(val id: Option[String]) {

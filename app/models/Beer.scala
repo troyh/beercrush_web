@@ -96,12 +96,11 @@ case class Beer(
 }
 
 object Beer {
-	
-	def fromExisting(beerId:BeerId): Option[Beer] = {
-		val xml=scala.xml.XML.loadFile(Storage.fileLocation(beerId))
+	def fromExisting(id: BeerId): Option[Beer] = {
+		val xml=scala.xml.XML.loadFile(BeerCrush.fileLocation(id))
 		try {
 			Some(Beer(
-				beerId      = Some(beerId),
+				beerId      = Some(id),
 				name        = (xml \ "name"       ).headOption.map{_.text.trim}.getOrElse(""),
 				description = (xml \ "description").headOption.map{_.text.trim},
 				abv         = (xml \ "abv"        ).flatMap(e => e.attribute("value").map(v=>v.text) ++ Seq(e.text)).map(x => try {x.toDouble} catch { case _ => 0.0}).filter(_ > 0.0).headOption,

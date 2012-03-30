@@ -82,7 +82,7 @@ class SuperNode(val node: Node) {
 		root.recurseWhile { (node,depth) =>
 			path.reduceToSize(depth)
 			path += node
-		} (this.attribute("id") != _.attribute("id"))
+		} (this.attribute("id") != _.attribute("id")) // FIXME: This is not generic
 		
 		path.toSeq
 	}

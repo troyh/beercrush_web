@@ -2,7 +2,7 @@
 @import scala.xml._
 @main(style.name) {
 
-	@style.superstyles.filter(_.isDefined).dropRight(1).map(id => Storage.load(id.get)).map({
+	@style.superstyles.filter(_.isDefined).dropRight(1).map(id => BeerStyle.fromExisting(id.get)).map({
 		case Some(s: BeerStyle) =>  <a href={s.pageURL}>{s.name}</a>
 		case None => Text("")
 	}).foldLeft(NodeSeq.Empty)((r,i) => r ++ Text(if(r.isEmpty) "" else " / ") ++ i)
@@ -19,7 +19,7 @@
 	@if(style.substyles.length > 0) {
 	<div>Substyles:
 		<ul>
-	@style.substyles.filter(_.isDefined).map(id => Storage.load(id.get)).map({
+	@style.substyles.filter(_.isDefined).map(id => BeerStyle.fromExisting(id.get)).map({
 		case Some(s: BeerStyle) =>  <li><a href={s.pageURL}>{s.name}</a></li>
 		case None =>
 	})

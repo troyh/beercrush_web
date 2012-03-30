@@ -6,7 +6,7 @@
 def outputSubstylesHTML(style: BeerStyle): scala.xml.Elem = {
 	<ul>
 	{style.substyles.flatMap( s => s match {
-		case Some(id) => Storage.load(StyleId(Some(id))) match {
+		case Some(id) => BeerStyle.fromExisting(StyleId(Some(id))) match {
 			case Some(style: BeerStyle) => <li><a href={"/style/"+style.id.get}>{style.name}</a> <ul>{outputSubstylesHTML(style)}</ul></li>
 			case None => <span/>
 		}

@@ -568,7 +568,7 @@ object Application extends Controller {
 
 		def outputSubstylesXML(style: BeerStyle): scala.xml.NodeSeq = {
 			style.substyles.flatMap({
-				case Some(id) => Storage.load(StyleId(Some(id))) match {
+				case Some(id) => BeerStyle.fromExisting(StyleId(Some(id))) match {
 					case Some(style: BeerStyle) => style.transform(<style>{outputSubstylesXML(style)}</style>)
 					case None => scala.xml.Text("")
 				}
@@ -576,19 +576,19 @@ object Application extends Controller {
 			})
 		}
 		
-		Storage.load(StyleId(Some(""))) match {
+		BeerStyle.fromExisting(StyleId(Some(""))) match {
 			case None => NotFound
-			case Some(rootStyle: BeerStyle) => responseFormat match {
+			case Some(rootStyle) => responseFormat match {
 				case HTML => Ok(views.html.beerstyles(rootStyle))
 				case _  => Ok(rootStyle.transform(<style>{outputSubstylesXML(rootStyle)}</style>))
-				// case JSON => 
+				// case JSON => TODO
 			}
 		}
 		
 	}
 	
 	def showStyle(styleId: StyleId) = Action { implicit request => 
-		Storage.load(styleId) match {
+		BeerStyle.fromExisting(styleId) match {
 			case Some(style: BeerStyle) => responseFormat match {
 				case HTML => Ok(views.html.beerstyle(style))
 				// case XML =>

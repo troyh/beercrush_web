@@ -43,5 +43,51 @@ case class BeerStyle(
 }
 
 object BeerStyle {
-	def getObjects(list: List[StyleId]): List[BeerStyle] = list.map( id => Storage.load(id) ).filter(_.isDefined).map(_.get.asInstanceOf[BeerStyle])
+	def getObjects(list: List[StyleId]): List[BeerStyle] = list.map( id => BeerStyle.fromExisting(id) ).filter(_.isDefined).map(_.get.asInstanceOf[BeerStyle])
+	
+	lazy private val beerStylesXML=scala.xml.XML.loadFile(BeerCrush.fileLocation(StyleId(Some(""))))
+
+	import SuperNode._
+	def fromExisting(id: StyleId): Option[BeerStyle] = id match {
+		case styleId: StyleId if (styleId.styleId.get.isEmpty) => Some(BeerStyle(
+			styleId=""
+			,name="Beer"
+			,substyles  =beerStylesXML.child.map(_.attribute("id").map(n => StyleId(Some(n.text))))
+		))
+		case styleId: StyleId => {
+			beerStylesXML \\ "style" find { _.attribute("id").getOrElse("") .toString == id.toString } match { 
+				case None => None
+				case Some(node) => node.attribute("id") match {
+					case None => None
+					case Some(id) => Some(BeerStyle(
+						styleId=id.text
+						,name=node.attribute("name").get.text
+						,abv= (node.attribute("ABVlo"), node.attribute("ABVhi")) match {
+							case (Some(lo),Some(hi)) => Some(Range.Double.inclusive(lo.head.text.toDouble, hi.head.text.toDouble, 0.01))
+							case _ => None
+						}
+						,ibu=(node.attribute("IBUlo"), node.attribute("IBUhi")) match {
+							case (Some(lo),Some(hi)) => Some(Range.Int.inclusive(lo.head.text.toInt,hi.head.text.toInt,1))
+							case _ => None
+						}
+						,og= (node.attribute("OGlo"),  node.attribute("OGhi")) match {
+							case (Some(lo),Some(hi)) => Some(Range.Double.inclusive(lo.head.text.toDouble,hi.head.text.toDouble, 0.001))
+							case _ => None
+						}
+						,fg= (node.attribute("FGlo"),  node.attribute("FGhi")) match {
+							case (Some(lo),Some(hi)) => Some(Range.Double.inclusive(lo.head.text.toDouble, hi.head.text.toDouble, 0.001))
+							case _ => None
+						}
+						,srm= (node.attribute("SRMlo"), node.attribute("SRMhi")) match {
+							case (Some(lo),Some(hi)) => Some(Range.Int.inclusive(lo.head.text.toInt, hi.head.text.toInt, 1))
+							case _ => None
+						}
+						,origin=node.attribute("origin").map(_.text)
+						,superstyles=node.getAncestors(beerStylesXML).map(_.attribute("id").map(n => StyleId(Some(n.text))))
+						,substyles  =node.child.map(_.attribute("id").map(n => StyleId(Some(n.text))))
+					))
+				}
+			}
+		}
+	}
 }

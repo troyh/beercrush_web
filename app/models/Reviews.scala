@@ -107,7 +107,7 @@ case class BeerReview(
 object BeerReview {
 	def fromExisting(reviewId: ReviewId): Option[BeerReview] = {
 		try {
-			val xml=scala.xml.XML.loadFile(Storage.fileLocation(reviewId))
+			val xml=scala.xml.XML.loadFile(BeerCrush.fileLocation(reviewId))
 			
 			Some(BeerReview(
 				id = Some(	  xml \ "@id"				   ).headOption.map{s=>Some(ReviewId(s.text))}.get,
