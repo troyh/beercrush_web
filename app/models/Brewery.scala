@@ -11,8 +11,8 @@ case class Brewery(
 	val name: 	String,
 	val address: Address,
 	val phone:	Option[String]
-) extends XmlFormat with JsonFormat with Storage.Saveable {
-	def id=breweryId
+) extends XmlFormat with JsonFormat {
+	def id=breweryId.get
 	def descriptiveNameForId = name
 	val ctime=None
 	def dupe(id:Id,ctime:java.util.Date) = this.copy(breweryId=Some(BreweryId(id))) // TODO: add ctime

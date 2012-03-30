@@ -13,6 +13,7 @@ case class ReviewId(reviewid: String) extends Id(Some(reviewid)) {
 		)
 	}
 	def isComplete: Boolean = id.isDefined && id.get.split("/").length==4
+	def fileLocation = BeerCrush.datadir + "/beer/" + reviewid + ".xml"
 }
 
 object ReviewId {
@@ -28,7 +29,7 @@ abstract class Review {
 }
 
 case class BeerReview(
-	val id:Option[ReviewId],
+	val reviewId:Option[ReviewId],
 	val ctime: Option[java.util.Date],
 	val rating:Int,
 	val balance: Option[Int],
@@ -38,20 +39,20 @@ case class BeerReview(
 	val where: Option[String],
 	val wouldDrinkAgain: Option[Boolean],
 	val text:Option[String]
-) extends Review with XmlFormat with JsonFormat with Storage.Saveable {
+) extends Review with XmlFormat with JsonFormat {
+	def id=reviewId.get
+	lazy val descriptiveNameForId = ReviewId.userIdFromReviewId(id).toString
 
-	lazy val descriptiveNameForId = ReviewId.userIdFromReviewId(id.get).toString
-
-	def dupe(id:Id,ctime:java.util.Date) = {
-		this.copy(id=Some(ReviewId(id)),ctime=Some(ctime))
-	}
+	// def dupe(id:Id,ctime:java.util.Date) = {
+	// 	this.copy(id=Some(ReviewId(id)),ctime=Some(ctime))
+	// }
 
 	def toXML=transform(<review/>) 
 	
 	import SuperNode._
 	def transform(nodes: NodeSeq): NodeSeq = for (node <- nodes) yield node match {
 		case r @ <review>{_*}</review> => r.asInstanceOf[Elem] % 
-				Attribute("","id",id.getOrElse("").toString,Null) %
+				Attribute("","id",id.toString,Null) %
 				Attribute("","ctime",Utility.formatDateISO8601(ctime),Null) copy(child=for (k <- r.withMissingChildElements(Seq("rating","balance","aftertaste","flavors","when","where","wouldDrinkAgain","text")).child) yield k match {
 			case <ctime>{_*}</ctime> => <ctime/> // Deletes it on Storage.save()
 			case <rating>{_*}</rating> => k.asInstanceOf[Elem] % Attribute("","value",rating.toString,Null)
@@ -88,7 +89,7 @@ case class BeerReview(
 	}
 	
 	def toJSON = JsObject(List(
-		id.map { x => "id" -> JsString(x.id.get) }.get,
+		"id" -> JsString(id),
 		"ctime" -> JsString(Utility.formatDateISO8601(ctime)),
 		"rating" -> JsNumber(rating),
 		balance.map{ "balance" -> JsNumber(_) }.get,
@@ -100,17 +101,17 @@ case class BeerReview(
 		text.map{ "text" -> JsString(_) }.get
 	))
 	
-	lazy val maybeBeer: Option[Beer] = Beer(ReviewId.beerIdFromReviewId(id.get))
-	lazy val maybeUser: Option[User] = User.findUser(ReviewId.userIdFromReviewId(id.get))
+	lazy val maybeBeer: Option[Beer] = Beer(ReviewId.beerIdFromReviewId(id))
+	lazy val maybeUser: Option[User] = User.findUser(ReviewId.userIdFromReviewId(id))
 }
 
 object BeerReview {
 	def fromExisting(reviewId: ReviewId): Option[BeerReview] = {
 		try {
-			val xml=scala.xml.XML.loadFile(BeerCrush.fileLocation(reviewId))
+			val xml=scala.xml.XML.loadFile(reviewId.fileLocation)
 			
 			Some(BeerReview(
-				id = Some(	  xml \ "@id"				   ).headOption.map{s=>Some(ReviewId(s.text))}.get,
+				reviewId = Some(	  xml \ "@id"				   ).headOption.map{s=>Some(ReviewId(s.text))}.get,
 				ctime =  	 (xml \ "ctime"				   ).headOption.map{s=>Some(new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).parse(s.text))}.getOrElse(None),
 				rating = 	 (xml \ "rating" \ "@value"    ).headOption.map{_.text.toInt}.getOrElse(0),
 				balance = 	 (xml \ "balance" \ "@value"   ).headOption.map{s => Some(s.text.toInt)}.getOrElse(None),

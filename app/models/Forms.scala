@@ -11,8 +11,8 @@ class LoginForm extends Form[User](
 	  "password" -> nonEmptyText
   )
   { (username,password) => User.findUser(username).get }
-  { user => Some(user.id.get,user.password)}.verifying( user => {
-		  val existingUser=User.findUser(user.id.get)
+  { user => Some(user.id,user.password)}.verifying( user => {
+		  val existingUser=User.findUser(user.id)
 		  existingUser.isDefined && user.password==existingUser.get.password
   }),
   Map.empty,
@@ -29,9 +29,9 @@ class NewUserForm extends Form[User](
 	  ).verifying("Passwords don't match", passwords => passwords._1 == passwords._2)
   )
   { (username,passwords) => new User(UserId.string2id(username),Some(new java.util.Date()),passwords._1,"","") }
-  { user => Some(user.id.get,(user.password,user.password))}.verifying(
+  { user => Some(user.id,(user.password,user.password))}.verifying(
 	  "This username is already taken",
-	  user => !User.findUser(user.id.get).isDefined
+	  user => !User.findUser(user.id).isDefined
   ),
   Map.empty,
   Nil,

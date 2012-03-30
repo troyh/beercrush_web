@@ -5,7 +5,7 @@
 @main() {
 	<h1>Beer Review</h1>
 	@review.map{ review=>
-		<div>Beer: <a href="/@review.maybeBeer.get.id.get.toString">@review.maybeBeer.get.name</a>
+		<div>Beer: <a href="/@review.maybeBeer.get.id.toString">@review.maybeBeer.get.name</a>
 			@if(review.maybeBeer.isDefined && review.maybeBeer.get.brewery.isDefined){
 				by <a href=@review.maybeBeer.get.brewery.get.pageURL>@review.maybeBeer.get.brewery.get.name</a>
 			}

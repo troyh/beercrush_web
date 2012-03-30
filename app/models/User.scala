@@ -5,6 +5,7 @@ import play.api.libs.json._
 import scala.xml._
 
 class UserId(id: String) extends Id(Some(id)) {
+	def fileLocation = BeerCrush.datadir + "/user/" + id + ".xml"
 }
 object UserId {
 	implicit def string2id(id: String): UserId = new UserId(id)
@@ -25,9 +26,9 @@ case class User(
   val password: String,
   val name: String,
   val aboutme: String
-) extends XmlFormat with JsonFormat with Storage.Saveable {
+) extends XmlFormat with JsonFormat {
 	lazy val pageURL = "/user/" + id
-	def id=Some(userId)
+	def id=userId
 	lazy val descriptiveNameForId = name
 	def dupe(id:Id,ctime:java.util.Date) = this.copy(userId=new UserId(id),ctime=Some(ctime))
 	

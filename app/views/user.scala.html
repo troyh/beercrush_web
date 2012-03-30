@@ -1,6 +1,6 @@
 @(user: User, userForm: Form[User])(implicit request: Request[_])
 
-@main(if (user.id.get.isEmpty) "New User" else "User " + user.id.get) {
+@main(if (user.id.isEmpty) "New User" else "User " + user.id) {
 	
 	<h1>@user.name (@user.id)</h1>
 	<div>Joined @user.ctime</div>
@@ -9,7 +9,7 @@
 	
 	<input type="button" value="Edit" onClick="" />
 	
-	@helper.form(action = routes.Application.editUser(if (user.id.get.isEmpty) "+user" else user.id.get)) {
+	@helper.form(action = routes.Application.editUser(if (user.id.isEmpty) "+user" else user.id)) {
 		@helper.inputText(
 			userForm("name"),
 			'_label -> "Name",

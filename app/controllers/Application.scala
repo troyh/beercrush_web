@@ -50,7 +50,7 @@ object Application extends Controller {
 				"doctype" -> "beer",
 				"id"      -> id,
 				"name"    -> beer.name,
-				"brewery" -> (try { beer.brewery.get.id.get } catch { case _ => "" })
+				"brewery" -> (try { beer.brewery.get.id } catch { case _ => "" })
 			)
 			case _ => Map()
 		}
@@ -271,9 +271,9 @@ object Application extends Controller {
 	      // Handle successful form submission
 	      beer => {
 			  // Save the doc
-			  val saveId=Storage.save(beer)
+			  BeerCrush.save(beer)
 
-			  future { indexDoc(beer,Some(saveId)) } // Index in Solr
+			  future { indexDoc(beer,Some(beer.id)) } // Index in Solr
 
 			  responseFormat match {
 				  case HTML => Ok(views.html.beer(Some(beer),beerForm.fill(beer),new BeerReviewForm(None)))
@@ -298,10 +298,9 @@ object Application extends Controller {
 			  }
 		  },
 		  brewery => {
-			  Logger.info("Save Brewery name:[" + brewery.name + "]")
-			  val saveId=Storage.save(brewery)
+			  BeerCrush.save(brewery)
 
-			  future { indexDoc(brewery,Some(saveId)) } // Index in Solr
+			  future { indexDoc(brewery,Some(brewery.id)) } // Index in Solr
 
 			  responseFormat match {
 				  case HTML => Ok(views.html.brewery(brewery,f.fill(brewery)))
@@ -372,12 +371,12 @@ object Application extends Controller {
 					}
 				},
 				review => {
-					val saveId=Storage.save(review)
+					BeerCrush.save(review)
 
-					future { indexDoc(review,Some(saveId)) } // Asynchronously index the review in Solr
+					future { indexDoc(review,Some(review.id)) } // Asynchronously index the review in Solr
 
 					responseFormat match {
-						case HTML => Redirect(routes.Application.showBeerReview(review.id.get))
+						case HTML => Redirect(routes.Application.showBeerReview(review.id))
 						case XML => Ok(review.toXML)
 						case JSON => Ok(Json.toJson(review.toJSON))
 					}
@@ -447,7 +446,7 @@ object Application extends Controller {
 			  }
 		  },
 		  user => {
-			  val session=request.session + ("username" -> user.id.get) + ("name" -> user.name)
+			  val session=request.session + ("username" -> user.id) + ("name" -> user.name)
 			  responseFormat match {
 				  case HTML => Redirect(routes.Application.index).withSession(session)
 				  case XML  => Ok.withSession(session)
@@ -472,15 +471,15 @@ object Application extends Controller {
 				}
 			},
 			newUser => { // Handle successful form submission
-				val session=request.session + ("username" -> newUser.id.get) + ("name" -> newUser.name)
+				val session=request.session + ("username" -> newUser.id) + ("name" -> newUser.name)
 				  
 				// Create the account and then display it to the user
-				val saveId=Storage.save(newUser)
+				BeerCrush.save(newUser)
 
-				future { indexDoc(newUser,Some(saveId)) } // Index in Solr
+				future { indexDoc(newUser,Some(newUser.id)) } // Index in Solr
 
 				responseFormat match {
-				  case HTML => Redirect(routes.Application.showUser(newUser.id.get)).withSession(session)
+				  case HTML => Redirect(routes.Application.showUser(newUser.id)).withSession(session)
 				  case XML  => Ok.withSession(session)
 				  case JSON  => Ok.withSession(session)
 			  }
@@ -521,7 +520,7 @@ object Application extends Controller {
 					  }
 		  		  },
 		  	      user => { // Handle successful form submission
-		  				val session=request.session + ("username" -> user.id.get) + ("name" -> user.name)
+		  				val session=request.session + ("username" -> user.id) + ("name" -> user.name)
 
 						// Make a new User object as a merging of the submitted form's User and an existing User (if any)
 						val userToSave=User.findUser(username) match {
@@ -548,10 +547,10 @@ object Application extends Controller {
 							)
 						}
 					
-						val saveId=Storage.save(userToSave)
+						BeerCrush.save(userToSave)
 
 						// TODO: Index in Solr
-						future { indexDoc(userToSave,Some(saveId)) } // Index in Solr
+						future { indexDoc(userToSave,Some(userToSave.id)) } // Index in Solr
 				
 						responseFormat match {
 						  case HTML => Ok(views.html.user(userToSave,accountForm.fill(userToSave))).withSession(session)

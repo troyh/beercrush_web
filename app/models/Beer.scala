@@ -33,8 +33,8 @@ case class Beer(
 	val yeast:		Option[String],
 	val otherings:	Option[String],
 	val styles: 	Option[List[StyleId]]
-) extends XmlFormat with JsonFormat with Storage.Saveable {
-	def id=beerId
+) extends XmlFormat with JsonFormat {
+	def id=beerId.get
 	val ctime: Option[java.util.Date] = None
 	def descriptiveNameForId = name
 	def dupe(id:Id,ctime:java.util.Date) = this.copy(beerId=Some(BeerId(id))) // TODO: add ctime
@@ -82,7 +82,7 @@ case class Beer(
 	def toJSON = JsObject(
 		(
 		  beerId.map{"id" -> JsString(_)} ::
-		  brewery.map{b => "brewery" -> JsString(b.breweryId)} ::
+		  brewery.map{b => "brewery" -> JsString(b.breweryId.get)} ::
 		  Some("name" -> JsString(name)) ::
 		  description.map{"description" -> JsString(_)} ::
 		  styles.map{ss => "styles" -> JsArray(ss.map(id => JsObject(List(
@@ -97,7 +97,7 @@ case class Beer(
 
 object Beer {
 	def apply(id: BeerId): Option[Beer] = {
-		val xml=scala.xml.XML.loadFile(BeerCrush.fileLocation(id))
+		val xml=scala.xml.XML.loadFile(id.fileLocation)
 		try {
 			Some(Beer(
 				beerId      = Some(id),
