@@ -22,7 +22,7 @@ import scala.annotation._
   * @param styles Style(s) of the beer
   */
 case class Beer(
-	beerId:			Option[BeerId],
+	beerId:			BeerId,
 	val name: 		String,
 	val description:Option[String],
 	val abv: 		Option[Double],
@@ -34,24 +34,18 @@ case class Beer(
 	val otherings:	Option[String],
 	val styles: 	Option[List[StyleId]]
 ) extends XmlFormat with JsonFormat {
-	def id=beerId.get
+	def id=beerId
 	val ctime: Option[java.util.Date] = None
 	def descriptiveNameForId = name
-	def dupe(id:Id,ctime:java.util.Date) = this.copy(beerId=Some(BeerId(id))) // TODO: add ctime
+	def dupe(id:Id,ctime:java.util.Date) = this.copy(beerId=BeerId(id)) // TODO: add ctime
 	
-	lazy val pageURL = { "/" + beerId.get }
+	lazy val pageURL = { "/" + beerId }
 	lazy val beerStyles = BeerStyle.getObjects(styles.getOrElse(List()))
 	
 	/**
 	  * The Brewery object for the brewer of this beer
 	  */
-	lazy val brewery = {
-		val bid: Option[BreweryId]=beerId.map(_.breweryId)
-		bid match {
-			case None => None
-			case Some(id) => Brewery.fromExisting(id)
-		}
-	}
+	lazy val brewery = Brewery(beerId.breweryId)
 
 	def toXML= transform(<beer/>)
 
@@ -59,7 +53,7 @@ case class Beer(
 	def transform(nodes: NodeSeq): NodeSeq = for (n <- nodes) yield n match {
 		case b @ <beer>{kids @ _*}</beer> => 
 			b.asInstanceOf[Elem] % 
-				Attribute("","id",beerId.getOrElse("").toString,Null) % 
+				Attribute("","id",beerId.toString,Null) % 
 				Attribute("","breweryid",brewery.get.breweryId.getOrElse("").toString,Null) copy(
 			child=for (k <- b.withMissingChildElements(Seq("abv","ibu","description","ingredients","grains","hops","yeast","otherings","styles")).child) yield k match {
 				case <name>{_*}</name>                  => k.asInstanceOf[Elem].copy(child=Text(name))
@@ -81,7 +75,7 @@ case class Beer(
 
 	def toJSON = JsObject(
 		(
-		  beerId.map{"id" -> JsString(_)} ::
+		  Some("id" -> JsString(beerId)) ::
 		  brewery.map{b => "brewery" -> JsString(b.breweryId.get)} ::
 		  Some("name" -> JsString(name)) ::
 		  description.map{"description" -> JsString(_)} ::
@@ -100,7 +94,7 @@ object Beer {
 		val xml=scala.xml.XML.loadFile(id.fileLocation)
 		try {
 			Some(Beer(
-				beerId      = Some(id),
+				beerId      = id,
 				name        = (xml \ "name"       ).headOption.map{_.text.trim}.getOrElse(""),
 				description = (xml \ "description").headOption.map{_.text.trim},
 				abv         = (xml \ "abv"        ).flatMap(e => e.attribute("value").map(v=>v.text) ++ Seq(e.text)).map(x => try {x.toDouble} catch { case _ => 0.0}).filter(_ > 0.0).headOption,

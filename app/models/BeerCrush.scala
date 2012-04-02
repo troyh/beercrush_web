@@ -7,6 +7,7 @@ import scala.annotation._
 import scala.xml.{NodeSeq, Elem, Text}
 import scalax.file.Path
 import scalax.io._
+import java.util.UUID
 
 object BeerCrush {
 	val ISO8601DateFormat="yyyy-MM-dd'T'HH:mm:ssZ"
@@ -22,16 +23,16 @@ object BeerCrush {
 		path + "/" + item
 	}
 
-	def newUniqueFilename(directory: String,basisForId: String): Option[String] = {
+	def newUniqueFilename(directory: String,basisForId: String): String = {
 
 		def fileexists(filename: String) = new java.io.File(filename).exists()
 			
 		@tailrec
-		def tryFilePath(path: String, filename: String, suffixes: Seq[Seq[_]]): Option[String] = {
+		def tryFilePath(path: String, filename: String, suffixes: Seq[Seq[_]]): String = {
 			if (!fileexists(path + "/" + filename + ".xml"))
-				return Some(filename)
+				return filename
 			if (suffixes.length == 0)
-				return None
+				return filename + "-" + UUID.randomUUID() // Give up on creating a nice Id, and just use a UUID at the end
 			if (suffixes.head.length == 1) {
 				suffixes.head.head match {
 					case s: String => tryFilePath(path,filename + "-" + s, suffixes.tail)
@@ -114,22 +115,25 @@ object BreweryId {
 	implicit def string2id(s: String): BreweryId = { new BreweryId(s) }
 	implicit def string2oid(id: String): Option[BreweryId] = Some(new BreweryId(id))
 
-	def newUniqueId(breweryName: String): Option[String] = 
-		BeerCrush.newUniqueFilename(BeerCrush.datadir + "/brewery/",breweryName)
+	def newUniqueId(breweryName: String): BreweryId = 
+		BreweryId(BeerCrush.newUniqueFilename(BeerCrush.datadir + "/brewery/",breweryName))
 }
 
 case class BeerId(beerId: String) extends Id(Some(beerId)) {
 	// TODO: verify the id looks like a beer id
-	def breweryId: BreweryId = beerId.split('/').head
+	def breweryId: BreweryId = id.get.split('/').head
 	def fileLocation = BeerCrush.datadir + "/beer/" + id.get + ".xml"
 }
 object BeerId {
 	implicit def string2id(s: String): BeerId = { new BeerId(s) }
 	implicit def string2oid(id: String): Option[BeerId] = Some(new BeerId(id))
+	implicit def string2Either(id: String): Either[BreweryId,BeerId] = id.split("/") match {
+		case arr if (arr.length == 1) => Left(new BreweryId(id))
+		case arr if (arr.length == 2) => Right(new BeerId(id))
+	}
 
-	def newUniqueId(breweryId: BreweryId, beerName: String): Option[String] = 
-		BeerCrush.newUniqueFilename(breweryId.fileLocation.stripSuffix(".xml"),beerName)
-	
+	def newUniqueId(breweryId: BreweryId, beerName: String): BeerId = 
+		BeerId(breweryId.toString + "/" + BeerCrush.newUniqueFilename(breweryId.fileLocation.stripSuffix(".xml"),beerName))
 }
 
 object FormConstraints {

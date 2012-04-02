@@ -54,7 +54,7 @@ class UserForm(username: UserId) extends Form[User](
   None
 )
  
-class BeerForm(beerId: Option[BeerId]) extends Form[Beer](
+class BeerForm extends Form[Beer](
   mapping(
 		"name" -> nonEmptyText,
 		"description" -> optional(text),
@@ -79,7 +79,7 @@ class BeerForm(beerId: Option[BeerId]) extends Form[Beer](
   {
 	  (name:String,description:Option[String],abv:Option[Double],ibu:Option[Int],ingredients:Option[String],grains:Option[String],hops:Option[String],yeast:Option[String],otherings:Option[String],styles:Option[List[String]]) => {
 		  Beer(
-			  beerId = beerId,
+			  beerId = "",
 			  name = name,
 			  description = description,
 			  abv = abv,
@@ -133,7 +133,7 @@ class BreweryForm(breweryId:Option[BreweryId]) extends Form[Brewery](
 		  { (name,address,phone) => 
 			  breweryId match {
 				  case None => Brewery(breweryId,name,address,phone) 
-				  case Some(id) => Brewery.fromExisting(id) match {
+				  case Some(id) => Brewery(id) match {
 					  case None => Brewery(breweryId,name,address,phone) 
 					  case Some(brewery) => {
 						  // Merge an existing brewery with this one so we don't lose data not present in the form

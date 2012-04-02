@@ -94,10 +94,6 @@ object Application extends Controller {
 
 	val solr=new org.apache.solr.client.solrj.impl.CommonsHttpSolrServer("http://localhost:8983/solr")
 
-	def index = Action { implicit request => 
-		Ok(views.html.index("Beer Crush"))
-	}
-
 	sealed abstract class AcceptHeaderType 
 	case object XML extends AcceptHeaderType
 	case object JSON extends AcceptHeaderType
@@ -114,40 +110,37 @@ object Application extends Controller {
   }
 
 
-  def responseFormat(implicit request: play.api.mvc.Request[_]) = matchAcceptHeader(AcceptHeaderParser.parse(request.headers(ACCEPT)))
+	def responseFormat(implicit request: play.api.mvc.Request[_]) = matchAcceptHeader(AcceptHeaderParser.parse(request.headers(ACCEPT)))
 
-  def showBeer(beerId:BeerId) = Action { implicit request => 
-	  Beer(beerId) match {
-		  case None => NotFound
-		  case Some(beer) => {
-			  val beerForm=new BeerForm(beer.beerId)
-	  
-			  responseFormat match {
-			  				  case HTML => Ok(views.html.beer(Some(beer),beerForm.fill(beer),new BeerReviewForm(None)))
-			  				  case XML  => Ok(beer.toXML)
-			  				  case JSON  => Ok(Json.toJson(beer.toJSON))
-			  }
-		  }
-	  }
-  }
+	def index = Action { implicit request => 
+		Ok(views.html.index("Beer Crush"))
+	}
 
-  def showBrewery(breweryId:Option[BreweryId]) = Action { implicit request =>
-	  breweryId match {
-		  case None => NotFound
-		  case Some(id) => Brewery.fromExisting(id) match {
-			  case None => NotFound
-			  case Some(brewery: Brewery) => {
-				  val breweryForm = new BreweryForm(breweryId)
-			  
-				  responseFormat match {
-					  case HTML => Ok(views.html.brewery(brewery,breweryForm.fill(brewery)))
-					  case XML  => Ok(brewery.toXML)
-					  case JSON  => Ok(Json.toJson(brewery.toJSON))
-				  }
-			  }
-		  }
-	  }
-  }
+	def showBeer(beerId:BeerId) = Action { implicit request => 
+		Beer(beerId) match {
+			case None => NotFound
+			case Some(beer) => {
+				responseFormat match {
+					case HTML => Ok(views.html.beer(Some(beer),new BeerForm fill(beer),new BeerReviewForm(None)))
+					case XML  => Ok(beer.toXML)
+					case JSON => Ok(Json.toJson(beer.toJSON))
+				}
+			}
+		}
+	}
+
+	def showBrewery(breweryId:BreweryId) = Action { implicit request =>
+		Brewery(breweryId) match {
+			case None => NotFound
+			case Some(brewery) => {
+				responseFormat match {
+					case HTML => Ok(views.html.brewery(brewery,new BreweryForm(Some(brewery.id)).fill(brewery)))
+					case XML  => Ok(brewery.toXML)
+					case JSON  => Ok(Json.toJson(brewery.toJSON))
+				}
+			}
+		}
+	}
   
   def allBreweries(letter:String="", page: Long) = Action { implicit request =>
 	  val MAX_ROWS=20
@@ -259,19 +252,25 @@ object Application extends Controller {
   	  }
   }
 
-  def newBeer(breweryId:BreweryId) = editBeer(None)
+  def newBeer(breweryId:BreweryId) = editBeer(Left(breweryId))
 
-  def editBeer(beerId:Option[BeerId]) = Action { implicit request => 
-	  val beerForm=new BeerForm(beerId)
+  def editBeer(beerOrBreweryId:Either[BreweryId,BeerId]) = Action { implicit request => 
+	  val beerForm=new BeerForm
 	  beerForm.bindFromRequest.fold(
 		  // Handle errors
 		  errors => {
-			  Ok(views.html.beer(beerId.map{Beer(_)}.getOrElse(None),errors,new BeerReviewForm(None)))
+			  Ok(views.html.beer(beerOrBreweryId.fold(_ => None,Beer(_)),errors,new BeerReviewForm(None)))
 		  },
-	      // Handle successful form submission
-	      beer => {
+	      beer => { // Handle successful form submission
+			  // It could either be a new beer or editing an existing beer. A BeerId or BreweryId
+			  // determines this.
+			  val beerId=beerOrBreweryId match {
+				  case Left(breweryId) => BeerId.newUniqueId(breweryId, beer.name)
+				  case Right(beerId) => beerId
+			  }
+
 			  // Save the doc
-			  BeerCrush.save(beer)
+			  BeerCrush.save(beer.copy(beerId=beerId))
 
 			  future { indexDoc(beer,Some(beer.id)) } // Index in Solr
 
@@ -290,7 +289,7 @@ object Application extends Controller {
 	  val f=new BreweryForm(breweryId)
 	  f.bindFromRequest.fold(
 		  errors => {
-			  val brewery: Option[Brewery] = breweryId.map{Brewery.fromExisting(_)}.getOrElse(None)
+			  val brewery: Option[Brewery] = breweryId.map{Brewery(_)}.getOrElse(None)
 			  responseFormat match {
 				  case HTML => Ok(views.html.brewery(brewery.get,errors))
 				  case XML  => Ok(views.xml.brewery(brewery.get))

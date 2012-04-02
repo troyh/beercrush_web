@@ -51,7 +51,7 @@ case class Brewery(
 }
 
 object Brewery {
-	def fromExisting(id:BreweryId): Option[Brewery] = {
+	def apply(id:BreweryId): Option[Brewery] = {
 		try {
 			val xml=scala.xml.XML.loadFile("/Users/troy/beerdata/brewery/" + id + ".xml")
 			val address=(xml \ "vcard" \ "adr") match {
