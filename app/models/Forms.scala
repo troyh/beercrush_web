@@ -79,7 +79,7 @@ class BeerForm extends Form[Beer](
   {
 	  (name:String,description:Option[String],abv:Option[Double],ibu:Option[Int],ingredients:Option[String],grains:Option[String],hops:Option[String],yeast:Option[String],otherings:Option[String],styles:Option[List[String]]) => {
 		  Beer(
-			  beerId = "",
+			  id = "",
 			  name = name,
 			  description = description,
 			  abv = abv,
@@ -117,7 +117,7 @@ class BeerForm extends Form[Beer](
 }
   
   
-class BreweryForm(breweryId:Option[BreweryId]) extends Form[Brewery](
+class BreweryForm extends Form[Brewery](
 	  	mapping(
 			"name" -> nonEmptyText,
 			"address" -> mapping(
@@ -130,22 +130,7 @@ class BreweryForm(breweryId:Option[BreweryId]) extends Form[Brewery](
 			{ address => Some(address.street,address.city,address.state,address.zip,address.country) },
 			"phone" -> optional(text)
 			)
-		  { (name,address,phone) => 
-			  breweryId match {
-				  case None => Brewery(breweryId,name,address,phone) 
-				  case Some(id) => Brewery(id) match {
-					  case None => Brewery(breweryId,name,address,phone) 
-					  case Some(brewery) => {
-						  // Merge an existing brewery with this one so we don't lose data not present in the form
-						  val newAddress=address.copy(
-							  latitude=brewery.address.latitude,
-							  longitude=brewery.address.longitude
-						  )
-						  Brewery(breweryId,name,newAddress,phone)
-					  }
-				  }
-			  }
-		  }
+		  { (name,address,phone) => Brewery("",name,address,phone)}
 		  { brewery => Some(brewery.name,brewery.address,brewery.phone) },
 		  Map.empty,
 		  Nil,

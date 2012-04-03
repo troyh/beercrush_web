@@ -134,7 +134,7 @@ object Application extends Controller {
 			case None => NotFound
 			case Some(brewery) => {
 				responseFormat match {
-					case HTML => Ok(views.html.brewery(brewery,new BreweryForm(Some(brewery.id)).fill(brewery)))
+					case HTML => Ok(views.html.brewery(brewery,new BreweryForm().fill(brewery)))
 					case XML  => Ok(brewery.toXML)
 					case JSON  => Ok(Json.toJson(brewery.toJSON))
 				}
@@ -270,7 +270,7 @@ object Application extends Controller {
 			  }
 
 			  // Save the doc
-			  BeerCrush.save(beer.copy(beerId=beerId))
+			  BeerCrush.save(beer.copy(id=beerId))
 
 			  future { indexDoc(beer,Some(beer.id)) } // Index in Solr
 
@@ -286,7 +286,7 @@ object Application extends Controller {
   def newBrewery = editBrewery(None)
 
   def editBrewery(breweryId: Option[BreweryId]) = Action { implicit request =>
-	  val f=new BreweryForm(breweryId)
+	  val f=new BreweryForm
 	  f.bindFromRequest.fold(
 		  errors => {
 			  val brewery: Option[Brewery] = breweryId.map{Brewery(_)}.getOrElse(None)

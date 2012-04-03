@@ -7,17 +7,13 @@ import scalaj.collection.Imports._
 import scala.xml._
 
 case class Brewery(
-	breweryId:	Option[BreweryId],
+	val id:	BreweryId,
 	val name: 	String,
 	val address: Address,
 	val phone:	Option[String]
 ) extends XmlFormat with JsonFormat {
-	def id=breweryId.get
-	def descriptiveNameForId = name
-	val ctime=None
-	def dupe(id:Id,ctime:java.util.Date) = this.copy(breweryId=Some(BreweryId(id))) // TODO: add ctime
 	
-	lazy val pageURL = { "/" + breweryId.getOrElse("") }
+	lazy val pageURL = { "/" + id }
 	def beerList: Seq[Beer] = {
 		val parameters=new org.apache.solr.client.solrj.SolrQuery()
 		parameters.set("q","doctype:beer AND brewery:" + id)
@@ -30,7 +26,7 @@ case class Brewery(
 
 	import SuperNode._
 	def transform(nodes: NodeSeq): NodeSeq = for (node <- nodes) yield node match {
-		case b @ <brewery>{_*}</brewery> => b.asInstanceOf[Elem] % Attribute("","id",breweryId.get.toString,Null) copy(child=for (k <- b.withMissingChildElements(Seq("name","vcard","phone")).child) yield k match {
+		case b @ <brewery>{_*}</brewery> => b.asInstanceOf[Elem] % Attribute("","id",id.toString,Null) copy(child=for (k <- b.withMissingChildElements(Seq("name","vcard","phone")).child) yield k match {
 			case <id>{_*}</id>           => <id/> // Deletes it on Storage.save()
 			case <name>{_*}</name> 	     => k.asInstanceOf[Elem].copy(child=Text(name))
 			case <address>{_*}</address> => <address/> // Deletes it on Storage.save()
@@ -53,17 +49,22 @@ case class Brewery(
 object Brewery {
 	def apply(id:BreweryId): Option[Brewery] = {
 		try {
-			val xml=scala.xml.XML.loadFile("/Users/troy/beerdata/brewery/" + id + ".xml")
-			val address=(xml \ "vcard" \ "adr") match {
-				case vcard:NodeSeq if (vcard.length > 0)=> vcard.head
-				case _ => (xml \ "address").head
+			val xml=scala.xml.XML.loadFile(BeerCrush.datadir + "/brewery/" + id + ".xml")
+			(xml \ "@id").headOption.map{s => BreweryId(s.text)} match {
+				case None => None
+				case Some(breweryId: BreweryId) if (id == breweryId) => {
+					val address=(xml \ "vcard" \ "adr") match {
+						case vcard:NodeSeq if (vcard.length > 0)=> vcard.head
+						case _ => (xml \ "address").head
+					}
+					Some(Brewery(
+						id,
+						(xml \ "name").text,
+						Address.fromXML(address),
+						(xml \ "phone").headOption.map{_.text}
+					))
+				}
 			}
-			Some(Brewery(
-				(xml \ "@id").headOption.map{_.text},
-				(xml \ "name").text,
-				Address.fromXML(address),
-				(xml \ "phone").headOption.map{_.text}
-			))
 		}
 		catch {
 			case _ => None
