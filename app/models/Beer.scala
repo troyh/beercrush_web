@@ -75,12 +75,12 @@ case class Beer(
 
 	def toJSON = JsObject(
 		(
-		  Some("id" -> JsString(id)) ::
-		  brewery.map{b => "brewery" -> JsString(b.id)} ::
+		  Some("id" -> JsString(id.toString)) ::
+		  brewery.map{b => "brewery" -> JsString(b.id.toString)} ::
 		  Some("name" -> JsString(name)) ::
 		  description.map{"description" -> JsString(_)} ::
 		  styles.map{ss => "styles" -> JsArray(ss.map(id => JsObject(List(
-			  "id" -> JsString(id)
+			  "id" -> JsString(id.toString)
 		  ))))} ::
 		  abv.map{"abv" -> JsNumber(_)} ::
 		  ibu.map{"ibu" -> JsNumber(_)} ::
@@ -105,7 +105,7 @@ object Beer {
 				yeast       = (xml \ "yeast"      ).flatMap(e => Seq((e \ "text").text.trim) ++ Seq(e.text.trim)).filter(_.length > 0).headOption,
 				otherings   = (xml \ "otherings"  ).flatMap(e => Seq((e \ "text").text.trim) ++ Seq(e.text.trim)).filter(_.length > 0).headOption,
 				styles = Some((xml \ "styles"     ).map( style => 
-					new StyleId(Some(style \ "style" \ "bjcp_style_id" text))
+					new StyleId(style \ "style" \ "bjcp_style_id" text)
 				).toList)
 			))
 		}

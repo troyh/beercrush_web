@@ -7,13 +7,14 @@ import scala.annotation._
 import play.api.libs.json._
 import scala.xml.{Attribute, Null, Elem}
 
-case class StyleId(styleId: Option[String]) extends Id(styleId) {
+case class StyleId(styleId: String) extends Id(styleId) {
 	def fileLocation = StyleId.fileLocation
 }
 
 object StyleId {
-	implicit def string2StyleId(s: String) = new StyleId(Some(s))
+	implicit def string2StyleId(s: String) = StyleId(s)
 	def fileLocation = BeerCrush.datadir + "/beerstyles.xml"
+	object Undefined extends StyleId("")
 }
 
 case class BeerStyle(
@@ -59,7 +60,7 @@ case class BeerStyle(
 	}
 
 	def toJSON = JsObject((
-		"id" -> JsString(styleId) ::
+		"id" -> JsString(styleId.toString) ::
 		"name" -> JsString(name) ::
 		Nil
 	))
@@ -72,10 +73,10 @@ object BeerStyle {
 
 	import SuperNode._
 	def fromExisting(id: StyleId): Option[BeerStyle] = id match {
-		case styleId: StyleId if (styleId.styleId.get.isEmpty) => Some(BeerStyle(
-			styleId=""
+		case StyleId.Undefined => Some(BeerStyle(
+			styleId=StyleId.Undefined
 			,name="Beer"
-			,substyles  =beerStylesXML.child.map(_.attribute("id").map(n => StyleId(Some(n.text))))
+			,substyles  =beerStylesXML.child.map(_.attribute("id").map(n => StyleId(n.text)))
 		))
 		case styleId: StyleId => {
 			beerStylesXML \\ "style" find { _.attribute("id").getOrElse("") .toString == id.toString } match { 
@@ -83,7 +84,7 @@ object BeerStyle {
 				case Some(node) => node.attribute("id") match {
 					case None => None
 					case Some(id) => Some(BeerStyle(
-						styleId=id.text
+						styleId=StyleId(id.text)
 						,name=node.attribute("name").get.text
 						,abv= (node.attribute("ABVlo"), node.attribute("ABVhi")) match {
 							case (Some(lo),Some(hi)) => Some(Range.Double.inclusive(lo.head.text.toDouble, hi.head.text.toDouble, 0.01))
@@ -106,8 +107,8 @@ object BeerStyle {
 							case _ => None
 						}
 						,origin=node.attribute("origin").map(_.text)
-						,superstyles=node.getAncestors(beerStylesXML).map(_.attribute("id").map(n => StyleId(Some(n.text))))
-						,substyles  =node.child.map(_.attribute("id").map(n => StyleId(Some(n.text))))
+						,superstyles=node.getAncestors(beerStylesXML).map(_.attribute("id").map(n => StyleId(n.text)))
+						,substyles  =node.child.map(_.attribute("id").map(n => StyleId(n.text)))
 					))
 				}
 			}

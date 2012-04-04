@@ -22,7 +22,7 @@
 			<p>IBUs:@beer.ibu</p>
 		</div>
 		
-		@form(action = routes.Application.addBeerPhoto(beer.id), 'enctype -> "multipart/form-data") {
+		@form(action = routes.Application.addBeerPhoto(beer.id.toString), 'enctype -> "multipart/form-data") {
 		<input type="file" name="photo" />
 		<input type="submit" value="Upload" />
 		}
@@ -83,7 +83,7 @@
 		@if(beer.isDefined) {
 		<div id="reviewForm">
 			<h2>Post a Review</h2>
-		@form(action = routes.Application.newBeerReview(beer.get.id) ) {
+		@form(action = routes.Application.newBeerReview(beer.get.id.toString) ) {
 			@inputRadioGroup(
 				reviewForm("rating"),
 				options=((1 to 5).map{ n => n.toString -> n.toString }),

@@ -63,6 +63,7 @@ object BeerCrush {
 
 	// def save(item: XmlFormat): Unit = {
 	def save(item: { def toXML: NodeSeq; def id: Id; def transform(nodes: NodeSeq): NodeSeq } ): Unit = {
+		assert(item.id.isDefined)
 		
 		/* Make the necessary directories to store the document */
 		BeerCrush.mkpath(item.id.fileLocation)
@@ -87,8 +88,9 @@ object BeerCrush {
 	
 }
 
-abstract class Id(val id: Option[String]) {
-	override def toString = id.getOrElse("")
+abstract class Id(val id: String) {
+	override def toString = id
+	def isDefined: Boolean = id.length > 0
 	
 	def fileLocation: String
 	// def directoryPath = this match {
@@ -98,20 +100,16 @@ abstract class Id(val id: Option[String]) {
 	// 	case _: ReviewId  => BeerCrush.datadir + "/beer/" +
 	// 	// case _: StyleId   => BeerCrush.datadir + "/beerstyles.xml"
 	// }
+}
 
-}
-object Id {
-	implicit def id2string(id: Id):String = id.id.get
-	// implicit def string2id(id: String) = new Id(Some(id))
-	// implicit def oid2string(id: Option[Id]): String = id.toString
-}
-	
-case class BreweryId(breweryId: String) extends Id(Some(breweryId)) {
+case class BreweryId(breweryId: String) extends Id(breweryId) {
 	// TODO: verify the id looks like a brewery id
 	lazy val pageURL = { "/" + id }
 	def fileLocation = BeerCrush.datadir + "/brewery/" + breweryId.toString
 }
+
 object BreweryId {
+	object Undefined extends BreweryId("")
 	implicit def string2id(s: String): BreweryId = { new BreweryId(s) }
 	implicit def string2oid(id: String): Option[BreweryId] = Some(new BreweryId(id))
 
@@ -119,12 +117,13 @@ object BreweryId {
 		BreweryId(BeerCrush.newUniqueFilename(BeerCrush.datadir + "/brewery/",breweryName))
 }
 
-case class BeerId(beerId: String) extends Id(Some(beerId)) {
+case class BeerId(beerId: String) extends Id(beerId) {
 	// TODO: verify the id looks like a beer id
-	def breweryId: BreweryId = id.get.split('/').head
-	def fileLocation = BeerCrush.datadir + "/beer/" + id.get + ".xml"
+	def breweryId: BreweryId = id.split('/').head
+	def fileLocation = BeerCrush.datadir + "/beer/" + id + ".xml"
 }
 object BeerId {
+	object Undefined extends BeerId("")
 	implicit def string2id(s: String): BeerId = { new BeerId(s) }
 	implicit def string2oid(id: String): Option[BeerId] = Some(new BeerId(id))
 	implicit def string2Either(id: String): Either[BreweryId,BeerId] = id.split("/") match {

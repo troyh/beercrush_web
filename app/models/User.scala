@@ -4,11 +4,12 @@ import BeerCrush._
 import play.api.libs.json._
 import scala.xml._
 
-class UserId(id: String) extends Id(Some(id)) {
+class UserId(id: String) extends Id(id) {
 	def fileLocation = BeerCrush.datadir + "/user/" + id + ".xml"
 }
 object UserId {
 	implicit def string2id(id: String): UserId = new UserId(id)
+	object Undefined extends UserId("")
 }
 
 /**
@@ -21,16 +22,16 @@ object UserId {
   * @param aboutme Descriptive text about the user
   */
 case class User(
-  userId: UserId,
+  id: UserId,
   val ctime: Option[java.util.Date],
   val password: String,
   val name: String,
   val aboutme: String
 ) extends XmlFormat with JsonFormat {
 	lazy val pageURL = "/user/" + id
-	def id=userId
-	lazy val descriptiveNameForId = name
-	def dupe(id:Id,ctime:java.util.Date) = this.copy(userId=new UserId(id),ctime=Some(ctime))
+	// def id=userId
+	// lazy val descriptiveNameForId = name
+	// def dupe(id:Id,ctime:java.util.Date) = this.copy(userId=new UserId(id),ctime=Some(ctime))
 	
 	def toJSON: JsObject = JsObject(
 		(
@@ -46,7 +47,7 @@ case class User(
 	def transform(nodes: NodeSeq): NodeSeq = for (n <- nodes) yield n match {
 		case u @ <user>{_*}</user> => 
 			u.asInstanceOf[Elem] % 
-				Attribute("","id",userId.toString,Null) % 
+				Attribute("","id",id.toString,Null) % 
 				Attribute("","ctime",new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).format(ctime.getOrElse(new java.util.Date)),Null) copy(
 			child=(for (k <- u.withMissingChildElements(Seq("name","password","aboutme")).child) yield k match {
 				case <name>{_*}</name> => <name>{name}</name>

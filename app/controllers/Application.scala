@@ -445,7 +445,7 @@ object Application extends Controller {
 			  }
 		  },
 		  user => {
-			  val session=request.session + ("username" -> user.id) + ("name" -> user.name)
+			  val session=request.session + ("username" -> user.id.toString) + ("name" -> user.name)
 			  responseFormat match {
 				  case HTML => Redirect(routes.Application.index).withSession(session)
 				  case XML  => Ok.withSession(session)
@@ -470,7 +470,7 @@ object Application extends Controller {
 				}
 			},
 			newUser => { // Handle successful form submission
-				val session=request.session + ("username" -> newUser.id) + ("name" -> newUser.name)
+				val session=request.session + ("username" -> newUser.id.toString) + ("name" -> newUser.name)
 				  
 				// Create the account and then display it to the user
 				BeerCrush.save(newUser)
@@ -478,7 +478,7 @@ object Application extends Controller {
 				future { indexDoc(newUser,Some(newUser.id)) } // Index in Solr
 
 				responseFormat match {
-				  case HTML => Redirect(routes.Application.showUser(newUser.id)).withSession(session)
+				  case HTML => Redirect(routes.Application.showUser(newUser.id.toString)).withSession(session)
 				  case XML  => Ok.withSession(session)
 				  case JSON  => Ok.withSession(session)
 			  }
@@ -519,7 +519,7 @@ object Application extends Controller {
 					  }
 		  		  },
 		  	      user => { // Handle successful form submission
-		  				val session=request.session + ("username" -> user.id) + ("name" -> user.name)
+		  				val session=request.session + ("username" -> user.id.toString) + ("name" -> user.name)
 
 						// Make a new User object as a merging of the submitted form's User and an existing User (if any)
 						val userToSave=User.findUser(username) match {
@@ -566,7 +566,7 @@ object Application extends Controller {
 
 		def outputSubstylesXML(style: BeerStyle): scala.xml.NodeSeq = {
 			style.substyles.flatMap({
-				case Some(id) => BeerStyle.fromExisting(StyleId(Some(id))) match {
+				case Some(id) => BeerStyle.fromExisting(StyleId(id.toString)) match {
 					case Some(style: BeerStyle) => style.transform(<style>{outputSubstylesXML(style)}</style>)
 					case None => scala.xml.Text("")
 				}
@@ -574,7 +574,7 @@ object Application extends Controller {
 			})
 		}
 		
-		BeerStyle.fromExisting(StyleId(Some(""))) match {
+		BeerStyle.fromExisting(StyleId.Undefined) match {
 			case None => NotFound
 			case Some(rootStyle) => responseFormat match {
 				case HTML => Ok(views.html.beerstyles(rootStyle))

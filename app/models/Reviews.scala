@@ -5,14 +5,14 @@ import play.api.libs.json._
 import play.api._
 import scala.xml.{NodeSeq, Node, Attribute, Null, Elem, Text}
 
-case class ReviewId(reviewid: String) extends Id(Some(reviewid)) {
+case class ReviewId(reviewid: String) extends Id(reviewid) {
 	def setUser(username: String) = {
-		this.copy(reviewid=id.get.split("/") match {
+		this.copy(reviewid=id.split("/") match {
 			case Array(brewery,beer,_,_*) => brewery + "/" + beer + "/review/" + username
 		}
 		)
 	}
-	def isComplete: Boolean = id.isDefined && id.get.split("/").length==4
+	def isComplete: Boolean = id.split("/").length==4
 	def fileLocation = BeerCrush.datadir + "/beer/" + reviewid + ".xml"
 }
 
@@ -102,7 +102,7 @@ case class BeerReview(
 	))
 	
 	lazy val maybeBeer: Option[Beer] = Beer(ReviewId.beerIdFromReviewId(id))
-	lazy val maybeUser: Option[User] = User.findUser(ReviewId.userIdFromReviewId(id))
+	lazy val maybeUser: Option[User] = User.findUser(ReviewId.userIdFromReviewId(id).toString)
 }
 
 object BeerReview {

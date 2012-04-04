@@ -6,7 +6,7 @@
 	
 	<a href="/user/@userId">My public page</a>
 	
-	@helper.form(action = routes.Application.editUser(userId)) {
+	@helper.form(action = routes.Application.editUser(userId.toString)) {
 		@helper.inputText(
 			userForm("name"),
 			'_label -> "Name",

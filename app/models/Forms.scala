@@ -11,8 +11,8 @@ class LoginForm extends Form[User](
 	  "password" -> nonEmptyText
   )
   { (username,password) => User.findUser(username).get }
-  { user => Some(user.id,user.password)}.verifying( user => {
-		  val existingUser=User.findUser(user.id)
+  { user => Some(user.id.toString,user.password)}.verifying( user => {
+		  val existingUser=User.findUser(user.id.toString)
 		  existingUser.isDefined && user.password==existingUser.get.password
   }),
   Map.empty,
@@ -29,9 +29,9 @@ class NewUserForm extends Form[User](
 	  ).verifying("Passwords don't match", passwords => passwords._1 == passwords._2)
   )
   { (username,passwords) => new User(UserId.string2id(username),Some(new java.util.Date()),passwords._1,"","") }
-  { user => Some(user.id,(user.password,user.password))}.verifying(
+  { user => Some(user.id.toString,(user.password,user.password))}.verifying(
 	  "This username is already taken",
-	  user => !User.findUser(user.id).isDefined
+	  user => !User.findUser(user.id.toString).isDefined
   ),
   Map.empty,
   Nil,
@@ -79,7 +79,7 @@ class BeerForm extends Form[Beer](
   {
 	  (name:String,description:Option[String],abv:Option[Double],ibu:Option[Int],ingredients:Option[String],grains:Option[String],hops:Option[String],yeast:Option[String],otherings:Option[String],styles:Option[List[String]]) => {
 		  Beer(
-			  id = "",
+			  id = BeerId.Undefined,
 			  name = name,
 			  description = description,
 			  abv = abv,
@@ -89,7 +89,7 @@ class BeerForm extends Form[Beer](
 			  hops = hops,
 			  yeast = yeast,
 			  otherings = otherings,
-			  styles = styles.map{_.map(s => StyleId(Some(s)))}
+			  styles = styles.map{_.map(s => StyleId(s))}
 		  )
 	  }
   }
@@ -130,7 +130,7 @@ class BreweryForm extends Form[Brewery](
 			{ address => Some(address.street,address.city,address.state,address.zip,address.country) },
 			"phone" -> optional(text)
 			)
-		  { (name,address,phone) => Brewery("",name,address,phone)}
+		  { (name,address,phone) => Brewery(BreweryId.Undefined,name,address,phone)}
 		  { brewery => Some(brewery.name,brewery.address,brewery.phone) },
 		  Map.empty,
 		  Nil,
