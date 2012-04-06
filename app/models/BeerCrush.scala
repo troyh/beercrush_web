@@ -58,7 +58,7 @@ object BeerCrush {
 		case _: Brewery.Id => BeerCrush.datadir + "/brewery/"
 		case _: User.Id    => BeerCrush.datadir + "/user/"
 		case _: ReviewId  => BeerCrush.datadir + "/beer/"
-		// case _: BeerStyle.Id   => BeerCrush.datadir + "/beerstyles.xml"
+		case _: BeerStyle.Id   => BeerCrush.datadir + "/beerstyles.xml"
 	}
 
 	def fileLocation(id: UniqueId[_]) = id match {
@@ -66,7 +66,7 @@ object BeerCrush {
 		case _: Brewery.Id => directoryPath(id) + id.toString + ".xml"
 		case _: User.Id    => directoryPath(id) + id.toString + ".xml"
 		case _: ReviewId  => directoryPath(id) + id.toString + ".xml" // TODO: Handle Beer Reviews separately from generic ReviewIds
-		// case _: BeerStyle.Id   => BeerCrush.datadir + "/beerstyles.xml"
+		case _: BeerStyle.Id   => BeerCrush.datadir + "/beerstyles.xml"
 	}
 
 	// def save(item: XmlFormat): Unit = {
