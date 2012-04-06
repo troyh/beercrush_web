@@ -9,7 +9,7 @@
 	
 	<input type="button" value="Edit" onClick="" />
 	
-	@helper.form(action = routes.Application.editUser(if (user.id == UserId.Undefined) "+user" else user.id.toString)) {
+	@helper.form(action = routes.Application.editUser(if (user.id == User.Id.Undefined) "+user" else user.id.toString)) {
 		@helper.inputText(
 			userForm("name"),
 			'_label -> "Name",

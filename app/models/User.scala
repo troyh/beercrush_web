@@ -4,14 +4,6 @@ import BeerCrush._
 import play.api.libs.json._
 import scala.xml._
 
-class UserId(id: String) extends Id(id) {
-	def fileLocation = BeerCrush.datadir + "/user/" + id + ".xml"
-}
-object UserId {
-	implicit def string2id(id: String): UserId = new UserId(id)
-	object Undefined extends UserId("")
-}
-
 /**
   * Representation of registered users
   *
@@ -22,12 +14,13 @@ object UserId {
   * @param aboutme Descriptive text about the user
   */
 case class User(
-  id: UserId,
+  id: User.Id,
   val ctime: Option[java.util.Date],
   val password: String,
   val name: String,
   val aboutme: String
 ) extends XmlFormat with JsonFormat {
+
 	lazy val pageURL = "/user/" + id
 	// def id=userId
 	// lazy val descriptiveNameForId = name
@@ -62,7 +55,16 @@ case class User(
 }
   
 object User {
-	
+
+	case class Id(s: String) extends UniqueId(s) {
+		def fileLocation = BeerCrush.datadir + "/user/" + id + ".xml"
+	}
+
+	object Id {
+		implicit def string2id(id: String): User.Id = new User.Id(id)
+		object Undefined extends User.Id("")
+	}
+
 	private final val xmlTagUser 	 = "user"
 	private final val xmlTagUsername = "username"
 	private final val xmlTagCtime 	 = "ctime"
@@ -88,7 +90,7 @@ object User {
 			}
 			  
 			Some(new User(
-				new UserId((xml \ xmlTagUsername).headOption.map{s => s.text}.getOrElse(username)),
+				User.Id((xml \ xmlTagUsername).headOption.map{s => s.text}.getOrElse(username)),
 				Some(ctime),
 				(xml \ xmlTagPassword).text,
 				(xml \ xmlTagName    ).text,

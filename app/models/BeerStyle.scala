@@ -7,18 +7,13 @@ import scala.annotation._
 import play.api.libs.json._
 import scala.xml.{Attribute, Null, Elem}
 
-case class StyleId(styleId: String) extends Id(styleId) {
-	def fileLocation = StyleId.fileLocation
-}
+// case class StyleId(styleId: String) extends Id[String](styleId) {
+// 	def fileLocation = StyleId.fileLocation
+// }
 
-object StyleId {
-	implicit def string2StyleId(s: String) = StyleId(s)
-	def fileLocation = BeerCrush.datadir + "/beerstyles.xml"
-	object Undefined extends StyleId("")
-}
 
 case class BeerStyle(
-	val styleId: StyleId, 
+	val styleId: BeerStyle.Id, 
 	val name: String,
 	val abv: Option[NumericRange[Double]] = None,
 	val ibu: Option[NumericRange.Inclusive[Int]] = None,
@@ -26,11 +21,11 @@ case class BeerStyle(
 	val fg : Option[NumericRange[Double]] = None,
 	val srm: Option[NumericRange.Inclusive[Int]] = None,
 	val origin: Option[String] = None,
-	val superstyles: Seq[Option[StyleId]] = Seq(),
-	val substyles: Seq[Option[StyleId]] = Seq()
+	val superstyles: Seq[Option[BeerStyle.Id]] = Seq(),
+	val substyles: Seq[Option[BeerStyle.Id]] = Seq()
 ) {
 	lazy val pageURL="/style/" + styleId
-	def id: Option[Id] = Some(styleId)
+	def id: Option[UniqueId[_]] = Some(styleId)
 	lazy val ctime: Option[java.util.Date] = Some(new java.util.Date())
 	def descriptiveNameForId: String = name
 	// def dupe(id:Id,ctime:java.util.Date): Saveable = {
@@ -67,24 +62,33 @@ case class BeerStyle(
 }
 
 object BeerStyle {
-	def getObjects(list: List[StyleId]): List[BeerStyle] = list.map( id => BeerStyle.fromExisting(id) ).filter(_.isDefined).map(_.get.asInstanceOf[BeerStyle])
+	class Id(s: String) extends UniqueId[String](s)
+
+	object Id {
+		implicit def string2StyleId(s: String) = new BeerStyle.Id(s)
+		def fileLocation = BeerCrush.datadir + "/beerstyles.xml"
+	}
+
+	object RootId extends Id(null)
+	
+	def getObjects(list: List[BeerStyle.Id]): List[BeerStyle] = list.map( id => BeerStyle.fromExisting(id) ).filter(_.isDefined).map(_.get.asInstanceOf[BeerStyle])
 	
 	lazy private val beerStylesXML=scala.xml.XML.loadFile(BeerCrush.datadir + "/beerstyles.xml")
 
 	import SuperNode._
-	def fromExisting(id: StyleId): Option[BeerStyle] = id match {
-		case StyleId.Undefined => Some(BeerStyle(
-			styleId=StyleId.Undefined
+	def fromExisting(id: BeerStyle.Id): Option[BeerStyle] = id match {
+		case BeerStyle.RootId => Some(BeerStyle(
+			styleId=BeerStyle.RootId
 			,name="Beer"
-			,substyles  =beerStylesXML.child.map(_.attribute("id").map(n => StyleId(n.text)))
+			,substyles  =beerStylesXML.child.map(_.attribute("id").map(n => new BeerStyle.Id(n.text)))
 		))
-		case styleId: StyleId => {
+		case styleId: BeerStyle.Id => {
 			beerStylesXML \\ "style" find { _.attribute("id").getOrElse("") .toString == id.toString } match { 
 				case None => None
 				case Some(node) => node.attribute("id") match {
 					case None => None
 					case Some(id) => Some(BeerStyle(
-						styleId=StyleId(id.text)
+						styleId=new BeerStyle.Id(id.text)
 						,name=node.attribute("name").get.text
 						,abv= (node.attribute("ABVlo"), node.attribute("ABVhi")) match {
 							case (Some(lo),Some(hi)) => Some(Range.Double.inclusive(lo.head.text.toDouble, hi.head.text.toDouble, 0.01))
@@ -107,8 +111,8 @@ object BeerStyle {
 							case _ => None
 						}
 						,origin=node.attribute("origin").map(_.text)
-						,superstyles=node.getAncestors(beerStylesXML).map(_.attribute("id").map(n => StyleId(n.text)))
-						,substyles  =node.child.map(_.attribute("id").map(n => StyleId(n.text)))
+						,superstyles=node.getAncestors(beerStylesXML).map(_.attribute("id").map(n => new BeerStyle.Id(n.text)))
+						,substyles  =node.child.map(_.attribute("id").map(n => new BeerStyle.Id(n.text)))
 					))
 				}
 			}

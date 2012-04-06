@@ -53,23 +53,31 @@ object BeerCrush {
 		)
 	}
 
-	// def fileLocation(id: Id) = id match {
-	// 	case _: BeerId    => id.directoryPath() + id.toString + ".xml"
-	// 	case _: BreweryId => id.directoryPath() + id.toString + ".xml"
-	// 	case _: UserId    => id.directoryPath() + id.toString + ".xml"
-	// 	case _: ReviewId  => id.directoryPath() + id.toString + ".xml" // TODO: Handle Beer Reviews separately from generic ReviewIds
-	// 	case _: StyleId   => BeerCrush.datadir + "/beerstyles.xml"
-	// }
+	def directoryPath(id: UniqueId[_]) = id match {
+		case _: Beer.Id    => BeerCrush.datadir + "/beer/"
+		case _: Brewery.Id => BeerCrush.datadir + "/brewery/"
+		case _: User.Id    => BeerCrush.datadir + "/user/"
+		case _: ReviewId  => BeerCrush.datadir + "/beer/"
+		// case _: BeerStyle.Id   => BeerCrush.datadir + "/beerstyles.xml"
+	}
+
+	def fileLocation(id: UniqueId[_]) = id match {
+		case _: Beer.Id    => directoryPath(id) + id.toString + ".xml"
+		case _: Brewery.Id => directoryPath(id) + id.toString + ".xml"
+		case _: User.Id    => directoryPath(id) + id.toString + ".xml"
+		case _: ReviewId  => directoryPath(id) + id.toString + ".xml" // TODO: Handle Beer Reviews separately from generic ReviewIds
+		// case _: BeerStyle.Id   => BeerCrush.datadir + "/beerstyles.xml"
+	}
 
 	// def save(item: XmlFormat): Unit = {
-	def save(item: { def toXML: NodeSeq; def id: Id; def transform(nodes: NodeSeq): NodeSeq } ): Unit = {
+	def save(item: { def toXML: NodeSeq; def id: UniqueId[_]; def transform(nodes: NodeSeq): NodeSeq } ): Unit = {
 		assert(item.id.isDefined)
 		
 		/* Make the necessary directories to store the document */
-		BeerCrush.mkpath(item.id.fileLocation)
+		BeerCrush.mkpath(fileLocation(item.id))
 
 		// TODO: original file may not exist, handle that.
-		val oldXML=scala.xml.XML.load(item.id.fileLocation)
+		val oldXML=scala.xml.XML.load(fileLocation(item.id))
 
 		def removeEmptyElements(ns: NodeSeq):NodeSeq = for (n <- ns) yield n match {
 			case e: Elem if (e.attributes.length == 0 && e.child.length == 0) => Text("") /* Output nothing */
@@ -80,7 +88,7 @@ object BeerCrush {
 		val newXML=removeEmptyElements(item.transform(oldXML))
 
 		val pp=new scala.xml.PrettyPrinter(80,2)
-		Path(item.id.fileLocation).write(
+		Path(fileLocation(item.id)).write(
 			"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
 			pp.formatNodes(newXML) +
 			"\n")(Codec.UTF8)
@@ -88,51 +96,17 @@ object BeerCrush {
 	
 }
 
-abstract class Id(val id: String) {
-	override def toString = id
-	def isDefined: Boolean = id.length > 0
+class UniqueId[+T](val id: T) {
+	override def toString = id.toString
+	val isDefined = true
 	
-	def fileLocation: String
-	// def directoryPath = this match {
-	// 	case _: BeerId    => BeerCrush.datadir + "/beer/" +
-	// 	case _: BreweryId => BeerCrush.datadir + "/brewery/"
-	// 	case _: UserId    => BeerCrush.datadir + "/user/"
-	// 	case _: ReviewId  => BeerCrush.datadir + "/beer/" +
-	// 	// case _: StyleId   => BeerCrush.datadir + "/beerstyles.xml"
-	// }
+	// def fileLocation: String
+	
 }
 
-case class BreweryId(breweryId: String) extends Id(breweryId) {
-	// TODO: verify the id looks like a brewery id
-	lazy val pageURL = { "/" + id }
-	def fileLocation = BeerCrush.datadir + "/brewery/" + breweryId.toString
-}
-
-object BreweryId {
-	object Undefined extends BreweryId("")
-	implicit def string2id(s: String): BreweryId = { new BreweryId(s) }
-	implicit def string2oid(id: String): Option[BreweryId] = Some(new BreweryId(id))
-
-	def newUniqueId(breweryName: String): BreweryId = 
-		BreweryId(BeerCrush.newUniqueFilename(BeerCrush.datadir + "/brewery/",breweryName))
-}
-
-case class BeerId(beerId: String) extends Id(beerId) {
-	// TODO: verify the id looks like a beer id
-	def breweryId: BreweryId = id.split('/').head
-	def fileLocation = BeerCrush.datadir + "/beer/" + id + ".xml"
-}
-object BeerId {
-	object Undefined extends BeerId("")
-	implicit def string2id(s: String): BeerId = { new BeerId(s) }
-	implicit def string2oid(id: String): Option[BeerId] = Some(new BeerId(id))
-	implicit def string2Either(id: String): Either[BreweryId,BeerId] = id.split("/") match {
-		case arr if (arr.length == 1) => Left(new BreweryId(id))
-		case arr if (arr.length == 2) => Right(new BeerId(id))
-	}
-
-	def newUniqueId(breweryId: BreweryId, beerName: String): BeerId = 
-		BeerId(breweryId.toString + "/" + BeerCrush.newUniqueFilename(breweryId.fileLocation.stripSuffix(".xml"),beerName))
+object UndefinedId extends UniqueId[Null](null) {
+	override val isDefined = false
+	// val fileLocation = ""
 }
 
 object FormConstraints {

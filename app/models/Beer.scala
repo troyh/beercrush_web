@@ -22,7 +22,7 @@ import scala.annotation._
   * @param styles Style(s) of the beer
   */
 case class Beer(
-	val id:			BeerId,
+	val id:			Beer.Id,
 	val name: 		String,
 	val description:Option[String],
 	val abv: 		Option[Double],
@@ -32,8 +32,9 @@ case class Beer(
 	val hops:		Option[String],
 	val yeast:		Option[String],
 	val otherings:	Option[String],
-	val styles: 	Option[List[StyleId]]
+	val styles: 	Option[List[BeerStyle.Id]]
 ) extends XmlFormat with JsonFormat {
+
 	// def id=beerId
 	// val ctime: Option[java.util.Date] = None
 	// def descriptiveNameForId = name
@@ -90,7 +91,28 @@ case class Beer(
 }
 
 object Beer {
-	def apply(id: BeerId): Option[Beer] = {
+
+	case class Id(beerId: Tuple2[Brewery.Id,String]) extends UniqueId(beerId) {
+		// TODO: verify the id looks like a beer id
+		def breweryId: Brewery.Id = id._1
+		def fileLocation = BeerCrush.datadir + "/beer/" + id._1.toString + "/" + id._2 + ".xml"
+	}
+
+	object Id {
+		implicit def string2id(s: String): Beer.Id = { val p = s.split("/"); Beer.Id(p(0),p(1)) }
+		// implicit def string2oid(id: String): Option[BeerId] = Some(new BeerId(id))
+		implicit def string2Either(id: String): Either[Brewery.Id,Beer.Id] = id.split("/") match {
+			case arr if (arr.length == 1) => Left(new Brewery.Id(id))
+			case arr if (arr.length == 2) => Right(new Beer.Id(arr(0),arr(1)))
+		}
+		
+		def apply(s: String) : Beer.Id = { val p = s.split("/"); Beer.Id(p(0),p(1)) }
+
+		def newUniqueId(breweryId: Brewery.Id, beerName: String): Beer.Id = 
+			new Beer.Id(breweryId.toString, BeerCrush.newUniqueFilename(breweryId.fileLocation.stripSuffix(".xml"),beerName))
+	}
+
+	def apply(id: Beer.Id): Option[Beer] = {
 		val xml=scala.xml.XML.loadFile(id.fileLocation)
 		try {
 			Some(Beer(
@@ -105,7 +127,7 @@ object Beer {
 				yeast       = (xml \ "yeast"      ).flatMap(e => Seq((e \ "text").text.trim) ++ Seq(e.text.trim)).filter(_.length > 0).headOption,
 				otherings   = (xml \ "otherings"  ).flatMap(e => Seq((e \ "text").text.trim) ++ Seq(e.text.trim)).filter(_.length > 0).headOption,
 				styles = Some((xml \ "styles"     ).map( style => 
-					new StyleId(style \ "style" \ "bjcp_style_id" text)
+					new BeerStyle.Id(style \ "style" \ "bjcp_style_id" text)
 				).toList)
 			))
 		}
@@ -114,3 +136,4 @@ object Beer {
 		}
 	}
 }
+

@@ -31,7 +31,7 @@ import scala.actors.Futures._
 
 object Application extends Controller {
 
-	def indexDoc(doc: Any, id: Option[Id]) = {
+	def indexDoc(doc: Any, id: UniqueId[_]) = {
 		val fields: Map[String,Any] = doc match {
 			case review: BeerReview => Map(
 				"doctype" -> "beerreview",
@@ -116,7 +116,7 @@ object Application extends Controller {
 		Ok(views.html.index("Beer Crush"))
 	}
 
-	def showBeer(beerId:BeerId) = Action { implicit request => 
+	def showBeer(beerId:Beer.Id) = Action { implicit request => 
 		Beer(beerId) match {
 			case None => NotFound
 			case Some(beer) => {
@@ -129,7 +129,7 @@ object Application extends Controller {
 		}
 	}
 
-	def showBrewery(breweryId:BreweryId) = Action { implicit request =>
+	def showBrewery(breweryId:Brewery.Id) = Action { implicit request =>
 		Brewery(breweryId) match {
 			case None => NotFound
 			case Some(brewery) => {
@@ -252,9 +252,9 @@ object Application extends Controller {
   	  }
   }
 
-  def newBeer(breweryId:BreweryId) = editBeer(Left(breweryId))
+  def newBeer(breweryId:Brewery.Id) = editBeer(Left(breweryId))
 
-  def editBeer(beerOrBreweryId:Either[BreweryId,BeerId]) = Action { implicit request => 
+  def editBeer(beerOrBreweryId:Either[Brewery.Id,Beer.Id]) = Action { implicit request => 
 	  val beerForm=new BeerForm
 	  beerForm.bindFromRequest.fold(
 		  // Handle errors
@@ -265,14 +265,14 @@ object Application extends Controller {
 			  // It could either be a new beer or editing an existing beer. A BeerId or BreweryId
 			  // determines this.
 			  val beerId=beerOrBreweryId match {
-				  case Left(breweryId) => BeerId.newUniqueId(breweryId, beer.name)
+				  case Left(breweryId) => Beer.Id.newUniqueId(breweryId, beer.name)
 				  case Right(beerId) => beerId
 			  }
 
 			  // Save the doc
 			  BeerCrush.save(beer.copy(id=beerId))
 
-			  future { indexDoc(beer,Some(beer.id)) } // Index in Solr
+			  future { indexDoc(beer, beer.id) } // Index in Solr
 
 			  responseFormat match {
 				  case HTML => Ok(views.html.beer(Some(beer),beerForm.fill(beer),new BeerReviewForm(None)))
@@ -285,7 +285,7 @@ object Application extends Controller {
   
   def newBrewery = editBrewery(None)
 
-  def editBrewery(breweryId: Option[BreweryId]) = Action { implicit request =>
+  def editBrewery(breweryId: Option[Brewery.Id]) = Action { implicit request =>
 	  val f=new BreweryForm
 	  f.bindFromRequest.fold(
 		  errors => {
@@ -299,7 +299,7 @@ object Application extends Controller {
 		  brewery => {
 			  BeerCrush.save(brewery)
 
-			  future { indexDoc(brewery,Some(brewery.id)) } // Index in Solr
+			  future { indexDoc(brewery, brewery.id) } // Index in Solr
 
 			  responseFormat match {
 				  case HTML => Ok(views.html.brewery(brewery,f.fill(brewery)))
@@ -311,7 +311,7 @@ object Application extends Controller {
 	  
   }
   
-  def addBeerPhoto(beerId: BeerId) = Action { implicit request =>
+  def addBeerPhoto(beerId: Beer.Id) = Action { implicit request =>
 	  request.body.asMultipartFormData match {
 		  case Some(mfd) => { // It's multipartFormData
 			  mfd.file("photo").map( uploadedFile => {
@@ -355,7 +355,7 @@ object Application extends Controller {
 	  }
   }
   
-	def newBeerReview(beerId: BeerId) = editBeerReview(None)
+	def newBeerReview(beerId: Beer.Id) = editBeerReview(None)
 	
 	def editBeerReview(reviewId: Option[ReviewId]) = Authenticated { username =>
 		Action { implicit request => 
@@ -372,10 +372,10 @@ object Application extends Controller {
 				review => {
 					BeerCrush.save(review)
 
-					future { indexDoc(review,Some(review.id)) } // Asynchronously index the review in Solr
+					future { indexDoc(review, review.id) } // Asynchronously index the review in Solr
 
 					responseFormat match {
-						case HTML => Redirect(routes.Application.showBeerReview(review.id))
+						case HTML => Redirect(routes.Application.showBeerReview(review.id.toString))
 						case XML => Ok(review.toXML)
 						case JSON => Ok(Json.toJson(review.toJSON))
 					}
@@ -393,7 +393,7 @@ object Application extends Controller {
 		}
 	}
 	
-	def showBeerReviews(beerId: BeerId, page: Long) = Action { implicit request =>
+	def showBeerReviews(beerId: Beer.Id, page: Long) = Action { implicit request =>
 		val MAX_ROWS=20
 		val parameters=new org.apache.solr.client.solrj.SolrQuery()
 		parameters.set("q","doctype:beerreview AND beer_id:" + beerId.toString);
@@ -407,8 +407,10 @@ object Application extends Controller {
 		
 		responseFormat match {
 			case HTML => Ok(views.html.beerReviews(
-				docs.map{ r => new BeerReview(
-					Some(ReviewId(r.get("id").asInstanceOf[String]))
+				docs.map{ r => 
+					val p=r.get("id").asInstanceOf[String].split("/")
+					new BeerReview(
+						Some(ReviewId( Tuple2(Beer.Id(p(0),p(1)), User.Id(p(4)))))
 					,Some(r.get("ctime").asInstanceOf[java.util.Date])
 					,r.get("rating").asInstanceOf[Int]
 					,None
@@ -475,7 +477,7 @@ object Application extends Controller {
 				// Create the account and then display it to the user
 				BeerCrush.save(newUser)
 
-				future { indexDoc(newUser,Some(newUser.id)) } // Index in Solr
+				future { indexDoc(newUser, newUser.id) } // Index in Solr
 
 				responseFormat match {
 				  case HTML => Redirect(routes.Application.showUser(newUser.id.toString)).withSession(session)
@@ -490,7 +492,7 @@ object Application extends Controller {
 		User.findUser(userId) match {
 			case Some(user) => {
 				responseFormat match {
-				  case HTML => Ok(views.html.user(user,new UserForm(userId).fill(user)))
+				  case HTML => Ok(views.html.user(user,new UserForm(User.Id(userId)).fill(user)))
 				  case XML  => Ok(user.toXML.map { _ match { 
 					  case e @ scala.xml.Elem(prefix,"user",attribs,scope,children @ _*) => <user>{ children.map { _ match {
   						  case <password>{_*}</password> => scala.xml.Text("") // Remove the password!
@@ -509,11 +511,11 @@ object Application extends Controller {
 		Authorized(username == user) { // The user must be this user, users can only edit their own info
 			Action { implicit request =>
 
-				val accountForm=new UserForm(username)
+				val accountForm=new UserForm(User.Id(username))
 				accountForm.bindFromRequest.fold(
 		  		  errors => { // Handle errors
 					  responseFormat match {
-						  case HTML => Ok(views.html.userAccount(username,errors))
+						  case HTML => Ok(views.html.userAccount(User.Id(username),errors))
 						  case XML  => BadRequest
 						  case JSON  => BadRequest
 					  }
@@ -525,7 +527,7 @@ object Application extends Controller {
 						val userToSave=User.findUser(username) match {
 							case Some(existingUser) => {
 								new User(
-									username,
+									User.Id(username),
 									existingUser.ctime,
 									user.password match {
 										/* Not changing password; use the existing MD5 password */
@@ -538,7 +540,7 @@ object Application extends Controller {
 								)
 							}
 							case None => new User(
-								username,
+								User.Id(username),
 								Some(new java.util.Date()),
 								java.security.MessageDigest.getInstance("MD5").digest(user.password.getBytes).map("%02x".format(_)).mkString,
 								user.name,
@@ -549,7 +551,7 @@ object Application extends Controller {
 						BeerCrush.save(userToSave)
 
 						// TODO: Index in Solr
-						future { indexDoc(userToSave,Some(userToSave.id)) } // Index in Solr
+						future { indexDoc(userToSave, userToSave.id) } // Index in Solr
 				
 						responseFormat match {
 						  case HTML => Ok(views.html.user(userToSave,accountForm.fill(userToSave))).withSession(session)
@@ -566,7 +568,7 @@ object Application extends Controller {
 
 		def outputSubstylesXML(style: BeerStyle): scala.xml.NodeSeq = {
 			style.substyles.flatMap({
-				case Some(id) => BeerStyle.fromExisting(StyleId(id.toString)) match {
+				case Some(id) => BeerStyle.fromExisting(new BeerStyle.Id(id.toString)) match {
 					case Some(style: BeerStyle) => style.transform(<style>{outputSubstylesXML(style)}</style>)
 					case None => scala.xml.Text("")
 				}
@@ -574,7 +576,7 @@ object Application extends Controller {
 			})
 		}
 		
-		BeerStyle.fromExisting(StyleId.Undefined) match {
+		BeerStyle.fromExisting(BeerStyle.RootId) match {
 			case None => NotFound
 			case Some(rootStyle) => responseFormat match {
 				case HTML => Ok(views.html.beerstyles(rootStyle))
@@ -585,7 +587,7 @@ object Application extends Controller {
 		
 	}
 	
-	def showStyle(styleId: StyleId) = Action { implicit request => 
+	def showStyle(styleId: BeerStyle.Id) = Action { implicit request => 
 		BeerStyle.fromExisting(styleId) match {
 			case Some(style: BeerStyle) => responseFormat match {
 				case HTML => Ok(views.html.beerstyle(style))

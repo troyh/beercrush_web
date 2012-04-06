@@ -5,24 +5,22 @@ import play.api.libs.json._
 import play.api._
 import scala.xml.{NodeSeq, Node, Attribute, Null, Elem, Text}
 
-case class ReviewId(reviewid: String) extends Id(reviewid) {
-	def setUser(username: String) = {
-		this.copy(reviewid=id.split("/") match {
-			case Array(brewery,beer,_,_*) => brewery + "/" + beer + "/review/" + username
-		}
-		)
-	}
-	def isComplete: Boolean = id.split("/").length==4
+case class ReviewId(reviewid: (Beer.Id,User.Id)) extends UniqueId(reviewid) {
+	def setUser(username: String) = id.copy(_2 = User.Id(username))
+	def isComplete: Boolean = id._1.isDefined && id._2.isDefined
 	def fileLocation = BeerCrush.datadir + "/beer/" + reviewid + ".xml"
 }
 
 object ReviewId {
-	def fromBeerId(beerId: BeerId): ReviewId = new ReviewId(beerId.toString + "/review")
-	def beerIdFromReviewId(reviewId: ReviewId): BeerId = new BeerId(reviewId.id.get.split("/").dropRight(2).mkString("/"))
-	def userIdFromReviewId(reviewId: ReviewId): UserId = new UserId(reviewId.id.get.split("/").last)
-	implicit def string2id(s: String): ReviewId = new ReviewId(s)
-	implicit def string2oid(id: String): Option[ReviewId] = Some(new ReviewId(id))
-	implicit def id2string(id: ReviewId): String = id.id.get
+	def apply(s: String): ReviewId = s
+	// def fromBeerId(beerId: Beer.Id): ReviewId = ReviewId((beerId,UndefinedId))
+	def beerIdFromReviewId(reviewId: ReviewId): Beer.Id = reviewId.id._1
+	def userIdFromReviewId(reviewId: ReviewId): User.Id = reviewId.id._2
+	implicit def string2id(s: String): ReviewId = s.split("/") match {
+		case Array(breweryId, beerId, "review", userId) => new ReviewId(Beer.Id(breweryId,beerId),User.Id(userId))
+	}
+	implicit def string2oid(id: String): Option[ReviewId] = Some(id)
+	// implicit def id2string(id: ReviewId): String = id.id.get
 }
 
 abstract class Review {
@@ -89,7 +87,7 @@ case class BeerReview(
 	}
 	
 	def toJSON = JsObject(List(
-		"id" -> JsString(id),
+		"id" -> JsString(id.toString),
 		"ctime" -> JsString(Utility.formatDateISO8601(ctime)),
 		"rating" -> JsNumber(rating),
 		balance.map{ "balance" -> JsNumber(_) }.get,
@@ -111,7 +109,7 @@ object BeerReview {
 			val xml=scala.xml.XML.loadFile(reviewId.fileLocation)
 			
 			Some(BeerReview(
-				reviewId = Some(	  xml \ "@id"				   ).headOption.map{s=>Some(ReviewId(s.text))}.get,
+				reviewId = Some(xml \ "@id"				   ).headOption.map{s=>Some(ReviewId(s.text))}.get,
 				ctime =  	 (xml \ "ctime"				   ).headOption.map{s=>Some(new java.text.SimpleDateFormat(BeerCrush.ISO8601DateFormat).parse(s.text))}.getOrElse(None),
 				rating = 	 (xml \ "rating" \ "@value"    ).headOption.map{_.text.toInt}.getOrElse(0),
 				balance = 	 (xml \ "balance" \ "@value"   ).headOption.map{s => Some(s.text.toInt)}.getOrElse(None),
